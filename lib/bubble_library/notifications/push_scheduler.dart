@@ -361,52 +361,6 @@ class PushScheduler {
     return items.every((e) => savedMap[e.id]?.learned ?? false);
   }
 
-  static ContentItem? _pickItem({
-    required List<ContentItem> itemsSorted,
-    required ProgressState progress,
-    required Map<String, SavedContent> savedMap,
-    required PushContentMode mode,
-  }) {
-    if (itemsSorted.isEmpty) return null;
-
-    ContentItem? bySeq(int seq) {
-      final idx = itemsSorted.indexWhere((e) => e.seq == seq);
-      return idx >= 0 ? itemsSorted[idx] : null;
-    }
-
-    if (mode == PushContentMode.seq) {
-      return bySeq(progress.nextSeq) ?? itemsSorted.first;
-    }
-
-    if (mode == PushContentMode.preferSaved) {
-      return itemsSorted.firstWhere(
-        (e) =>
-            (savedMap[e.id]?.favorite ?? false) ||
-            (savedMap[e.id]?.reviewLater ?? false),
-        orElse: () => bySeq(progress.nextSeq) ?? itemsSorted.first,
-      );
-    }
-
-    if (mode == PushContentMode.preferUnlearned) {
-      return itemsSorted.firstWhere(
-        (e) => !(savedMap[e.id]?.learned ?? false),
-        orElse: () => bySeq(progress.nextSeq) ?? itemsSorted.first,
-      );
-    }
-
-    // mixNewReview
-    final r = Random();
-    if (r.nextDouble() < 0.3) {
-      return itemsSorted.firstWhere(
-        (e) =>
-            (savedMap[e.id]?.reviewLater ?? false) ||
-            (savedMap[e.id]?.favorite ?? false),
-        orElse: () => bySeq(progress.nextSeq) ?? itemsSorted.first,
-      );
-    }
-    return bySeq(progress.nextSeq) ?? itemsSorted.first;
-  }
-
   /// 按順序推播未學習的內容：從 nextSeq 起依序找第一個未學習的。
   /// 回傳 (picked, isLastInProduct)。若全部已學習則 picked 為 null。
   static (ContentItem? picked, bool isLastInProduct) _pickSequentialUnlearned({

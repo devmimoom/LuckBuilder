@@ -10,6 +10,7 @@ class ContentItem {
   final int pushOrder; // Day N
   final int seq;
   final int isPreview; // 0/1
+  final String deepAnalysis; // 深度解析（來自 Excel deepAnalysis 欄位）
 
   const ContentItem({
     required this.id,
@@ -23,6 +24,7 @@ class ContentItem {
     required this.pushOrder,
     required this.seq,
     required this.isPreview,
+    required this.deepAnalysis,
   });
 
   factory ContentItem.fromMap(String id, Map<String, dynamic> m) {
@@ -56,6 +58,7 @@ class ContentItem {
       pushOrder: pushOrderValue,
       seq: (m['seq'] ?? 0) as int,
       isPreview: isPreviewValue,
+      deepAnalysis: (m['deepAnalysis'] ?? '') as String,
     );
   }
 }

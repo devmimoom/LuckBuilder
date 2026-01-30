@@ -92,7 +92,7 @@ class ResetService {
     );
 
     if (kDebugMode) {
-      final totalDocs = snapshots.fold<int>(0, (sum, s) => sum + s.docs.length);
+      final totalDocs = snapshots.fold<int>(0, (acc, s) => acc + s.docs.length);
       debugPrint('📊 共找到 $totalDocs 个文档需要删除');
     }
 

@@ -79,7 +79,7 @@ class UnlockProductBar extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Colors.white.withOpacity(0.95),
+                          color: Colors.white.withValues(alpha:0.95),
                         ),
                   ),
                   const SizedBox(height: 6),
@@ -89,7 +89,7 @@ class UnlockProductBar extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           height: 1.25,
-                          color: Colors.white.withOpacity(0.72),
+                          color: Colors.white.withValues(alpha:0.72),
                         ),
                   ),
                   const SizedBox(height: 8),
@@ -98,9 +98,9 @@ class UnlockProductBar extends ConsumerWidget {
                     child: Text(
                       '恢復購買',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: Colors.white.withOpacity(0.70),
+                            color: Colors.white.withValues(alpha:0.70),
                             decoration: TextDecoration.underline,
-                            decorationColor: Colors.white.withOpacity(0.35),
+                            decorationColor: Colors.white.withValues(alpha:0.35),
                           ),
                     ),
                   ),
@@ -151,13 +151,13 @@ class _NeonGlassBar extends StatelessWidget {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  const Color(0xFF2FE6D6).withOpacity(0.70),
-                  const Color(0xFF25D8C8).withOpacity(0.55),
-                  const Color(0xFF1EC7B7).withOpacity(0.45),
+                  const Color(0xFF2FE6D6).withValues(alpha:0.70),
+                  const Color(0xFF25D8C8).withValues(alpha:0.55),
+                  const Color(0xFF1EC7B7).withValues(alpha:0.45),
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withOpacity(0.18),
+                color: Colors.white.withValues(alpha:0.18),
                 width: 1,
               ),
               boxShadow: [
@@ -165,7 +165,7 @@ class _NeonGlassBar extends StatelessWidget {
                   blurRadius: 18,
                   spreadRadius: 0,
                   offset: const Offset(0, 10),
-                  color: Colors.black.withOpacity(0.25),
+                  color: Colors.black.withValues(alpha:0.25),
                 ),
               ],
             ),
@@ -212,9 +212,9 @@ class _CapsuleButton extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                 decoration: BoxDecoration(
                   borderRadius: radius,
-                  color: Colors.white.withOpacity(0.16),
+                  color: Colors.white.withValues(alpha:0.16),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.20),
+                    color: Colors.white.withValues(alpha:0.20),
                     width: 1,
                   ),
                 ),
@@ -228,7 +228,7 @@ class _CapsuleButton extends StatelessWidget {
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withOpacity(0.90),
+                            Colors.white.withValues(alpha:0.90),
                           ),
                         ),
                       ),
@@ -238,7 +238,7 @@ class _CapsuleButton extends StatelessWidget {
                       text,
                       style:
                           Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: Colors.white.withOpacity(0.95),
+                                color: Colors.white.withValues(alpha:0.95),
                                 fontWeight: FontWeight.w700,
                               ),
                     ),

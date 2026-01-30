@@ -214,8 +214,8 @@ class PushProductConfigPage extends ConsumerWidget {
                           style: TextStyle(fontWeight: FontWeight.w900)),
                       RadioListTile<PushTimeMode>(
                         value: PushTimeMode.preset,
-                        groupValue: cfg.timeMode,
-                        onChanged: (v) async {
+                        groupValue: cfg.timeMode, // ignore: deprecated_member_use
+                        onChanged: (v) async { // ignore: deprecated_member_use
                           if (v == null) return;
                           final newCfg = cfg.copyWith(timeMode: v);
                           await ref
@@ -232,8 +232,8 @@ class PushProductConfigPage extends ConsumerWidget {
                         _presetSlots(ref, uid!, productId, cfg),
                       RadioListTile<PushTimeMode>(
                         value: PushTimeMode.custom,
-                        groupValue: cfg.timeMode,
-                        onChanged: (v) async {
+                        groupValue: cfg.timeMode, // ignore: deprecated_member_use
+                        onChanged: (v) async { // ignore: deprecated_member_use
                           if (v == null) return;
                           final newCfg = cfg.copyWith(timeMode: v);
                           

@@ -32,9 +32,9 @@ class ProductRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     
-    // 根據 size 決定尺寸
+    // 根據 size 決定尺寸（large 預留足夠空間給標題、副標題與 CTA，避免副標題被裁切）
     final height = switch (size) {
-      ProductRailSize.large => 210.0,
+      ProductRailSize.large => 232.0,
       ProductRailSize.medium => 190.0,
       ProductRailSize.small => 180.0,
     };

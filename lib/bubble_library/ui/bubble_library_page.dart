@@ -22,6 +22,8 @@ import '../../notifications/favorite_sentences_store.dart';
 
 enum LibraryView { purchased, wishlist, favorites, history, favoriteSentences }
 
+enum PurchasedPushFilter { all, pushing, off }
+
 class BubbleLibraryPage extends ConsumerStatefulWidget {
   const BubbleLibraryPage({super.key});
 
@@ -35,6 +37,12 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
   
   final Set<String> _selectedProductIds = {};
   int _selectedHistoryTab = 0; // 0 = 待學習, 1 = 已學習
+
+  // 已購買清單篩選狀態
+  final Set<String> _purchasedTopicIds = {};
+  final Set<String> _purchasedLevels = {};
+  PurchasedPushFilter _purchasedPushFilter = PurchasedPushFilter.all;
+  String _purchasedSearchQuery = '';
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +63,12 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     final scheduledAsync = ref.watch(scheduledCacheProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('泡泡庫'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_active_outlined),
@@ -108,69 +120,80 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
   }
 
   Widget _buildDrawer() {
+    final tokens = context.tokens;
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-            ),
-            child: const Text(
-              '泡泡庫',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topRight: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: tokens.bgGradient,
+            color: tokens.bgGradient == null ? tokens.bg : null,
+          ),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 48, 24, 20),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: tokens.cardBorder, width: 1),
+                  ),
+                ),
+                child: Text(
+                  '泡泡庫',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: tokens.textPrimary,
+                  ),
+                ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  children: [
+                    _drawerTile(tokens, LibraryView.purchased, Icons.inventory_2, '已購買產品'),
+                    _drawerTile(tokens, LibraryView.wishlist, Icons.bookmark_border, '未購買收藏'),
+                    _drawerTile(tokens, LibraryView.favorites, Icons.star_border, '我的最愛'),
+                    _drawerTile(tokens, LibraryView.history, Icons.history_edu, '學習歷史'),
+                    _drawerTile(tokens, LibraryView.favoriteSentences, Icons.format_quote, '收藏今日一句'),
+                  ],
+                ),
+              ),
+            ],
           ),
-          ListTile(
-            leading: const Icon(Icons.inventory_2),
-            title: const Text('已購買產品'),
-            selected: currentView == LibraryView.purchased,
-            onTap: () {
-              Navigator.pop(context);
-              setState(() => currentView = LibraryView.purchased);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.bookmark_border),
-            title: const Text('未購買收藏'),
-            selected: currentView == LibraryView.wishlist,
-            onTap: () {
-              Navigator.pop(context);
-              setState(() => currentView = LibraryView.wishlist);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.star_border),
-            title: const Text('我的最愛'),
-            selected: currentView == LibraryView.favorites,
-            onTap: () {
-              Navigator.pop(context);
-              setState(() => currentView = LibraryView.favorites);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.history_edu),
-            title: const Text('學習歷史'),
-            selected: currentView == LibraryView.history,
-            onTap: () {
-              Navigator.pop(context);
-              setState(() => currentView = LibraryView.history);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.format_quote),
-            title: const Text('收藏今日一句'),
-            selected: currentView == LibraryView.favoriteSentences,
-            onTap: () {
-              Navigator.pop(context);
-              setState(() => currentView = LibraryView.favoriteSentences);
-            },
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  ListTile _drawerTile(AppTokens tokens, LibraryView view, IconData icon, String title) {
+    final selected = currentView == view;
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: selected ? tokens.primary : tokens.textSecondary,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: selected ? tokens.primary : tokens.textPrimary,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      selected: selected,
+      selectedTileColor: tokens.primary.withValues(alpha: 0.15),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      onTap: () {
+        Navigator.pop(context);
+        setState(() => currentView = view);
+      },
     );
   }
 
@@ -248,13 +271,63 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
         ),
       );
     }
-    visibleLib.sort((a, b) => b.purchasedAt.compareTo(a.purchasedAt));
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: visibleLib.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (ctx, i) {
-        final lp = visibleLib[i];
+
+    // 套用篩選：主題、等級、推播狀態、關鍵字
+    final filtered = visibleLib.where((e) {
+      final lp = e as UserLibraryProduct;
+      final product = productsMap[lp.productId];
+      if (product == null) return false;
+      if (_purchasedTopicIds.isNotEmpty &&
+          !_purchasedTopicIds.contains(product.topicId)) return false;
+      if (_purchasedLevels.isNotEmpty &&
+          !_purchasedLevels.contains(product.level)) return false;
+      if (_purchasedPushFilter == PurchasedPushFilter.pushing &&
+          !lp.pushEnabled) return false;
+      if (_purchasedPushFilter == PurchasedPushFilter.off &&
+          lp.pushEnabled) return false;
+      final q = _purchasedSearchQuery.trim();
+      if (q.isNotEmpty &&
+          !product.title.toLowerCase().contains(q.toLowerCase())) return false;
+      return true;
+    }).toList();
+
+    filtered.sort((a, b) =>
+        (b as UserLibraryProduct).purchasedAt.compareTo((a as UserLibraryProduct).purchasedAt));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildPurchasedFilterBar(visibleLib, productsMap),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.filter_list_off,
+                          size: 48,
+                          color: tokens.textSecondary.withValues(alpha: 0.5)),
+                      const SizedBox(height: 12),
+                      Text(
+                        '沒有符合條件的已購買商品',
+                        style: TextStyle(
+                            color: tokens.textPrimary, fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '試試調整篩選條件或清除篩選',
+                        style: TextStyle(
+                            color: tokens.textSecondary, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (ctx, i) {
+                    final lp = filtered[i] as UserLibraryProduct;
         final product = productsMap[lp.productId]!;
         final tokens = ctx.tokens;
         final entry = nextEntryFor(lp.productId);
@@ -345,6 +418,213 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           },
         );
       },
+    ),
+        ),
+      ],
+    );
+  }
+
+  /// 已購買清單篩選列：推播狀態、主題、等級、關鍵字；樣式使用 context.tokens
+  Widget _buildPurchasedFilterBar(
+    List<dynamic> visibleLib,
+    Map<String, Product> productsMap,
+  ) {
+    final tokens = context.tokens;
+    final topicIds = <String>{};
+    final levels = <String>{};
+    for (final e in visibleLib) {
+      final lp = e as UserLibraryProduct;
+      final product = productsMap[lp.productId];
+      if (product != null) {
+        topicIds.add(product.topicId);
+        levels.add(product.level);
+      }
+    }
+    final topicList = topicIds.toList()..sort();
+    final levelList = levels.toList()..sort();
+
+    final hasActiveFilter = _purchasedTopicIds.isNotEmpty ||
+        _purchasedLevels.isNotEmpty ||
+        _purchasedPushFilter != PurchasedPushFilter.all ||
+        _purchasedSearchQuery.trim().isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      color: tokens.bg,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 推播狀態：三選一
+          Row(
+            children: [
+              _purchasedPushChip(
+                tokens,
+                PurchasedPushFilter.all,
+                '全部',
+              ),
+              const SizedBox(width: 8),
+              _purchasedPushChip(
+                tokens,
+                PurchasedPushFilter.pushing,
+                '推播中',
+              ),
+              const SizedBox(width: 8),
+              _purchasedPushChip(
+                tokens,
+                PurchasedPushFilter.off,
+                '已關閉',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // 主題、等級 Chip 多選（橫向捲動）
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '主題：',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                ...topicList.map((tid) {
+                  final selected = _purchasedTopicIds.contains(tid);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(tid),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() {
+                          if (_purchasedTopicIds.contains(tid)) {
+                            _purchasedTopicIds.remove(tid);
+                          } else {
+                            _purchasedTopicIds.add(tid);
+                          }
+                        });
+                      },
+                      selectedColor: tokens.primary.withValues(alpha: 0.2),
+                      checkmarkColor: tokens.primary,
+                      side: BorderSide(
+                        color: selected
+                            ? tokens.primary
+                            : tokens.cardBorder,
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(width: 12),
+                Text(
+                  '等級：',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                ...levelList.map((lv) {
+                  final selected = _purchasedLevels.contains(lv);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(lv),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() {
+                          if (_purchasedLevels.contains(lv)) {
+                            _purchasedLevels.remove(lv);
+                          } else {
+                            _purchasedLevels.add(lv);
+                          }
+                        });
+                      },
+                      selectedColor: tokens.primary.withValues(alpha: 0.2),
+                      checkmarkColor: tokens.primary,
+                      side: BorderSide(
+                        color: selected
+                            ? tokens.primary
+                            : tokens.cardBorder,
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // 關鍵字
+          TextField(
+            decoration: InputDecoration(
+              hintText: '搜尋產品標題',
+              hintStyle: TextStyle(color: tokens.textSecondary),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(color: tokens.cardBorder),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+            ),
+            style: TextStyle(color: tokens.textPrimary),
+            onChanged: (v) => setState(() => _purchasedSearchQuery = v),
+          ),
+          if (hasActiveFilter) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _purchasedTopicIds.clear();
+                  _purchasedLevels.clear();
+                  _purchasedPushFilter = PurchasedPushFilter.all;
+                  _purchasedSearchQuery = '';
+                });
+              },
+              child: Text(
+                '清除篩選',
+                style: TextStyle(color: tokens.primary),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _purchasedPushChip(
+    AppTokens tokens,
+    PurchasedPushFilter value,
+    String label,
+  ) {
+    final selected = _purchasedPushFilter == value;
+    return GestureDetector(
+      onTap: () =>
+          setState(() => _purchasedPushFilter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? tokens.primary.withValues(alpha: 0.2)
+              : tokens.chipBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? tokens.primary : tokens.cardBorder,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? tokens.primary : tokens.textPrimary,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
+      ),
     );
   }
 
@@ -602,9 +882,10 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
+                  final tokens = context.tokens;
                   return Center(
                     child: Text('載入錯誤: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.red)),
+                        style: TextStyle(color: tokens.textSecondary)),
                   );
                 }
 
@@ -808,38 +1089,40 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
   }
 
   // Tab Chip 組件
-  Widget _buildTabChip({
+  Widget _buildTabChip(
+    BuildContext context, {
     required String label,
     required IconData icon,
     required Color color,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final tokens = context.tokens;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected 
-            ? color.withValues(alpha: 0.2) 
-            : Colors.transparent,
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : tokens.cardBg.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+            color: isSelected ? color : tokens.cardBorder,
             width: 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: isSelected ? color : Colors.grey),
+            Icon(icon, size: 18, color: isSelected ? color : tokens.textSecondary),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? color : Colors.grey,
+                color: isSelected ? color : tokens.textSecondary,
               ),
             ),
           ],
@@ -857,26 +1140,29 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
       data: (productsMap) {
         return savedAsync.when(
           data: (savedMap) {
+            final tokens = context.tokens;
             return Container(
               padding: const EdgeInsets.all(12),
-              color: Colors.transparent,
+              color: tokens.bg,
               child: Column(
                 children: [
                   // Tab 切換器
                   Row(
                     children: [
                       _buildTabChip(
+                        context,
                         label: '待學習',
                         icon: Icons.schedule,
-                        color: Colors.orange,
+                        color: tokens.primary,
                         isSelected: _selectedHistoryTab == 0,
                         onTap: () => setState(() => _selectedHistoryTab = 0),
                       ),
                       const SizedBox(width: 8),
                       _buildTabChip(
+                        context,
                         label: '已學習',
                         icon: Icons.check_circle,
-                        color: Colors.green,
+                        color: tokens.primary,
                         isSelected: _selectedHistoryTab == 1,
                         onTap: () => setState(() => _selectedHistoryTab = 1),
                       ),
@@ -1057,7 +1343,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
         padding: const EdgeInsets.only(bottom: 10),
         child: BubbleCard(
           child: Text('載入錯誤: $e',
-              style: const TextStyle(color: Colors.red)),
+              style: TextStyle(color: context.tokens.textSecondary)),
         ),
       ),
     );
@@ -1130,8 +1416,8 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                             : Icons.schedule, // 待學習=時鐘圖示，已學習=勾選圖示
                         size: 16,
                         color: isLearned
-                            ? Colors.green
-                            : Colors.orange, // 待學習=橙色，已學習=綠色
+                            ? tokens.primary
+                            : tokens.textSecondary,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -1156,7 +1442,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         size: 16,
                         color: isLearned
                             ? tokens.textSecondary
-                            : Colors.green,
+                            : tokens.primary,
                       ),
                       label: Text(
                         isLearned ? '標記待學習' : '標記已學習',
@@ -1164,7 +1450,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                           fontSize: 12,
                           color: isLearned
                               ? tokens.textSecondary
-                              : Colors.green,
+                              : tokens.primary,
                         ),
                       ),
                       onPressed: () async {
@@ -1221,7 +1507,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         : tokens.cardBorder.withValues(alpha: 0.4), // 待學習：淺色
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isLearned ? Colors.green : Colors.orange,
+                      color: isLearned ? tokens.primary : tokens.textSecondary,
                       width: 1,
                     ),
                   ),
@@ -1231,7 +1517,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                       Icon(
                         isLearned ? Icons.check_circle : Icons.schedule,
                         size: 12,
-                        color: isLearned ? Colors.green : Colors.orange,
+                        color: isLearned ? tokens.primary : tokens.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -1239,7 +1525,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: isLearned ? Colors.green : Colors.orange,
+                          color: isLearned ? tokens.primary : tokens.textSecondary,
                         ),
                       ),
                     ],
@@ -1303,33 +1589,35 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
             }
 
             if (snapshot.hasError) {
+              final tokens = context.tokens;
               return Center(
                 child: Text('載入錯誤: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red)),
+                    style: TextStyle(color: tokens.textSecondary)),
               );
             }
 
             final sentences = snapshot.data ?? [];
 
             if (sentences.isEmpty) {
+              final tokens = context.tokens;
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.format_quote,
-                        size: 64, color: Colors.white.withValues(alpha: 0.5)),
+                        size: 64, color: tokens.textSecondary.withValues(alpha: 0.5)),
                     const SizedBox(height: 16),
                     Text(
                       '目前沒有收藏的今日一句',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: tokens.textPrimary.withValues(alpha: 0.8),
                           fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '在內容詳情頁點擊 ⭐ 按鈕來收藏',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: tokens.textSecondary.withValues(alpha: 0.6),
                           fontSize: 14),
                     ),
                   ],
@@ -1424,7 +1712,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                             sentence.anchor,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: tokens.textSecondary.withValues(alpha: 0.7),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -1432,10 +1720,10 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.05),
+                              color: tokens.cardBg,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1),
+                                color: tokens.cardBorder,
                               ),
                             ),
                             child: Text(
@@ -1455,7 +1743,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                               formatDate(sentence.favoritedAt),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.white.withValues(alpha: 0.5),
+                                color: tokens.textSecondary.withValues(alpha: 0.5),
                               ),
                             ),
                           ),
@@ -1467,7 +1755,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         right: 0,
                         child: IconButton(
                           icon: const Icon(Icons.delete_outline, size: 20),
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: tokens.textSecondary.withValues(alpha: 0.6),
                           onPressed: () async {
                             if (uid == null) return;
                             await FavoriteSentencesStore.remove(
@@ -1497,25 +1785,16 @@ enum _HistoryItemType { sectionHeader, productHeader, content, spacer }
 
 class _HistoryListItem {
   final _HistoryItemType type;
-  final String? title;
   final String? productId;
-  final String? contentId;
-  final bool? isLearned;
   final int? toLearnCount;
   final int? learnedCount;
 
   _HistoryListItem._({
     required this.type,
-    this.title,
     this.productId,
-    this.contentId,
-    this.isLearned,
     this.toLearnCount,
     this.learnedCount,
   });
-
-  factory _HistoryListItem.sectionHeader(String title) =>
-      _HistoryListItem._(type: _HistoryItemType.sectionHeader, title: title);
 
   factory _HistoryListItem.productHeader(
     String productId,
@@ -1528,16 +1807,6 @@ class _HistoryListItem {
         toLearnCount: toLearnCount,
         learnedCount: learnedCount,
       );
-
-  factory _HistoryListItem.content(String contentId, bool isLearned) =>
-      _HistoryListItem._(
-        type: _HistoryItemType.content,
-        contentId: contentId,
-        isLearned: isLearned,
-      );
-
-  factory _HistoryListItem.spacer() =>
-      _HistoryListItem._(type: _HistoryItemType.spacer);
 }
 
 extension _FirstOrNull<T> on Iterable<T> {

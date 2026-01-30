@@ -531,7 +531,6 @@ class NotificationService {
       styleInformation: BigTextStyleInformation(body),
       actions: const [
         AndroidNotificationAction(actionLearned, '完成'),
-        AndroidNotificationAction(actionLater, '稍候再學'),
       ],
     );
 

@@ -37,7 +37,7 @@ class PushCenterPage extends ConsumerWidget {
             onPressed: () async {
               try {
                 final result = await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
-                // ignore: use_build_context_synchronously
+                if (!context.mounted) return;
                 if (result.overCap) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -50,7 +50,7 @@ class PushCenterPage extends ConsumerWidget {
                 }
                 final global = await ref.read(globalPushSettingsProvider.future);
                 final scheduled = await ref.read(scheduledCacheProvider.future);
-                // ignore: use_build_context_synchronously
+                if (!context.mounted) return;
                 final message = !global.enabled
                     ? '推播已關閉，無法排程'
                     : scheduled.isEmpty
@@ -60,10 +60,11 @@ class PushCenterPage extends ConsumerWidget {
                   SnackBar(content: Text(message)),
                 );
               } catch (e) {
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('重排失敗: $e')),
-                );
+                if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('重排失敗: $e')),
+                  );
+                }
               }
             },
           ),
@@ -267,7 +268,7 @@ class PushCenterPage extends ConsumerWidget {
               }),
               trackColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return Theme.of(context).colorScheme.primary.withOpacity(0.5);
+                  return Theme.of(context).colorScheme.primary.withValues(alpha: 0.5);
                 }
                 return null;
               }),
@@ -367,6 +368,7 @@ class PushCenterPage extends ConsumerWidget {
             onTap: () async {
               final start = await _pickTime(context, g.quietHours.start);
               if (start == null) return;
+              if (!context.mounted) return;
               final end = await _pickTime(context, g.quietHours.end);
               if (end == null) return;
 
@@ -383,7 +385,7 @@ class PushCenterPage extends ConsumerWidget {
               );
               await Future.wait([writeFuture, rescheduleFuture]);
 
-              // ignore: use_build_context_synchronously
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                     content: Text(

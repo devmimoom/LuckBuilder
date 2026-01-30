@@ -396,6 +396,7 @@ class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper> {
         await logFile.writeAsString('{"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"bootstrapper.dart:293","message":"Before Navigator.push","timestamp":${DateTime.now().millisecondsSinceEpoch}}\n', mode: FileMode.append);
       } catch (_) {}
       // #endregion
+      if (!mounted) return;
       if (cid != null) {
         Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => DetailPage(contentItemId: cid)));
@@ -406,6 +407,7 @@ class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper> {
         } catch (_) {}
         // #endregion
       } else if (pid != null) {
+        if (!mounted) return;
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) =>
               ProductLibraryPage(productId: pid, isWishlistPreview: false),

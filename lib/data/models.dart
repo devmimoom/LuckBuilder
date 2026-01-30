@@ -157,6 +157,7 @@ class ContentItem {
   final int difficulty;
   final int seq;
   final bool isPreview;
+  final String deepAnalysis;
 
   ContentItem({
     required this.id,
@@ -167,6 +168,7 @@ class ContentItem {
     required this.difficulty,
     required this.seq,
     required this.isPreview,
+    this.deepAnalysis = '',
   });
 
   factory ContentItem.fromDoc(String id, Map<String, dynamic> m) => ContentItem(
@@ -178,5 +180,6 @@ class ContentItem {
         difficulty: (m['difficulty'] ?? 1) as int,
         seq: (m['seq'] ?? 0) as int,
         isPreview: (m['isPreview'] ?? false) as bool,
+        deepAnalysis: (m['deepAnalysis'] ?? '') as String,
       );
 }

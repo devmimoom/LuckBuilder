@@ -45,7 +45,7 @@ class HomePage extends ConsumerWidget {
                     ctaText: '立即查看',
                   ),
             loading: () => const SizedBox(
-                height: 210, child: Center(child: CircularProgressIndicator())),
+                height: 232, child: Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -283,6 +283,8 @@ class _BannerCard extends StatelessWidget {
   final VoidCallback onTap;
   const _BannerCard({required this.product, required this.onTap});
 
+  static const double _bannerHeight = 160.0;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
@@ -291,109 +293,34 @@ class _BannerCard extends StatelessWidget {
       child: AppCard(
         padding: EdgeInsets.zero,
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(26),
-          ),
-          child: Stack(
-            children: [
-              // 背景圖片
-              if (product.coverImageUrl != null &&
-                  product.coverImageUrl!.isNotEmpty)
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
-                    child: Image.network(
-                      product.coverImageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(),
+        child: SizedBox(
+          height: _bannerHeight,
+          width: double.infinity,
+          child: product.coverImageUrl != null &&
+                  product.coverImageUrl!.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  child: Image.network(
+                    product.coverImageUrl!,
+                    width: double.infinity,
+                    height: _bannerHeight,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: _bannerHeight,
+                      color: tokens.chipBg,
+                      child: Icon(Icons.image_not_supported,
+                          color: tokens.textSecondary),
                     ),
                   ),
-                ),
-              // 漸變遮罩
-              Positioned.fill(
-                child: DecoratedBox(
+                )
+              : Container(
+                  height: _bannerHeight,
                   decoration: BoxDecoration(
+                    color: tokens.chipBg,
                     borderRadius: BorderRadius.circular(26),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.3),
-                        Colors.black.withValues(alpha: 0.7),
-                      ],
-                    ),
                   ),
+                  child: Icon(Icons.auto_awesome, color: tokens.textSecondary),
                 ),
-              ),
-              // 內容層
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      product.levelGoal ?? '',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          gradient: tokens.buttonGradient,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: tokens.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          '立即查看 ›',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
