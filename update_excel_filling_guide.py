@@ -22,8 +22,9 @@ OPTIONAL_FIELDS = {
         "spec1Label", "spec2Label", "spec3Label", "spec4Label",
         "spec1Icon", "spec2Icon", "spec3Icon", "spec4Icon",
         "trialMode", "trialLimit", "releaseAtMs", "createdAtMs",
+        "contentarchitecture",
     },
-    "FEATURED_LISTS": {"type", "topicIds", "productIds", "published", "order", "updatedAt", "ids"},
+    "FEATURED_LISTS": {"type", "topicIds", "productIds", "published", "order", "updatedAt", "ids", "coverImageUrl", "coverStorageFile"},
     "CONTENT_ITEMS": {
         "type", "topicId", "level", "levelGoal", "levelBenefit", "anchorGroup", "anchor",
         "intent", "difficulty", "content", "wordCount", "reusable",
@@ -90,6 +91,7 @@ ROW2_HINTS = {
         "trialLimit": "試用數量上限，預設 3；選填",
         "releaseAtMs": "發布時間戳（毫秒）；選填",
         "createdAtMs": "建立時間戳（毫秒）；選填",
+        "contentarchitecture": "內容架構說明；選填；產品頁「內容架構」卡片顯示",
     },
     "FEATURED_LISTS": {
         "listId": "清單 ID（唯一識別碼）",
@@ -101,6 +103,8 @@ ROW2_HINTS = {
         "order": "排序；選填",
         "updatedAt": "更新時間；選填",
         "ids": "ID 列表（分號分隔）；選填",
+        "coverImageUrl": "精選清單封面圖 URL。1200×800 px, JPG/PNG, <300KB；選填",
+        "coverStorageFile": "精選清單封面圖 Storage 路徑；規格同上；選填",
     },
     "CONTENT_ITEMS": {
         "itemId": "內容項目 ID（唯一識別碼）",

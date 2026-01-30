@@ -128,6 +128,7 @@ class CategoryPage extends ConsumerWidget {
                     children: ts
                         .map((t) => BubbleCircle(
                               title: t.title,
+                              imageUrl: t.bubbleImageUrl,
                               onTap: () =>
                                   Navigator.of(context).push(MaterialPageRoute(
                                 builder: (_) => ProductListPage(topicId: t.id),

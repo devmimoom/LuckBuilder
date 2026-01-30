@@ -27,6 +27,101 @@ class HomePage extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Banner 1~3（首頁最上方）
+          banners.when(
+            data: (ps) => ps.isEmpty
+                ? AppCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                          'Banner: 無資料（請檢查 Firestore featured_lists/home_banners）',
+                          style: TextStyle(color: tokens.textSecondary)),
+                    ),
+                  )
+                : SizedBox(
+                    height: 160,
+                    child: PageView.builder(
+                      itemCount: ps.length,
+                      itemBuilder: (_, i) => _BannerCard(
+                        product: ps[i],
+                        onTap: () {
+                          unawaited(
+                              UserLearningStore().markGlobalLearnedToday());
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => ProductPage(productId: ps[i].id),
+                          ));
+                        },
+                      ),
+                    ),
+                  ),
+            loading: () => const SizedBox(
+                height: 160, child: Center(child: CircularProgressIndicator())),
+            error: (err, stack) => AppCard(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Banner 錯誤:',
+                        style: TextStyle(
+                            color: tokens.textPrimary,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$err',
+                      style:
+                          TextStyle(color: tokens.textSecondary, fontSize: 12),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          const _Section(title: '熱門爆款'),
+          hot.when(
+            data: (ps) => ps.isEmpty
+                ? AppCard(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text('熱門爆款: 無資料',
+                          style: TextStyle(color: tokens.textSecondary)),
+                    ),
+                  )
+                : ProductRail(
+                    products: ps,
+                    size: ProductRailSize.large,
+                  ),
+            loading: () => const SizedBox(
+                height: 210, child: Center(child: CircularProgressIndicator())),
+            error: (err, stack) => AppCard(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('熱門爆款錯誤:',
+                        style: TextStyle(
+                            color: tokens.textPrimary,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$err',
+                      style:
+                          TextStyle(color: tokens.textSecondary, fontSize: 12),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+
           // ✅ 新上架
           const _Section(title: '新上架'),
           newArrivals.when(
@@ -121,60 +216,6 @@ class HomePage extends ConsumerWidget {
           const HomeForYouSection(),
           const SizedBox(height: 18),
 
-          // Banner 1~3
-          banners.when(
-            data: (ps) => ps.isEmpty
-                ? AppCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                          'Banner: 無資料（請檢查 Firestore featured_lists/home_banners）',
-                          style: TextStyle(color: tokens.textSecondary)),
-                    ),
-                  )
-                : SizedBox(
-                    height: 160,
-                    child: PageView.builder(
-                      itemCount: ps.length,
-                      itemBuilder: (_, i) => _BannerCard(
-                        product: ps[i],
-                        onTap: () {
-                          unawaited(
-                              UserLearningStore().markGlobalLearnedToday());
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => ProductPage(productId: ps[i].id),
-                          ));
-                        },
-                      ),
-                    ),
-                  ),
-            loading: () => const SizedBox(
-                height: 160, child: Center(child: CircularProgressIndicator())),
-            error: (err, stack) => AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Banner 錯誤:',
-                        style: TextStyle(
-                            color: tokens.textPrimary,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$err',
-                      style:
-                          TextStyle(color: tokens.textSecondary, fontSize: 12),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-
           const _Section(title: '本週精選'),
           weekly.when(
             data: (ps) => ps.isEmpty
@@ -215,46 +256,6 @@ class HomePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 18),
-
-          const _Section(title: '熱門爆款'),
-          hot.when(
-            data: (ps) => ps.isEmpty
-                ? AppCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text('熱門爆款: 無資料',
-                          style: TextStyle(color: tokens.textSecondary)),
-                    ),
-                  )
-                : ProductRail(
-                    products: ps,
-                    size: ProductRailSize.large,
-                  ),
-            loading: () => const SizedBox(
-                height: 210, child: Center(child: CircularProgressIndicator())),
-            error: (err, stack) => AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('熱門爆款錯誤:',
-                        style: TextStyle(
-                            color: tokens.textPrimary,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$err',
-                      style:
-                          TextStyle(color: tokens.textSecondary, fontSize: 12),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );

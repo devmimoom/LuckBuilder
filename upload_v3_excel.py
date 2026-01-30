@@ -186,6 +186,7 @@ def main():
                     "trialLimit": int(r.get("trialLimit")) if not pd.isna(r.get("trialLimit")) else 3,
                     "releaseAtMs": int(r.get("releaseAtMs")) if not pd.isna(r.get("releaseAtMs")) else None,
                     "createdAtMs": int(r.get("createdAtMs")) if not pd.isna(r.get("createdAtMs")) else None,
+                    "contentArchitecture": none_if_nan(r.get("contentarchitecture")),
                 }
                 prod_writes.append(lambda b, pid=pid, data=data: b.set(db.collection("products").document(pid), data, merge=True))
             except (ValueError, KeyError) as e:
@@ -216,6 +217,8 @@ def main():
                     "title": str(r["title"]).strip(),
                     "published": True,
                     "order": 0,
+                    "coverImageUrl": none_if_nan(r.get("coverImageUrl")),
+                    "coverStorageFile": none_if_nan(r.get("coverStorageFile")),
                 }
                 # 依 type 決定放哪個欄位
                 if ftype == "productIds":
@@ -232,13 +235,16 @@ def main():
         print(f"✅ FEATURED_LISTS: 已更新 {len(fl_writes)} 筆精選清單")
 
     # 5) CONTENT_ITEMS -> content_items/{itemId}
-    # ✅ CONTENT_ITEMS 第一行就是數據（沒有中文說明行）
+    # ✅ 第一列=英文欄位名，第二列=中文說明（跳過），第三列起=數據
     if "CONTENT_ITEMS" not in sheet_names:
         print("⏭️  CONTENT_ITEMS: 工作表中不存在，跳過")
     else:
         ci_df = pd.read_excel(xlsx, sheet_name="CONTENT_ITEMS")
         ci_writes = []
         for idx, r in ci_df.iterrows():
+            # 跳過第二列（中文說明行）
+            if idx == 0:
+                continue
             # 跳過空行或無效行
             if pd.isna(r.get("itemId")) or pd.isna(r.get("productId")):
                 continue

@@ -30,14 +30,15 @@ final featuredProductsProvider =
   final repo = ref.watch(v2RepoProvider);
   final list = await repo.fetchFeaturedList(listId);
   if (list == null) return [];
-  return repo.fetchProductsByIdsOrdered(list.productIds);
+  return repo.fetchProductsForFeaturedList(list);
 });
 
 final bannerProductsProvider = FutureProvider<List<Product>>((ref) async {
   final repo = ref.watch(v2RepoProvider);
   final list = await repo.fetchFeaturedList('home_banners');
   if (list == null) return [];
-  return repo.fetchProductsByIdsOrdered(list.productIds.take(3).toList());
+  final products = await repo.fetchProductsForFeaturedList(list);
+  return products.take(3).toList();
 });
 
 /// coming soon 的 productId set（由 featured_lists/coming_soon 產生）

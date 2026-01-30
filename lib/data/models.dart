@@ -58,6 +58,9 @@ class FeaturedList {
   final bool published;
   final int order;
   final List<String> productIds;
+  final List<String>? topicIds;
+  final String? coverImageUrl;
+  final String? coverStorageFile;
 
   FeaturedList({
     required this.id,
@@ -65,6 +68,9 @@ class FeaturedList {
     required this.published,
     required this.order,
     required this.productIds,
+    this.topicIds,
+    this.coverImageUrl,
+    this.coverStorageFile,
   });
 
   factory FeaturedList.fromDoc(String id, Map<String, dynamic> m) =>
@@ -74,6 +80,11 @@ class FeaturedList {
         published: (m['published'] ?? true) as bool,
         order: (m['order'] ?? 0) as int,
         productIds: List<String>.from(m['productIds'] ?? const []),
+        topicIds: m['topicIds'] != null
+            ? List<String>.from(m['topicIds'] as List)
+            : null,
+        coverImageUrl: m['coverImageUrl']?.toString(),
+        coverStorageFile: m['coverStorageFile']?.toString(),
       );
 }
 
@@ -96,6 +107,7 @@ class Product {
   final int trialLimit;
   final int? releaseAtMs;
   final int? createdAtMs;
+  final String? contentArchitecture;
 
   Product({
     required this.id,
@@ -113,6 +125,7 @@ class Product {
     required this.trialLimit,
     this.releaseAtMs,
     this.createdAtMs,
+    this.contentArchitecture,
   });
 
   factory Product.fromDoc(String id, Map<String, dynamic> m) => Product(
@@ -135,6 +148,7 @@ class Product {
         createdAtMs: (m['createdAtMs'] is num)
             ? (m['createdAtMs'] as num).toInt()
             : null,
+        contentArchitecture: m['contentArchitecture'] as String?,
       );
 
   DateTime? get releaseAt =>

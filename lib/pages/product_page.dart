@@ -227,6 +227,29 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                     child: Center(child: CircularProgressIndicator())),
                 error: (_, __) => const SizedBox(height: 160),
               ),
+              if ((p.contentArchitecture ?? '').isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text('│ 內容架構',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: tokens.textPrimary)),
+                const SizedBox(height: 10),
+                GlassCard(
+                  radius: 26,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      p.contentArchitecture!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: tokens.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 22),
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),

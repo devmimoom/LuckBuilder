@@ -276,18 +276,18 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     final filtered = visibleLib.where((e) {
       final lp = e as UserLibraryProduct;
       final product = productsMap[lp.productId];
-      if (product == null) return false;
+      if (product == null) { return false; }
       if (_purchasedTopicIds.isNotEmpty &&
-          !_purchasedTopicIds.contains(product.topicId)) return false;
+          !_purchasedTopicIds.contains(product.topicId)) { return false; }
       if (_purchasedLevels.isNotEmpty &&
-          !_purchasedLevels.contains(product.level)) return false;
+          !_purchasedLevels.contains(product.level)) { return false; }
       if (_purchasedPushFilter == PurchasedPushFilter.pushing &&
-          !lp.pushEnabled) return false;
+          !lp.pushEnabled) { return false; }
       if (_purchasedPushFilter == PurchasedPushFilter.off &&
-          lp.pushEnabled) return false;
+          lp.pushEnabled) { return false; }
       final q = _purchasedSearchQuery.trim();
       if (q.isNotEmpty &&
-          !product.title.toLowerCase().contains(q.toLowerCase())) return false;
+          !product.title.toLowerCase().contains(q.toLowerCase())) { return false; }
       return true;
     }).toList();
 

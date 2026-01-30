@@ -378,6 +378,25 @@ class V2Repository {
     }
   }
 
+  /// 依精選清單取得產品：productIds 優先，否則依 topicIds 查詢並合併（依 productId 去重，保留首次出現）
+  Future<List<Product>> fetchProductsForFeaturedList(FeaturedList list) async {
+    if (list.productIds.isNotEmpty) {
+      return fetchProductsByIdsOrdered(list.productIds);
+    }
+    if (list.topicIds != null && list.topicIds!.isNotEmpty) {
+      final seen = <String>{};
+      final merged = <Product>[];
+      for (final topicId in list.topicIds!) {
+        final products = await fetchProductsByTopic(topicId);
+        for (final p in products) {
+          if (seen.add(p.id)) merged.add(p);
+        }
+      }
+      return merged;
+    }
+    return [];
+  }
+
   // 根據 ID 獲取產品
   Future<Product?> fetchProduct(String productId) async {
     try {
