@@ -87,6 +87,39 @@ def main():
         else:
             print("⏭️  UI_SEGMENTS: 工作表為空，跳過更新（保留現有資料）")
 
+    # 1b) UI_SEARCH_SUGGESTIONS -> ui/search_suggestions_v1
+    # 結構：第一行=英文列名 suggested / trending，第二行=中文說明，第三行起=數據（每格一筆或分號分隔）
+    if "UI_SEARCH_SUGGESTIONS" not in sheet_names:
+        print("⏭️  UI_SEARCH_SUGGESTIONS: 工作表中不存在，跳過")
+    else:
+        ss_df = pd.read_excel(xlsx, sheet_name="UI_SEARCH_SUGGESTIONS")
+        # 每列一筆或單格內分號分隔，跳過第 1 列（說明列）
+        def flatten_cells(df, col_key):
+            out = []
+            for idx, r in df.iterrows():
+                if idx == 0:
+                    continue
+                v = r.get(col_key)
+                if pd.isna(v):
+                    continue
+                s = str(v).strip()
+                if not s:
+                    continue
+                parts = split_semicolon(v) if ";" in s else [s]
+                for p in parts:
+                    if p:
+                        out.append(p)
+            return out
+        suggested = flatten_cells(ss_df, "suggested")
+        trending = flatten_cells(ss_df, "trending")
+        if suggested or trending:
+            db.collection("ui").document("search_suggestions_v1").set(
+                {"suggested": suggested, "trending": trending}, merge=True
+            )
+            print(f"✅ UI_SEARCH_SUGGESTIONS: suggested={len(suggested)} 筆, trending={len(trending)} 筆")
+        else:
+            print("⏭️  UI_SEARCH_SUGGESTIONS: 工作表為空，跳過更新（保留現有資料）")
+
     # helper: batched writes (<=500 per batch)
     def commit_in_batches(writes, batch_size=450):
         for i in range(0, len(writes), batch_size):
@@ -281,7 +314,7 @@ def main():
         commit_in_batches(ci_writes)
         print(f"✅ CONTENT_ITEMS: 已更新 {len(ci_writes)} 筆內容項目")
 
-    print("\n✅ Upload done: UI_SEGMENTS / TOPICS / PRODUCTS / FEATURED_LISTS / CONTENT_ITEMS")
+    print("\n✅ Upload done: UI_SEGMENTS / UI_SEARCH_SUGGESTIONS / TOPICS / PRODUCTS / FEATURED_LISTS / CONTENT_ITEMS")
 
 if __name__ == "__main__":
     main()

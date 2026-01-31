@@ -8,6 +8,7 @@ class LibraryRichCard extends StatelessWidget {
 
   // 三個資訊：總內容數 / 推播排程 / 下一則內容
   final int? totalItems; // 共 XX 則
+  final String? level; // e.g. Foundation, L1；與 items 同一行顯示
   final String nextPushText; // e.g. 每週一三五 08:30 / 下一則 10:30
   final String latestTitle; // e.g. 最近：黑洞是什麼？
 
@@ -24,6 +25,7 @@ class LibraryRichCard extends StatelessWidget {
     required this.title,
     this.coverImageUrl,
     this.totalItems,
+    this.level,
     required this.nextPushText,
     required this.latestTitle,
     this.headerTrailing,
@@ -87,7 +89,9 @@ class LibraryRichCard extends StatelessWidget {
                           if (totalItems != null) ...[
                             const SizedBox(height: 4),
                             Text(
-                              '$totalItems items',
+                              level != null && level!.isNotEmpty
+                                  ? '$totalItems items · $level'
+                                  : '$totalItems items',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: tokens.textSecondary,

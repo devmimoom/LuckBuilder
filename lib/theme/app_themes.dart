@@ -163,12 +163,20 @@ class AppThemes {
   }
 
   static ThemeData _whiteMint() {
-    const bg = Color(0xFFFFFFFF); // ✅ 純白底
+    const bg = Color(0xFFFFFFFF);
     const primary = Color(0xFF25C9B8);
 
-    const tokens = AppTokens(
+    final tokens = AppTokens(
       bg: bg,
-      bgGradient: null, // 純白就不要漸層
+      bgGradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFFFFFFF),
+          Color(0xFFF8FCFC),
+          Color(0xFFF2F9F8),
+        ],
+      ),
       primary: primary,
       textPrimary: Color(0xFF111827),
       textSecondary: Color(0xFF6B7280),

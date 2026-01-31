@@ -39,7 +39,7 @@ class HomePage extends ConsumerWidget {
                     ),
                   )
                 : SizedBox(
-                    height: 160,
+                    height: 220,
                     child: PageView.builder(
                       itemCount: ps.length,
                       itemBuilder: (_, i) => _BannerCard(
@@ -55,7 +55,7 @@ class HomePage extends ConsumerWidget {
                     ),
                   ),
             loading: () => const SizedBox(
-                height: 160, child: Center(child: CircularProgressIndicator())),
+                height: 220, child: Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -97,7 +97,7 @@ class HomePage extends ConsumerWidget {
                     ctaText: 'View',
                   ),
             loading: () => const SizedBox(
-                height: 210, child: Center(child: CircularProgressIndicator())),
+                height: 212, child: Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -141,7 +141,7 @@ class HomePage extends ConsumerWidget {
                     ctaText: 'View',
                   ),
             loading: () => const SizedBox(
-                height: 232, child: Center(child: CircularProgressIndicator())),
+                height: 212, child: Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -233,7 +233,7 @@ class HomePage extends ConsumerWidget {
                     ctaText: 'View',
                   ),
             loading: () => const SizedBox(
-                height: 210, child: Center(child: CircularProgressIndicator())),
+                height: 212, child: Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -286,7 +286,7 @@ class _BannerCard extends StatelessWidget {
   final VoidCallback onTap;
   const _BannerCard({required this.product, required this.onTap});
 
-  static const double _bannerHeight = 160.0;
+  static const double _bannerHeight = 220.0;
 
   @override
   Widget build(BuildContext context) {

@@ -55,18 +55,18 @@ class PushTimelineList extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
         child: Row(
           children: [
-            const Text('Next 3 days schedule',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+            const Flexible(
+              child: Text('Next 3 days schedule',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1),
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SegmentedButton<TimelineMetaMode>(
                   segments: const [
-                    ButtonSegment(
-                      value: TimelineMetaMode.day,
-                      label: Text('Day', style: TextStyle(fontSize: 11)),
-                    ),
                     ButtonSegment(
                       value: TimelineMetaMode.push,
                       label: Text('Push', style: TextStyle(fontSize: 11)),
@@ -122,18 +122,18 @@ class PushTimelineList extends ConsumerWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Text('Next 3 days schedule',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                const Flexible(
+                  child: Text('Next 3 days schedule',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: SegmentedButton<TimelineMetaMode>(
                       segments: const [
-                        ButtonSegment(
-                          value: TimelineMetaMode.day,
-                          label: Text('Day', style: TextStyle(fontSize: 11)),
-                        ),
                         ButtonSegment(
                           value: TimelineMetaMode.push,
                           label: Text('Push', style: TextStyle(fontSize: 11)),
@@ -350,63 +350,32 @@ class PushTimelineList extends ConsumerWidget {
                               final contentItemId =
                                   payload['contentItemId']?.toString() ?? '';
 
-                              // preview：優先使用 body 第二行，否則用第一行
-                              final lines = entry.body.split('\n');
-                              final rawPreview = lines.length >= 2
-                                  ? lines[1]
-                                  : lines.first;
-
                               // Day N：從 payload.pushOrder 取得（若有）
                               final day = (payload['pushOrder'] as num?)
                                       ?.toInt() ??
                                   0;
 
                               final productTitle = productsMap[productId]?.title ?? productId;
-                              // B: 優先使用 entry.title（錨點／產品名），否則 productTitle
-                              final displayTitle = entry.title.trim().isNotEmpty
-                                  ? entry.title
-                                  : productTitle;
+                              // 第一行、第二行都用 product title
+                              final displayTitle = productTitle;
+
+                              // 第二行：產品名稱（product title）
+                              final displayPreview = productTitle.isNotEmpty
+                                  ? productTitle
+                                  : (day > 0 ? 'Day $day' : productId);
 
                               final lp = libMap[productId] as UserLibraryProduct?;
 
                               String metaText() {
                                 switch (metaMode) {
                                   case TimelineMetaMode.day:
-                                    return day > 0 ? 'Day $day' : '';
+                                    return ''; // Day 標籤已移除
                                   case TimelineMetaMode.push:
                                     return lp != null ? pushHintFor(lp) : '';
                                   case TimelineMetaMode.nth:
                                     return r.seqInDayForProduct != null
                                         ? '#${r.seqInDayForProduct}'
                                         : '';
-                                }
-                              }
-
-                              // C: preview 為空或過短時用 Day N · 產品名 或 #N；與前一筆相同時用 Day N 或 #N
-                              String displayPreview;
-                              if (rawPreview.trim().isEmpty) {
-                                displayPreview = day > 0
-                                    ? 'Day $day · $productTitle'
-                                    : (r.seqInDayForProduct != null
-                                        ? 'Content #${r.seqInDayForProduct}'
-                                        : productTitle);
-                              } else {
-                                final prevPreview = () {
-                                  if (i == 0) return null;
-                                  final prev = rows[i - 1];
-                                  if (prev.isHeader || prev.item == null) return null;
-                                  final prevEntry = prev.item as ScheduledPushEntry;
-                                  final prevLines = prevEntry.body.split('\n');
-                                  return prevLines.length >= 2 ? prevLines[1] : prevLines.first;
-                                }();
-                                if (prevPreview != null && rawPreview == prevPreview) {
-                                  displayPreview = day > 0
-                                      ? 'Day $day'
-                                      : (r.seqInDayForProduct != null
-                                          ? '#${r.seqInDayForProduct}'
-                                          : rawPreview);
-                                } else {
-                                  displayPreview = rawPreview;
                                 }
                               }
 
@@ -423,7 +392,7 @@ class PushTimelineList extends ConsumerWidget {
                                 title: displayTitle,
                                 preview: displayPreview,
                                 metaText: metaText(),
-                                dayN: day > 0 ? day : null,
+                                dayN: null, // 第一行不顯示 Day N，只顯示 product title
                                 saved: saved,
                                 seqInDay: r.seqInDayForProduct,
                                 isFirst: prevIsHeader,

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../bubble_library/providers/providers.dart';
 import '../paywall/paywall_controller.dart';
 import '../paywall/paywall_state.dart';
 
@@ -21,31 +22,38 @@ class UnlockProductBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(paywallControllerProvider(productId));
+    final libAsync = ref.watch(libraryProductsProvider);
     final ctrl = ref.read(paywallControllerProvider(productId).notifier);
 
     final isPurchasing = state.status == PaywallStatus.purchasing;
-    final isUnlocked = state.status == PaywallStatus.unlocked;
+    final paywallUnlocked = state.status == PaywallStatus.unlocked;
+    final inLibrary = libAsync.valueOrNull?.any((lp) =>
+        lp.productId == productId && !lp.isHidden) ?? false;
+    final isUnlocked = paywallUnlocked || inLibrary;
 
-    final title = switch (state.status) {
-      PaywallStatus.unlocked => 'Product unlocked',
-      PaywallStatus.purchasing => 'Processing…',
-      PaywallStatus.error => 'Purchase not completed',
-      _ => 'Unlock this product',
-    };
+    final title = isUnlocked
+        ? 'Product unlocked'
+        : switch (state.status) {
+            PaywallStatus.purchasing => 'Processing…',
+            PaywallStatus.error => 'Purchase not completed',
+            _ => 'Unlock this product',
+          };
 
-    final subtitle = switch (state.status) {
-      PaywallStatus.unlocked => 'View full details and add to banner learning',
-      PaywallStatus.purchasing => 'Confirming with App Store',
-      PaywallStatus.error => state.errorMessage ?? 'Try again or use Restore',
-      _ => 'After purchase: full details and banner notifications',
-    };
+    final subtitle = isUnlocked
+        ? 'View full details and add to banner learning'
+        : switch (state.status) {
+            PaywallStatus.purchasing => 'Confirming with App Store',
+            PaywallStatus.error => state.errorMessage ?? 'Try again or use Restore',
+            _ => 'After purchase: full details and banner notifications',
+          };
 
-    final buttonText = switch (state.status) {
-      PaywallStatus.unlocked => 'Start learning',
-      PaywallStatus.purchasing => 'Processing…',
-      PaywallStatus.error => 'Try again',
-      _ => '$priceText Buy now',
-    };
+    final buttonText = isUnlocked
+        ? 'Start learning'
+        : switch (state.status) {
+            PaywallStatus.purchasing => 'Processing…',
+            PaywallStatus.error => 'Try again',
+            _ => '$priceText Buy now',
+          };
 
     final onPressed = isPurchasing
         ? null

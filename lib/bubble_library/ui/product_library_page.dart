@@ -115,32 +115,106 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                   // ✅ 嘗試跳轉到目標 content
                   _tryJumpToTarget();
 
+                  final completed = showItems
+                      .where((it) => savedMap[it.id]?.learned ?? false)
+                      .length;
+                  final total = showItems.length;
+                  final progress =
+                      total > 0 ? completed / total : 0.0;
+                  final percent = (progress * 100).round();
+
                   return ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
                       BubbleCard(
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.bubble_chart_outlined, size: 28),
-                            const SizedBox(width: 12),
-                            Expanded(
+                            Row(
+                              children: [
+                                const Icon(Icons.bubble_chart_outlined,
+                                    size: 28),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(product.title,
+                                          style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w900)),
+                                      const SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 8,
+                                        children: [
+                                          _chip(widget.isWishlistPreview
+                                              ? 'Preview'
+                                              : 'Library'),
+                                          _chip('${showItems.length} cards'),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                borderRadius:
+                                    BorderRadius.circular(tokens.cardRadius),
+                                gradient: tokens.cardGradient,
+                                color: tokens.cardGradient == null
+                                    ? tokens.cardBg
+                                    : null,
+                                border: Border.all(
+                                    color: tokens.cardBorder, width: 1),
+                                boxShadow: tokens.cardShadow,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(product.title,
-                                      style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w900)),
-                                  const SizedBox(height: 6),
-                                  Wrap(
-                                    spacing: 8,
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
                                     children: [
-                                      _chip(widget.isWishlistPreview
-                                          ? 'Preview'
-                                          : 'Library'),
-                                      _chip('${showItems.length} cards'),
+                                      Text('Your learning progress',
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: tokens.textPrimary)),
+                                      Text('$percent%',
+                                          style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w900,
+                                              color: tokens.textPrimary)),
                                     ],
                                   ),
+                                  const SizedBox(height: 6),
+                                  ClipRRect(
+                                    borderRadius:
+                                        BorderRadius.circular(999),
+                                    child: LinearProgressIndicator(
+                                      value: progress,
+                                      minHeight: 8,
+                                      backgroundColor: tokens.cardBorder
+                                          .withValues(alpha: 0.3),
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(
+                                              tokens.primary),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                      'Completed $completed/$total cards',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: tokens.textSecondary)),
                                 ],
                               ),
                             ),
@@ -284,12 +358,12 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 標題和序號
+        // 標題和序號（橘框改為 anchor）
         Row(
           children: [
             Expanded(
               child: Text(
-                it.anchorGroup,
+                it.anchor.isNotEmpty ? it.anchor : it.anchorGroup,
                 style:
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
@@ -298,7 +372,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
               builder: (context) {
                 final tokens = context.tokens;
                 return Text(
-                  'Day ${it.pushOrder}',
+                  '#${it.seq}',
                   style: TextStyle(
                     color: tokens.textSecondary,
                     fontSize: 12,

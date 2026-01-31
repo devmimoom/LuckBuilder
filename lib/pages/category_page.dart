@@ -59,6 +59,7 @@ class CategoryPage extends ConsumerWidget {
                                   .state = s,
                               borderRadius: BorderRadius.circular(999),
                               child: Container(
+                                constraints: const BoxConstraints(minWidth: 88),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
@@ -71,15 +72,19 @@ class CategoryPage extends ConsumerWidget {
                                           ? tokens.primary
                                           : tokens.cardBorder),
                                 ),
-                                child: Text(
-                                  s.title,
-                                  style: TextStyle(
-                                    fontWeight: isSel
-                                        ? FontWeight.w800
-                                        : FontWeight.w500,
-                                    color: isSel
-                                        ? tokens.primary
-                                        : tokens.textPrimary,
+                                child: Center(
+                                  child: Text(
+                                    s.title,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: isSel
+                                          ? FontWeight.w800
+                                          : FontWeight.w500,
+                                      color: isSel
+                                          ? tokens.primary
+                                          : tokens.textPrimary,
+                                    ),
                                   ),
                                 ),
                               ),

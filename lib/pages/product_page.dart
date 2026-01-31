@@ -8,6 +8,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/rich_sections/user_learning_store.dart';
 import '../notifications/coming_soon_remind_store.dart';
 import '../bubble_library/notifications/notification_service.dart';
+import '../bubble_library/ui/product_library_page.dart';
 import '../widgets/unlock_feature_bar.dart';
 import '../collections/wishlist_provider.dart';
 
@@ -137,7 +138,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                                   const Icon(Icons.lock_clock, size: 18),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Coming soon. Not available for purchase yet.',
+                                    'Coming soon',
                                     style: TextStyle(
                                       color: tokens.textPrimary,
                                       fontWeight: FontWeight.w800,
@@ -288,6 +289,16 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                           const SnackBar(content: Text('Unlocked. You can enable banner notifications.')),
                         );
                       }
+                    }
+                    if (context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProductLibraryPage(
+                            productId: widget.productId,
+                            isWishlistPreview: false,
+                          ),
+                        ),
+                      );
                     }
                   },
                 ),

@@ -249,7 +249,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
 
     String latestTitleText(ScheduledPushEntry e) {
       final day = extractDayFromBody(e.body);
-      return day == null ? 'Next: ${e.title}' : 'Next: ${e.title} (Day $day)';
+      return day == null ? 'Next: ${e.title}' : 'Next: ${e.title} (#$day)';
     }
 
     final tokens = context.tokens;
@@ -343,6 +343,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           title: product.title,
           coverImageUrl: null,
           totalItems: totalItems,
+          level: product.level.isEmpty ? null : product.level,
           nextPushText: lp.pushEnabled
               ? (entry == null
                   ? 'No schedule for next 3 days'

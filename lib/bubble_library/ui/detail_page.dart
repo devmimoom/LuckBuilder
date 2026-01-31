@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/providers.dart';
@@ -27,6 +28,7 @@ class DetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemAsync = ref.watch(contentItemProvider(contentItemId));
+    final productsAsync = ref.watch(productsMapProvider);
     final savedAsync = ref.watch(savedItemsProvider);
     final tokens = context.tokens;
 
@@ -47,6 +49,12 @@ class DetailPage extends ConsumerWidget {
       body: itemAsync.when(
         data: (item) {
           final urls = _parseUrls(item.sourceUrl);
+          final productsMap = productsAsync.valueOrNull;
+          final product = productsMap?[item.productId];
+          final headerTitle = product?.title ?? item.anchorGroup;
+          final headerSubtitle = [item.anchor, item.anchorGroup]
+              .where((s) => s.isNotEmpty)
+              .join(' · ');
 
           return savedAsync.when(
             data: (savedMap) {
@@ -65,16 +73,16 @@ class DetailPage extends ConsumerWidget {
               return ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
-                  // 0) Header
+                  // 0) Header：主標=product.title，副標=anchor + anchorGroup
                   BubbleCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.anchorGroup,
+                        Text(headerTitle,
                             style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.w900)),
                         const SizedBox(height: 6),
-                        Text(item.anchor,
+                        Text(headerSubtitle,
                             style: TextStyle(color: tokens.textSecondary)),
                         const SizedBox(height: 10),
                         Wrap(
@@ -83,8 +91,6 @@ class DetailPage extends ConsumerWidget {
                           children: [
                             _chip('intent：${item.intent}'),
                             _chip('◆${item.difficulty}'),
-                            _chip('L1'),
-                            _chip('Day ${item.pushOrder}/365'),
                           ],
                         ),
                       ],
@@ -97,7 +103,7 @@ class DetailPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Quote of the day',
+                        const Text('Key idea',
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w900)),
                         const SizedBox(height: 8),
@@ -120,13 +126,42 @@ class DetailPage extends ConsumerWidget {
                               icon: const Icon(Icons.copy, size: 18),
                               label: const Text('Copy'),
                             ),
-                            TextButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Share (coming soon)')));
+                            Builder(
+                              builder: (ctx) {
+                                return TextButton.icon(
+                                  onPressed: () async {
+                                    final text = [
+                                      headerTitle,
+                                      headerSubtitle,
+                                      '',
+                                      item.content,
+                                    ].join('\n');
+                                    try {
+                                      final box = ctx.findRenderObject() as RenderBox?;
+                                      final origin = box != null
+                                          ? box.localToGlobal(Offset.zero) & box.size
+                                          : const Rect.fromLTWH(0, 0, 1, 1);
+                                      await Share.share(
+                                        text,
+                                        subject: headerTitle,
+                                        sharePositionOrigin: origin,
+                                      );
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Shared.')));
+                                      }
+                                    } catch (e, st) {
+                                      debugPrint('Share: $e\n$st');
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Share not available: ${e.toString()}')));
+                                      }
+                                    }
+                                  },
+                                  icon: const Icon(Icons.share, size: 18),
+                                  label: const Text('Share'),
+                                );
                               },
-                              icon: const Icon(Icons.share, size: 18),
-                              label: const Text('Share'),
                             ),
                             const Spacer(),
                             IconButton(

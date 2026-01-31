@@ -212,6 +212,8 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                               style: TextStyle(
                                   color: tokens.textSecondary,
                                   fontWeight: FontWeight.w700),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                           if (isCompleted)

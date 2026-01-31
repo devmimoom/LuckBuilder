@@ -235,15 +235,26 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
                   Expanded(
                     child: Text('${_fmtMin(startMin)} - ${_fmtMin(endMin)}',
                         style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w800)),
+                            fontSize: 14, fontWeight: FontWeight.w800),
+                        overflow: TextOverflow.ellipsis),
                   ),
-                  OutlinedButton(
-                      onPressed: () => _pickTime(isStart: true),
-                      child: const Text('Start')),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                      onPressed: () => _pickTime(isStart: false),
-                      child: const Text('End')),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          OutlinedButton(
+                              onPressed: () => _pickTime(isStart: true),
+                              child: const Text('Start')),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                              onPressed: () => _pickTime(isStart: false),
+                              child: const Text('End')),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );

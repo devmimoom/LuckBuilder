@@ -184,11 +184,6 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
               error: (e, _) => Text('library error: $e',
                   style: TextStyle(color: tokens.textSecondary)),
             ),
-          const SizedBox(height: 10),
-          Text(
-            'Tip: Streak and learning count require LearnLogStore.markLearnedToday() when user actually learns.',
-            style: TextStyle(color: tokens.textSecondary, fontSize: 12),
-          ),
         ],
       ),
     );
