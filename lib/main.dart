@@ -76,7 +76,13 @@ class _AppRootState extends State<_AppRoot> {
   void initState() {
     super.initState();
     hasSeenOnboarding().then((value) {
-      if (mounted) setState(() => _hasSeenOnboarding = value);
+      if (mounted) {
+        setState(() {
+          _hasSeenOnboarding = value;
+          // 每次啟動都先顯示 Welcome，點擊後才進入 Main
+          if (value) _showWelcomePage = true;
+        });
+      }
     });
   }
 
@@ -137,6 +143,7 @@ class _AppRootState extends State<_AppRoot> {
             home: _showWelcomePage
                 ? BubbleWelcomePage(
                     onFinished: () {
+                      setState(() => _showWelcomePage = false);
                       rootNavKey.currentState?.pushReplacement(
                         MaterialPageRoute(
                           builder: (_) => MainScaffold4Tabs(
