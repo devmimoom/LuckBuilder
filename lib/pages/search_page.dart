@@ -651,7 +651,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         const SizedBox(width: 8),
                         FilterChip(
                           selected: wishFilter == SearchWishFilter.wishedOnly,
-                          label: const Text('Wishlist'),
+                          label: const Text('Bookmarked'),
                           onSelected: (v) => ref.read(searchWishFilterProvider.notifier).state =
                               v ? SearchWishFilter.wishedOnly : SearchWishFilter.all,
                         ),

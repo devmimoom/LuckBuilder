@@ -27,6 +27,17 @@ def _is_header_or_empty(row, id_key, id_value=None):
         return True
     return False
 
+def _safe_order(v, default=0):
+    """安全解析 order。回傳 (value, ok)；若為中文說明等無法轉數字則 ok=False，呼叫端應跳過該列。"""
+    if pd.isna(v):
+        return (default, True)
+    s = str(v).strip()
+    try:
+        n = int(float(s))
+        return (n, True)
+    except (ValueError, TypeError):
+        return (default, False)
+
 def _parse_difficulty(v):
     """解析難度值：支援數字（1-5）或文字（easy=1, medium=2, hard=3）"""
     if pd.isna(v):
@@ -75,11 +86,14 @@ def main():
             # 跳過標題列或無效列（不固定跳過第一行，避免只有一筆資料時被略過）
             if _is_header_or_empty(r, "segmentId") or pd.isna(r.get("title")):
                 continue
+            order_val, order_ok = _safe_order(r.get("order"))
+            if not order_ok:
+                continue  # 跳過說明列（order 為中文等）
             try:
                 segments.append({
                     "id": str(r["segmentId"]).strip(),
                     "title": str(r["title"]).strip(),
-                    "order": int(r["order"]) if not pd.isna(r.get("order")) else 0,
+                    "order": order_val,
                     "mode": str(r["mode"]).strip() if not pd.isna(r.get("mode")) else "tag",
                     "tag": none_if_nan(r.get("tag")),
                     "published": to_bool(r["published"]),
@@ -145,13 +159,16 @@ def main():
         for idx, r in topics_df.iterrows():
             if _is_header_or_empty(r, "topicId") or pd.isna(r.get("title")):
                 continue
+            order_val, order_ok = _safe_order(r.get("order"))
+            if not order_ok:
+                continue  # 跳過說明列
             try:
                 tid = str(r["topicId"]).strip()
                 data = {
                     "topicId": tid,
                     "title": str(r["title"]).strip(),
                     "published": to_bool(r["published"]),
-                    "order": int(r["order"]) if not pd.isna(r.get("order")) else 0,
+                    "order": order_val,
                     "tags": split_semicolon(r.get("tags")),
                     "bubbleImageUrl": none_if_nan(r.get("bubbleImageUrl")),
                     "bubbleStorageFile": none_if_nan(r.get("bubbleStorageFile")),
@@ -181,8 +198,10 @@ def main():
                 title = none_if_nan(r.get("title")) or f'{str(r["topicId"]).strip()} {str(r["level"]).strip()}'
                 # 生成 titleLower：一律由 title 產生，確保與 title 一致、搜尋可用
                 title_lower = (title or "").lower().strip()
-                # 處理 order 欄位（如果 Excel 中有就使用，沒有就設為 0）
-                order_value = int(r.get("order")) if not pd.isna(r.get("order")) else 0
+                # 處理 order 欄位（若為中文說明列則跳過該列）
+                order_value, order_ok = _safe_order(r.get("order"))
+                if not order_ok:
+                    continue
 
                 data = {
                     "type": none_if_nan(r.get("type")),

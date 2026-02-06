@@ -19,7 +19,7 @@ class WishlistPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wishlist'),
+        title: const Text('Bookmarked'),
         actions: [
           IconButton(
             tooltip: 'Refresh',

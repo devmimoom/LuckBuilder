@@ -111,7 +111,7 @@ class PushScheduleConflictChecker {
         type: ConflictType.daysOfWeekNoOverlap,
         productId: product.productId,
         message:
-            '產品的推播星期設定（${productDays.toList()..sort()}）與全域設定（${globalDays.toList()..sort()}）沒有交集，該產品將永遠不會推播',
+            'Product push days (${productDays.toList()..sort()}) have no overlap with global (${globalDays.toList()..sort()}), so this product will never be pushed',
         severity: Severity.error,
       ));
     }
@@ -129,7 +129,7 @@ class PushScheduleConflictChecker {
         type: ConflictType.customTimesEmpty,
         productId: product.productId,
         message:
-            '時間模式設為「自訂時間」但未設定任何自訂時間，將回退到預設時段',
+            'Time mode is "custom" but no custom times are set; will fall back to default slots',
         severity: Severity.warning,
       ));
     }
@@ -198,7 +198,7 @@ class PushScheduleConflictChecker {
         type: ConflictType.allTimesInQuietHours,
         productId: product.productId,
         message:
-            '該產品的所有推播時間都在勿擾時段內（${formatTimeRange(global.quietHours)}），當天不會推播',
+            'All push times for this product fall within quiet hours (${formatTimeRange(global.quietHours)}); no push that day',
         severity: Severity.warning,
       ));
     }
@@ -217,7 +217,7 @@ class PushScheduleConflictChecker {
         type: ConflictType.minIntervalTooLarge,
         productId: product.productId,
         message:
-            '最短間隔（$minInterval 分鐘）超過 24 小時，可能導致時間計算異常',
+            'Min interval ($minInterval min) exceeds 24 hours; may cause time calculation issues',
         severity: Severity.warning,
       ));
     }
@@ -242,7 +242,7 @@ class PushScheduleConflictChecker {
         type: ConflictType.freqExceedsDailyCap,
         productId: 'GLOBAL',
         message:
-            '所有產品的推播頻率總和（$totalFreq）超過每日上限（$dailyCap），部分產品的推播次數可能少於設定值',
+            'Total push frequency ($totalFreq) exceeds daily cap ($dailyCap); some products may get fewer pushes than set',
         severity: Severity.warning,
       ));
     }
@@ -280,7 +280,7 @@ class PushScheduleConflictChecker {
         type: ConflictType.skipBlocksAllContent,
         productId: product.productId,
         message:
-            '跳過清單包含所有未完成的內容（${skipItems.length} 則），該產品在下次排程時可能無法推播',
+            'Skip list contains all remaining content (${skipItems.length} items); this product may not push on next schedule',
         severity: Severity.warning,
       ));
     }
@@ -290,10 +290,10 @@ class PushScheduleConflictChecker {
 
   /// 格式化衝突報告為可讀字符串
   static String formatReports(List<ConflictReport> reports) {
-    if (reports.isEmpty) return '✅ 未發現衝突';
+    if (reports.isEmpty) return 'No conflicts found';
 
     final buffer = StringBuffer();
-    buffer.writeln('發現 ${reports.length} 個衝突：\n');
+    buffer.writeln('Found ${reports.length} conflict(s):\n');
 
     final byType = <ConflictType, List<ConflictReport>>{};
     for (final report in reports) {

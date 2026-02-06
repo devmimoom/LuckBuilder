@@ -171,7 +171,7 @@ class MeDashboardSection extends ConsumerWidget {
                             context,
                             items: [
                               _Kpi('Owned', purchased.length),
-                              _Kpi('Wishlist', wishlist.length),
+                              _Kpi('Bookmarked', wishlist.length),
                               _Kpi('Favorites', favIds.length),
                               _Kpi('Push', pushingCount),
                             ],

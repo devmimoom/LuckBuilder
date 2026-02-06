@@ -156,10 +156,10 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 child: Column(
                   children: [
                     _drawerTile(tokens, LibraryView.purchased, Icons.inventory_2, 'Purchased'),
-                    _drawerTile(tokens, LibraryView.wishlist, Icons.bookmark_border, 'Wishlist'),
+                    _drawerTile(tokens, LibraryView.wishlist, Icons.bookmark_border, 'Bookmarked'),
                     _drawerTile(tokens, LibraryView.favorites, Icons.star_border, 'Favorites'),
-                    _drawerTile(tokens, LibraryView.history, Icons.history_edu, 'History'),
-                    _drawerTile(tokens, LibraryView.favoriteSentences, Icons.format_quote, 'Saved quotes'),
+                    _drawerTile(tokens, LibraryView.history, Icons.history_edu, 'Recent'),
+                    _drawerTile(tokens, LibraryView.favoriteSentences, Icons.format_quote, 'Saved Bites'),
                   ],
                 ),
               ),
@@ -1614,14 +1614,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         size: 64, color: tokens.textSecondary.withValues(alpha: 0.5)),
                     const SizedBox(height: 16),
                     Text(
-                      'No saved quotes yet.',
-                      style: TextStyle(
-                          color: tokens.textPrimary.withValues(alpha: 0.8),
-                          fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap the star on a content page to save a quote.',
+                      'Tap the star to save your favorite bites.',
                       style: TextStyle(
                           color: tokens.textSecondary.withValues(alpha: 0.6),
                           fontSize: 14),

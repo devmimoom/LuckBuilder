@@ -45,7 +45,7 @@ class SearchFilters {
   String summaryText() {
     final parts = <String>[];
     if (purchasedOnly) parts.add('Purchased');
-    if (wishlistOnly) parts.add('Wishlist');
+    if (wishlistOnly) parts.add('Bookmarked');
     if (pushingOnly) parts.add('Pushing');
     if (trialOnly) parts.add('Trial');
     if (levels.isNotEmpty) parts.add(levels.join(','));

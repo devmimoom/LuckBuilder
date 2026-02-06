@@ -42,7 +42,8 @@ class AuthService {
         await _auth.currentUser?.reload();
         return SignInResult.linked;
       } on FirebaseAuthException catch (e) {
-        if (e.code == 'credential-already-in-use') {
+        if (e.code == 'credential-already-in-use' ||
+            e.code == 'email-already-in-use') {
           await _auth.signOut();
           try {
             await _auth.signInWithEmailAndPassword(
@@ -165,7 +166,8 @@ class AuthService {
         await _auth.currentUser?.reload();
         return SignInResult.linked;
       } on FirebaseAuthException catch (e) {
-        if (e.code == 'credential-already-in-use') {
+        if (e.code == 'credential-already-in-use' ||
+            e.code == 'email-already-in-use') {
           await _auth.signOut();
           try {
             await _auth.signInWithCredential(cred);

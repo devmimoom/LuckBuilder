@@ -117,7 +117,7 @@ class DetailPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Key idea',
+                        const Text('Quick Bite',
                             style: TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w900)),
                         const SizedBox(height: 8),
