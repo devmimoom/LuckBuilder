@@ -62,7 +62,9 @@ def _parse_difficulty(v):
         return 1  # 預設值
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(
+        epilog='Example: python3 upload_v3_excel.py --key tools/keys/service-account.json --excel Onepop2.xlsx',
+    )
     ap.add_argument("--key", required=True, help="service account json path")
     ap.add_argument("--excel", required=True, help="xlsx path")
     args = ap.parse_args()

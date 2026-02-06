@@ -129,6 +129,7 @@ class ProductRail extends StatelessWidget {
                             width: double.infinity,
                             height: imageHeight,
                             fit: BoxFit.cover,
+                            alignment: Alignment.center,
                             errorBuilder: (context, error, stackTrace) =>
                                 Container(
                               height: imageHeight,

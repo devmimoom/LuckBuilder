@@ -260,6 +260,7 @@ class _ForYouCard extends StatelessWidget {
                   height: 110,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  alignment: Alignment.center,
                   errorBuilder: (_, __, ___) => Container(
                     height: 110,
                     color: tokens.chipBg,

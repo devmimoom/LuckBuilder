@@ -308,6 +308,7 @@ class _BannerCard extends StatelessWidget {
                     width: double.infinity,
                     height: _bannerHeight,
                     fit: BoxFit.cover,
+                    alignment: Alignment.center,
                     errorBuilder: (context, error, stackTrace) => Container(
                       height: _bannerHeight,
                       color: tokens.chipBg,
