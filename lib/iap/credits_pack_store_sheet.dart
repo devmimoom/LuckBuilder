@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,18 +84,46 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
     }
     setState(() => _purchasingId = product.identifier);
     try {
+      if (kDebugMode) {
+        debugPrint('[Store] Starting purchase: ${product.identifier}, uid=$uid');
+      }
       final credits = await CreditsIAPService.purchase(product);
-      await widget.ref
-          .read(creditsRepoProvider)
-          .addCredits(uid, credits, sourceProductId: product.identifier);
-      widget.ref.invalidate(creditsBalanceProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Added $credits credit(s).')),
-        );
-        Navigator.of(context).pop();
+      if (kDebugMode) {
+        debugPrint('[Store] Purchase returned $credits credits, writing to Firestore...');
+      }
+      if (credits > 0) {
+        await widget.ref
+            .read(creditsRepoProvider)
+            .addCredits(uid, credits, sourceProductId: product.identifier);
+        if (kDebugMode) {
+          debugPrint('[Store] Firestore write complete, invalidating provider...');
+        }
+        widget.ref.invalidate(creditsBalanceProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Added $credits credit(s).')),
+          );
+          Navigator.of(context).pop();
+        }
+      } else {
+        // credits == 0 意味著 product.identifier 不在 _productIdToCredits 映射中
+        if (kDebugMode) {
+          debugPrint('[Store] WARNING: credits=0 for ${product.identifier}! Product ID not mapped.');
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Purchase completed but product "${product.identifier}" is not recognized. Please contact support.'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Store] Purchase error: $e');
+        debugPrint('[Store] Error type: ${e.runtimeType}');
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

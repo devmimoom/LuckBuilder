@@ -45,6 +45,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     final t = context.tokens;
 
     final card = Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: t.cardGradient,
         color: t.cardGradient == null ? t.cardBg : null,

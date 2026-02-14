@@ -120,8 +120,10 @@ class CategoryNetflixRailsSection extends ConsumerWidget {
             },
             loading: () => const SizedBox(
                 height: 60, child: Center(child: CircularProgressIndicator())),
-            error: (e, _) => Text('products error: $e',
-                style: TextStyle(color: tokens.textSecondary)),
+            error: (e, _) => Text(
+              'We couldn’t load category suggestions right now. Please try again later.',
+              style: TextStyle(color: tokens.textSecondary),
+            ),
           ),
         ),
 
@@ -144,8 +146,10 @@ class CategoryNetflixRailsSection extends ConsumerWidget {
               topicsAsync.when(
                 data: (ts) {
                   if (ts.isEmpty) {
-                    return Text('No topics in this category. Check Firestore topics.',
-                        style: TextStyle(color: tokens.textSecondary));
+                    return Text(
+                      'No topics available in this category yet.',
+                      style: TextStyle(color: tokens.textSecondary),
+                    );
                   }
                   final top = ts.take(3).toList();
                   return Column(

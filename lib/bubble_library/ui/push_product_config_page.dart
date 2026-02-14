@@ -135,6 +135,30 @@ class PushProductConfigPage extends ConsumerWidget {
                         },
                         title: const Text('Notifications on'),
                       ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await NotificationService()
+                                .showTestBubbleNotificationForProduct(
+                              productId: productId,
+                              productTitle: title,
+                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Test notification sent.')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.campaign, size: 18),
+                          label: const Text('Send test notification'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -143,81 +167,6 @@ class PushProductConfigPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Frequency (max 5 per day per product)',
-                          style: TextStyle(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 10),
-                      DropdownButton<int>(
-                        value: cfg.freqPerDay,
-                        // ✅ 修復深色主題下拉選單透明背景重疊問題
-                        dropdownColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF14182E)
-                            : null,
-                        items: const [1, 2, 3, 4, 5]
-                            .map((e) => DropdownMenuItem(
-                                value: e, child: Text('$e per day')))
-                            .toList(),
-                        onChanged: (v) async {
-                          if (v == null) return;
-                          final newCfg = cfg.copyWith(freqPerDay: v);
-                          await ref
-                              .read(libraryRepoProvider)
-                              .setPushConfig(uid!, productId, newCfg.toMap());
-                          ref.invalidate(libraryProductsProvider);
-                          await ref.read(libraryProductsProvider.future);
-                          await PushOrchestrator.rescheduleNextDays(
-                              ref: ref, days: 3);
-                        },
-                      ),
-                      // 顯示警告：如果總頻率超過全域上限
-                      if (totalFreq > global.dailyTotalCap) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.amber.withValues(alpha: 0.5),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                color: Colors.amber.shade700,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Total frequency exceeds global cap.',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.amber.shade800,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'All products total $totalFreq per day, above global cap ${global.dailyTotalCap}. Some notifications may not be sent.',
-                                      style: TextStyle(
-                                        color: Colors.amber.shade800,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const Divider(),
                       const Text('Time mode',
                           style: TextStyle(fontWeight: FontWeight.w900)),
                       RadioListTile<PushTimeMode>(
@@ -236,8 +185,106 @@ class PushProductConfigPage extends ConsumerWidget {
                         },
                         title: const Text('Preset (recommended)'),
                       ),
-                      if (cfg.timeMode == PushTimeMode.preset)
+                      if (cfg.timeMode == PushTimeMode.preset) ...[
                         _presetSlots(ref, uid!, productId, cfg),
+                        const SizedBox(height: 16),
+                        const Text('Frequency (max 5 per day per product)',
+                            style: TextStyle(fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 10),
+                        DropdownButton<int>(
+                          value: cfg.freqPerDay,
+                          dropdownColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF14182E)
+                              : null,
+                          items: const [1, 2, 3, 4, 5]
+                              .map((e) => DropdownMenuItem(
+                                  value: e, child: Text('$e per day')))
+                              .toList(),
+                          onChanged: (v) async {
+                            if (v == null) return;
+                            final newCfg = cfg.copyWith(freqPerDay: v);
+                            await ref
+                                .read(libraryRepoProvider)
+                                .setPushConfig(uid!, productId, newCfg.toMap());
+                            ref.invalidate(libraryProductsProvider);
+                            await ref.read(libraryProductsProvider.future);
+                            await PushOrchestrator.rescheduleNextDays(
+                                ref: ref, days: 3);
+                          },
+                        ),
+                        if (totalFreq > global.dailyTotalCap) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.amber.withValues(alpha: 0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.amber.shade700,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Total frequency exceeds global cap.',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.amber.shade800,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'All products total $totalFreq per day, above global cap ${global.dailyTotalCap}. Some notifications may not be sent.',
+                                        style: TextStyle(
+                                          color: Colors.amber.shade800,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        const Text('Minimum interval (minutes)',
+                            style: TextStyle(fontWeight: FontWeight.w900)),
+                        DropdownButton<int>(
+                          value: cfg.minIntervalMinutes,
+                          dropdownColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF14182E)
+                              : null,
+                          items: const [60, 90, 120, 180]
+                              .map((e) =>
+                                  DropdownMenuItem(value: e, child: Text('$e')))
+                              .toList(),
+                          onChanged: (v) async {
+                            if (v == null) return;
+                            final newCfg = cfg.copyWith(minIntervalMinutes: v);
+                            await ref
+                                .read(libraryRepoProvider)
+                                .setPushConfig(uid!, productId, newCfg.toMap());
+                            ref.invalidate(libraryProductsProvider);
+                            await ref.read(libraryProductsProvider.future);
+                            await PushOrchestrator.rescheduleNextDays(
+                                ref: ref, days: 3);
+                          },
+                        ),
+                      ],
                       RadioListTile<PushTimeMode>(
                         value: PushTimeMode.custom,
                         groupValue: cfg.timeMode, // ignore: deprecated_member_use
@@ -265,46 +312,36 @@ class PushProductConfigPage extends ConsumerWidget {
                       ),
                       if (cfg.timeMode == PushTimeMode.custom)
                         _customTimes(context, ref, uid!, productId, cfg),
-                      const Divider(),
-                      // 內容策略已隱藏，待之後開發
-                      const Text('Minimum interval (minutes)',
-                          style: TextStyle(fontWeight: FontWeight.w900)),
-                      DropdownButton<int>(
-                        value: cfg.minIntervalMinutes,
-                        // ✅ 修復深色主題下拉選單透明背景重疊問題
-                        dropdownColor: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF14182E)
-                            : null,
-                        items: const [60, 90, 120, 180]
-                            .map((e) =>
-                                DropdownMenuItem(value: e, child: Text('$e')))
-                            .toList(),
-                        onChanged: (v) async {
-                          if (v == null) return;
-                          final newCfg = cfg.copyWith(minIntervalMinutes: v);
-                          await ref
-                              .read(libraryRepoProvider)
-                              .setPushConfig(uid!, productId, newCfg.toMap());
-                          ref.invalidate(libraryProductsProvider);
-                          await ref.read(libraryProductsProvider.future);
-                          await PushOrchestrator.rescheduleNextDays(
-                              ref: ref, days: 3);
-                        },
-                      ),
                     ],
                   ),
                 ),
               ],
             );
           },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('library error: $e')),
+            loading: () =>
+                const Center(child: CircularProgressIndicator()),
+            error: (e, _) => const Center(
+              child: Text(
+                'We couldn’t load your library right now. Please try again later.',
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('global error: $e')),
+          error: (e, _) => const Center(
+            child: Text(
+              'We couldn’t load your notification settings. Please try again later.',
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('products error: $e')),
+        error: (e, _) => const Center(
+          child: Text(
+            'We couldn’t load this product right now. Please try again later.',
+            textAlign: TextAlign.center,
+          ),
+        ),
       ),
     );
   }

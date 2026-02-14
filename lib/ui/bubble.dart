@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_tokens.dart';
 
 class BubbleCircle extends StatefulWidget {
@@ -75,25 +76,22 @@ class _BubbleCircleState extends State<BubbleCircle>
     }
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(_cornerRadius)),
-      child: Image.network(
-        url,
+      child: CachedNetworkImage(
+        imageUrl: url,
         width: double.infinity,
         height: _imageHeight,
         fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return SizedBox(
-            height: _imageHeight,
-            child: Center(
-              child: Icon(
-                Icons.auto_awesome,
-                size: 28,
-                color: tokens.primary,
-              ),
+        placeholder: (context, url) => SizedBox(
+          height: _imageHeight,
+          child: Center(
+            child: Icon(
+              Icons.auto_awesome,
+              size: 28,
+              color: tokens.primary,
             ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
+          ),
+        ),
+        errorWidget: (context, url, error) {
           return SizedBox(
             height: _imageHeight,
             child: Center(

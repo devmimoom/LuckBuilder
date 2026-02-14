@@ -15,10 +15,10 @@ class GlobalPushSettings {
     required this.styleMode,
   });
 
-  static GlobalPushSettings defaults() => GlobalPushSettings(
+  static GlobalPushSettings defaults() => const GlobalPushSettings(
         enabled: true,
-        dailyTotalCap: 8,
-        quietHours: TimeRange.fromMap(null), // 22:00-08:00
+        dailyTotalCap: 12,
+        quietHours: TimeRange.noQuietHours, // 預設關閉勿擾
         daysOfWeek: {1, 2, 3, 4, 5, 6, 7},
         styleMode: 'standard',
       );
@@ -35,9 +35,10 @@ class GlobalPushSettings {
     if (m == null) return GlobalPushSettings.defaults();
     return GlobalPushSettings(
       enabled: (m['enabled'] ?? true) as bool,
-      dailyTotalCap: ((m['dailyTotalCap'] ?? 8) as num).toInt().clamp(1, 50),
-      quietHours:
-          TimeRange.fromMap((m['quietHours'] as Map?)?.cast<String, dynamic>()),
+      dailyTotalCap: ((m['dailyTotalCap'] ?? 12) as num).toInt().clamp(1, 50),
+      quietHours: m['quietHours'] == null
+          ? TimeRange.noQuietHours
+          : TimeRange.fromMap((m['quietHours'] as Map?)?.cast<String, dynamic>()),
       daysOfWeek: (m['daysOfWeek'] as List<dynamic>? ?? [1, 2, 3, 4, 5, 6, 7])
           .map((e) => (e as num).toInt())
           .toSet(),

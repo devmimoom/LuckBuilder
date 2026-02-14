@@ -40,16 +40,6 @@ import UserNotifications
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    // 🔍 調試日誌：確認 iOS 是否收到通知響應
-    let actionId = response.actionIdentifier
-    let categoryId = response.notification.request.content.categoryIdentifier
-    print("═══════════════════════════════════════════")
-    print("📱 [iOS Native] didReceive response 觸發")
-    print("   actionIdentifier: \(actionId)")
-    print("   categoryIdentifier: \(categoryId)")
-    print("   是否為滑掉: \(actionId == UNNotificationDismissActionIdentifier)")
-    print("═══════════════════════════════════════════")
-    
     // ✅ 讓 Flutter 處理通知響應
     super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)
   }

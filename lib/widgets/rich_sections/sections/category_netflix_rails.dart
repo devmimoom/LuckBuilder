@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/app_tokens.dart';
+import '../../../theme/layout_constants.dart';
 import '../../app_card.dart';
 
 import '../../../providers/v2_providers.dart';
@@ -77,8 +79,14 @@ class CategoryNetflixRails extends ConsumerWidget {
                     const SizedBox(height: 18),
                   ],
                 ),
-          loading: () => const SizedBox(
-              height: 190, child: Center(child: CircularProgressIndicator())),
+          loading: () {
+            final sw = MediaQuery.of(context).size.width;
+            final cw = (sw * 0.7).clamp(200.0, kMaxCardWidth);
+            return SizedBox(
+              height: cw / kCoverAspectRatio + 80,
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          },
           error: (_, __) => const SizedBox.shrink(),
         ),
 
@@ -94,8 +102,14 @@ class CategoryNetflixRails extends ConsumerWidget {
                     const SizedBox(height: 18),
                   ],
                 ),
-          loading: () => const SizedBox(
-              height: 190, child: Center(child: CircularProgressIndicator())),
+          loading: () {
+            final sw = MediaQuery.of(context).size.width;
+            final cw = (sw * 0.7).clamp(200.0, kMaxCardWidth);
+            return SizedBox(
+              height: cw / kCoverAspectRatio + 80,
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          },
           error: (_, __) => const SizedBox.shrink(),
         ),
 
@@ -110,8 +124,14 @@ class CategoryNetflixRails extends ConsumerWidget {
                     _rail(context, wk.take(10).toList()),
                   ],
                 ),
-          loading: () => const SizedBox(
-              height: 190, child: Center(child: CircularProgressIndicator())),
+          loading: () {
+            final sw = MediaQuery.of(context).size.width;
+            final cw = (sw * 0.7).clamp(200.0, kMaxCardWidth);
+            return SizedBox(
+              height: cw / kCoverAspectRatio + 80,
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          },
           error: (_, __) => const SizedBox.shrink(),
         ),
       ],
@@ -138,14 +158,20 @@ class CategoryNetflixRails extends ConsumerWidget {
 
   Widget _rail(BuildContext context, List<Product> products) {
     final tokens = context.tokens;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth * 0.7).clamp(200.0, kMaxCardWidth);
+    final imageHeight = cardWidth / kCoverAspectRatio;
+    const textArea = 80.0; // 原 190-110
+    final railHeight = imageHeight + textArea;
+
     return SizedBox(
-      height: 190,
+      height: railHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: products.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (_, i) => SizedBox(
-          width: 280,
+          width: cardWidth,
           child: AppCard(
             padding: EdgeInsets.zero,
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -159,13 +185,18 @@ class CategoryNetflixRails extends ConsumerWidget {
                   ClipRRect(
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: Image.network(
-                      products[i].coverImageUrl!,
-                      height: 110,
+                    child: CachedNetworkImage(
+                      imageUrl: products[i].coverImageUrl!,
+                      height: imageHeight,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 110,
+                      placeholder: (_, __) => Container(
+                        height: imageHeight,
+                        color: tokens.chipBg,
+                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        height: imageHeight,
                         color: tokens.chipBg,
                         child: Icon(Icons.image_not_supported,
                             color: tokens.textSecondary),

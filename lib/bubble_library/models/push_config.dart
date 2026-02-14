@@ -10,6 +10,12 @@ class TimeRange {
   final TimeOfDay end; // exclusive; can cross midnight
   const TimeRange(this.start, this.end);
 
+  /// 勿擾關閉（start == end 時排程視為無勿擾時段）
+  static const TimeRange noQuietHours = TimeRange(
+    TimeOfDay(hour: 0, minute: 0),
+    TimeOfDay(hour: 0, minute: 0),
+  );
+
   Map<String, dynamic> toMap() => {
         'start': {'h': start.hour, 'm': start.minute},
         'end': {'h': end.hour, 'm': end.minute},

@@ -34,11 +34,13 @@ class CategoryPage extends ConsumerWidget {
 
           segs.when(
             data: (list) => list.isEmpty
-                ? const AppCard(
+                ? AppCard(
                     child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('No segments. Check Firestore ui/segments_v1.',
-                          style: TextStyle(color: Colors.red)),
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'No categories available yet.',
+                        style: TextStyle(color: tokens.textSecondary),
+                      ),
                     ),
                   )
                 : SizedBox(
@@ -120,11 +122,13 @@ class CategoryPage extends ConsumerWidget {
           const SizedBox(height: 14),
           topics.when(
             data: (ts) => ts.isEmpty
-                ? const AppCard(
+                ? AppCard(
                     child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('No topics. Check Firestore topics.',
-                          style: TextStyle(color: Colors.orange)),
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'No topics available yet. Please check back soon.',
+                        style: TextStyle(color: tokens.textSecondary),
+                      ),
                     ),
                   )
                 : Wrap(

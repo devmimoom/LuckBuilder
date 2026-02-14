@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -110,11 +111,21 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
             },
             loading: () =>
                 const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('library error: $e')),
+            error: (e, _) => const Center(
+              child: Text(
+                'We couldn’t load your library right now. Please try again later.',
+                textAlign: TextAlign.center,
+              ),
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('products error: $e')),
+        error: (e, _) => const Center(
+          child: Text(
+            'We couldn’t load your content right now. Please try again later.',
+            textAlign: TextAlign.center,
+          ),
+        ),
       ),
     );
   }
@@ -959,7 +970,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
         final item = await ref.read(contentItemProvider(id).future);
         return MapEntry(id, item);
       } catch (e) {
-        debugPrint('載入 ContentItem $id 失敗: $e');
+        if (kDebugMode) debugPrint('Failed to load ContentItem $id: $e');
         return null;
       }
     });
@@ -1569,7 +1580,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
       try {
         await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
       } catch (e) {
-        debugPrint('重排推播失敗: $e');
+        if (kDebugMode) debugPrint('Reschedule failed: $e');
       }
     });
   }

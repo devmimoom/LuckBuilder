@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/app_tokens.dart';
+import '../../../theme/layout_constants.dart';
 import '../../app_card.dart';
 
 import '../../../providers/v2_providers.dart';
@@ -61,8 +63,13 @@ class HomeForYouSection extends ConsumerWidget {
                             style: TextStyle(color: tokens.textSecondary));
                       }
 
+                      final sw = MediaQuery.of(context).size.width;
+                      final cw = (sw * 0.45).clamp(180.0, kMaxCardWidth);
+                      final imgH = cw / kCoverAspectRatio;
+                      const textArea = 78.0; // 需容納標題+副標+CTA+padding(10*2)
+
                       return SizedBox(
-                        height: 190,
+                        height: imgH + textArea,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: picks.length,
@@ -70,7 +77,10 @@ class HomeForYouSection extends ConsumerWidget {
                               const SizedBox(width: 12),
                           itemBuilder: (_, i) {
                             final p = picks[i];
-                            return _ForYouCard(product: p);
+                            return _ForYouCard(
+                                product: p,
+                                cardWidth: cw,
+                                imageHeight: imgH);
                           },
                         ),
                       );
@@ -86,8 +96,14 @@ class HomeForYouSection extends ConsumerWidget {
                     style: TextStyle(color: tokens.textSecondary)),
               );
             },
-            loading: () => const SizedBox(
-                height: 190, child: Center(child: CircularProgressIndicator())),
+            loading: () {
+              final sw = MediaQuery.of(context).size.width;
+              final cw = (sw * 0.45).clamp(180.0, kMaxCardWidth);
+              return SizedBox(
+                height: cw / kCoverAspectRatio + 78,
+                child: const Center(child: CircularProgressIndicator()),
+              );
+            },
             error: (e, _) => Text('hot error: $e',
                 style: TextStyle(color: tokens.textSecondary)),
           ),
@@ -234,14 +250,20 @@ class HomeForYouSection extends ConsumerWidget {
 
 class _ForYouCard extends StatelessWidget {
   final Product product;
-  const _ForYouCard({required this.product});
+  final double cardWidth;
+  final double imageHeight;
+  const _ForYouCard({
+    required this.product,
+    required this.cardWidth,
+    required this.imageHeight,
+  });
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
 
     return SizedBox(
-      width: 280,
+      width: cardWidth,
       child: AppCard(
         padding: EdgeInsets.zero,
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -255,14 +277,19 @@ class _ForYouCard extends StatelessWidget {
               ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(20)),
-                child: Image.network(
-                  product.coverImageUrl!,
-                  height: 110,
+                child: CachedNetworkImage(
+                  imageUrl: product.coverImageUrl!,
+                  height: imageHeight,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 110,
+                  placeholder: (_, __) => Container(
+                    height: imageHeight,
+                    color: tokens.chipBg,
+                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    height: imageHeight,
                     color: tokens.chipBg,
                     child: Icon(Icons.image_not_supported,
                         color: tokens.textSecondary),

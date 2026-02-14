@@ -25,7 +25,7 @@ A: We care about your privacy and only use data as described in our Privacy Poli
 
 Copyright & developer
 
-© 2025 mimoom
+© 2026 mimoom
 Email: dev.mimoom@gmail.com
 ```
 
@@ -61,7 +61,7 @@ A: We care about your privacy and only use data as described in our Privacy Poli
 
 ### Copyright & developer
 
-© 2025 mimoom  
+© 2026 mimoom  
 Email: dev.mimoom@gmail.com
 
 ---
@@ -81,5 +81,5 @@ Email: dev.mimoom@gmail.com
 
 **Yes, you can use your company/brand name (e.g. mimoom) for Copyright.**
 
-- Example (same as your previous app): **`© 2025 mimoom`**
+- Example (same as your previous app): **`© 2026 mimoom`**
 - Use the legal or brand name of the rights holder. No special format is required beyond the year and the name.

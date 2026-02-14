@@ -11,7 +11,7 @@
 ```
 OnePop – Privacy Policy
 
-Last updated: 2025
+Last updated: 2026
 
 We care about your privacy. This policy describes what data we collect and how we use it.
 
@@ -29,7 +29,7 @@ We care about your privacy. This policy describes what data we collect and how w
 
 3. Sharing
 
-We do not sell your personal data. We may share data only as required by law or with service providers that help us run the app (e.g. hosting, analytics), under strict agreements.
+We do not sell your personal data. We do not share your personal information for cross-context behavioral advertising. We may share data only as required by law or with service providers that help us run the app (e.g. hosting, analytics), under strict agreements.
 
 4. Security
 
@@ -37,18 +37,22 @@ We use industry-standard measures to protect your data. You are responsible for 
 
 5. Your choices
 
-You can request access, correction, or deletion of your data by contacting us at dev.mimoom@gmail.com. You may also delete your account or reset data in the app where available.
+You can request access, correction, or deletion of your data by contacting us at dev.mimoom@gmail.com. You may also delete your account or reset data directly within the app. If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA), including the right to know, delete, and opt out of the sale of personal information (we do not sell your data).
 
-6. Children
+6. Data retention
 
-If the app is used by children, we take extra care with their data as required by applicable law.
+We retain your data only as long as your account is active or as needed to provide the service. You may delete your account at any time from the app settings, which will remove your data from our systems.
 
-7. Changes
+7. Children
+
+This app is not directed at children under 13. We do not knowingly collect personal information from children under 13. If we learn that we have collected data from a child under 13, we will delete it promptly. If you believe a child has provided us with personal data, please contact us at dev.mimoom@gmail.com.
+
+8. Changes
 
 We may update this policy from time to time. We will notify you of material changes via the app or email where appropriate.
 
 Contact: dev.mimoom@gmail.com
-© 2025 mimoom
+© 2026 mimoom
 ```
 
 ---
@@ -60,7 +64,7 @@ Contact: dev.mimoom@gmail.com
 ```
 OnePop – Terms of Use
 
-Last updated: 2025
+Last updated: 2026
 
 By using the OnePop app, you agree to these terms.
 
@@ -96,7 +100,7 @@ We may change these terms. Continued use of the app after changes means you acce
 
 Questions? Contact us at dev.mimoom@gmail.com.
 
-© 2025 mimoom
+© 2026 mimoom
 ```
 
 ---

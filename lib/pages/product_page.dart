@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/v2_providers.dart';
 import '../bubble_library/providers/providers.dart';
 import '../ui/glass.dart';
 import '../theme/app_tokens.dart';
+import '../theme/layout_constants.dart';
 import '../widgets/rich_sections/user_learning_store.dart';
 import '../notifications/coming_soon_remind_store.dart';
 import '../bubble_library/notifications/notification_service.dart';
@@ -12,6 +14,7 @@ import '../bubble_library/ui/product_library_page.dart';
 import '../collections/wishlist_provider.dart';
 import '../iap/credits_pack_store_sheet.dart';
 import '../providers/analytics_provider.dart';
+import '../widgets/app_card.dart';
 
 class ProductPage extends ConsumerStatefulWidget {
   final String productId;
@@ -97,30 +100,40 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              GlassCard(
-                radius: 26,
+              // 封面 + 標題 — 同一張卡片（與首頁 ProductRail 一致）
+              AppCard(
+                padding: EdgeInsets.zero,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 封面圖片
+                    // 封面圖片（1200x800 = 3:2）
                     if (p.coverImageUrl != null && p.coverImageUrl!.isNotEmpty)
                       ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(26)),
-                        child: Image.network(
-                          p.coverImageUrl!,
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                            height: 200,
-                            color: tokens.chipBg,
-                            child: Icon(Icons.image_not_supported,
-                                size: 48, color: tokens.textSecondary),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(tokens.cardRadius),
+                          topRight: Radius.circular(tokens.cardRadius),
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: kCoverAspectRatio,
+                          child: CachedNetworkImage(
+                            imageUrl: p.coverImageUrl!,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            placeholder: (context, url) => Container(
+                              color: tokens.chipBg,
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (context, url, error) =>
+                                Container(
+                              color: tokens.chipBg,
+                              child: Icon(Icons.image_not_supported,
+                                  size: 48, color: tokens.textSecondary),
+                            ),
                           ),
                         ),
                       ),
+                    // 標題區塊
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -197,49 +210,59 @@ class _ProductPageState extends ConsumerState<ProductPage> {
               const SizedBox(height: 10),
               previews.when(
                 data: (items) => SizedBox(
-                  height: 160,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (_, i) {
-                      final it = items[i];
-                      return SizedBox(
-                        width: 280,
-                        child: GlassCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(it.anchor,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: tokens.textPrimary)),
-                              const SizedBox(height: 6),
-                              Text(it.content,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style:
-                                      TextStyle(color: tokens.textSecondary)),
-                              const Spacer(),
-                              GlassCard(
-                                radius: 999,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                child: Text('${it.intent} · d${it.difficulty}'),
+                  height: 230,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cardWidth = (constraints.maxWidth * 0.78)
+                          .clamp(260.0, kMaxPreviewCardWidth);
+                      return ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 12),
+                        itemBuilder: (_, i) {
+                          final it = items[i];
+                          return SizedBox(
+                            width: cardWidth,
+                            child: GlassCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(it.anchor,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          color: tokens.textPrimary)),
+                                  const SizedBox(height: 6),
+                                  Expanded(
+                                    child: Text(it.content,
+                                        maxLines: 5,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            color: tokens.textSecondary)),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  GlassCard(
+                                    radius: 999,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    child: Text(
+                                        '${it.intent} · d${it.difficulty}'),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
                 ),
                 loading: () => const SizedBox(
-                    height: 160,
+                    height: 230,
                     child: Center(child: CircularProgressIndicator())),
-                error: (_, __) => const SizedBox(height: 160),
+                error: (_, __) => const SizedBox(height: 230),
               ),
               if ((p.contentArchitecture ?? '').isNotEmpty) ...[
                 const SizedBox(height: 20),
@@ -251,6 +274,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                 const SizedBox(height: 10),
                 GlassCard(
                   radius: 26,
+                  padding: EdgeInsets.zero,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(

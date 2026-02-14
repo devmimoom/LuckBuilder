@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../data/models.dart';
 import '../theme/app_tokens.dart';
+import '../theme/layout_constants.dart';
 import 'app_card.dart';
 import '../pages/product_page.dart';
 import '../widgets/rich_sections/user_learning_store.dart';
@@ -32,24 +34,25 @@ class ProductRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     
-    // 根據 size 決定尺寸（large 略降以減低視覺負擔）
-    final height = switch (size) {
-      ProductRailSize.large => 212.0,
-      ProductRailSize.medium => 190.0,
-      ProductRailSize.small => 180.0,
-    };
-    
+    // 根據螢幕寬度動態計算，iPad 上 clamp 住不會過大
+    final screenWidth = MediaQuery.of(context).size.width;
+
     final cardWidth = switch (size) {
-      ProductRailSize.large => 280.0,
-      ProductRailSize.medium => 280.0,
-      ProductRailSize.small => 220.0,
+      ProductRailSize.large  => (screenWidth * 0.45).clamp(180.0, kMaxCardWidth),
+      ProductRailSize.medium => (screenWidth * 0.45).clamp(180.0, kMaxCardWidth),
+      ProductRailSize.small  => (screenWidth * 0.55).clamp(180.0, kMaxSmallCardWidth),
     };
-    
-    final imageHeight = switch (size) {
-      ProductRailSize.large => 110.0,
-      ProductRailSize.medium => 110.0,
-      ProductRailSize.small => 105.0,
+
+    final imageHeight = cardWidth / kCoverAspectRatio;
+
+    // 文字區高度：需足夠容納 2 行標題 + 副標 + CTA + padding
+    final textAreaHeight = switch (size) {
+      ProductRailSize.large  => 100.0, // padding 8*2=16, 內容≤84
+      ProductRailSize.medium =>  78.0, // padding 8*2=16, 內容≤62
+      ProductRailSize.small  =>  78.0, // padding 6*2=12, 內容≤66
     };
+
+    final height = imageHeight + textAreaHeight;
     
     final titleFontSize = switch (size) {
       ProductRailSize.large => 16.0,
@@ -124,13 +127,18 @@ class ProductRail extends StatelessWidget {
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(20)),
-                          child: Image.network(
-                            p.coverImageUrl!,
+                          child: CachedNetworkImage(
+                            imageUrl: p.coverImageUrl!,
                             width: double.infinity,
                             height: imageHeight,
                             fit: BoxFit.cover,
                             alignment: Alignment.center,
-                            errorBuilder: (context, error, stackTrace) =>
+                            placeholder: (context, url) => Container(
+                              height: imageHeight,
+                              color: tokens.chipBg,
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (context, url, error) =>
                                 Container(
                               height: imageHeight,
                               color: tokens.chipBg,
@@ -148,7 +156,7 @@ class ProductRail extends StatelessWidget {
                         ),
                       Expanded(
                         child: Padding(
-                          padding: EdgeInsets.all(size == ProductRailSize.small ? 10 : 12),
+                          padding: EdgeInsets.all(size == ProductRailSize.small ? 6 : 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
@@ -195,7 +203,6 @@ class ProductRail extends StatelessWidget {
                                   ],
                                 ],
                               ),
-                              SizedBox(height: size == ProductRailSize.small ? 2 : 4),
                               Flexible(
                                 child: Text('${p.topicId} · ${p.level}',
                                     maxLines: 1,
@@ -207,7 +214,7 @@ class ProductRail extends StatelessWidget {
                                     )),
                               ),
                               if (dim && showReleaseDate) ...[
-                                SizedBox(height: size == ProductRailSize.small ? 1 : 2),
+                                const SizedBox(height: 1),
                                 Text(
                                   dt == null
                                       ? 'Coming soon'
@@ -220,7 +227,7 @@ class ProductRail extends StatelessWidget {
                                 ),
                               ],
                               if (ctaText != null) ...[
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 4),
                                 Align(
                                   alignment: Alignment.bottomRight,
                                   child: Text(

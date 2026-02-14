@@ -72,6 +72,7 @@ class CreditsRepo {
   }
 
   /// 兌換 N 額度解鎖產品：扣額度並寫入 library_products（原子）
+  /// ✅ Firestore 規則：transaction 內必須「所有讀取先執行完，再執行寫入」
   Future<void> redeemCredits({
     required String uid,
     required String productId,
@@ -84,17 +85,21 @@ class CreditsRepo {
         .doc(productId);
     final txCol = _db.collection(FirestorePaths.userCreditTransactions(uid));
     await _db.runTransaction((tx) async {
+      // 步驟 1：所有讀取必須在寫入之前
       final walletSnap = await tx.get(walletRef);
+      final libSnap = await tx.get(libraryRef);
+
       final balance = (walletSnap.data()?['balance'] as num?)?.toInt() ?? 0;
       if (balance < amount) {
         throw StateError('Insufficient credits: need $amount, have $balance');
       }
       final balanceAfter = balance - amount;
+
+      // 步驟 2：全部寫入
       tx.set(walletRef, {
         'balance': balanceAfter,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-      final libSnap = await tx.get(libraryRef);
       if (!libSnap.exists) {
         tx.set(libraryRef, {
           'productId': productId,

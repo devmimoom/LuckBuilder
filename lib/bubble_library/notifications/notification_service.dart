@@ -785,7 +785,7 @@ title: 'All done! 🎉',
     }
   }
 
-  /// 推播中心「試播一則」會呼叫這個
+  /// 推播中心「試播一則」會呼叫這個（Debug 與 Release 皆可用）
   Future<void> showTestBubbleNotification() async {
     if (kDebugMode) {
       debugPrint('🧪 showTestBubbleNotification 開始...');
@@ -840,6 +840,70 @@ title: 'All done! 🎉',
     } catch (e, stackTrace) {
       if (kDebugMode) {
         debugPrint('🧪 ❌ 測試通知發送失敗: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
+      rethrow;
+    }
+  }
+
+  /// 單一產品通知設定頁「試播此產品」用：以該產品標題發送一則測試通知。
+  /// payload 使用 type: 'test' 與假 contentItemId，不影響真實學習狀態。
+  Future<void> showTestBubbleNotificationForProduct({
+    required String productId,
+    required String productTitle,
+  }) async {
+    if (kDebugMode) {
+      debugPrint('🧪 showTestBubbleNotificationForProduct: $productId');
+    }
+
+    const iosDetails = DarwinNotificationDetails(
+      categoryIdentifier: iosCategoryBubbleActions,
+      presentAlert: true,
+      presentSound: true,
+      presentBadge: true,
+    );
+
+    const androidDetails = AndroidNotificationDetails(
+      'onepop_test_channel',
+      'OnePop Test',
+      channelDescription: 'Test OnePop notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      actions: [
+        AndroidNotificationAction(actionLearned, 'Done'),
+      ],
+    );
+
+    const details = NotificationDetails(
+      iOS: iosDetails,
+      android: androidDetails,
+    );
+
+    final fakeContentItemId = 'test_$productId';
+    final payload = <String, dynamic>{
+      'type': 'test',
+      'productId': productId,
+      'contentItemId': fakeContentItemId,
+      'contentId': fakeContentItemId,
+      'topicId': 'test_topic_001',
+      'pushOrder': 1,
+      'ts': DateTime.now().toIso8601String(),
+    };
+
+    try {
+      await plugin.show(
+        999002, // 與 showTestBubbleNotification 不同 id，避免覆蓋
+        productTitle,
+        'Tap "Done" to mark as done.',
+        details,
+        payload: jsonEncode(payload),
+      );
+      if (kDebugMode) {
+        debugPrint('🧪 ✅ 產品試播通知發送成功');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('🧪 ❌ 產品試播通知發送失敗: $e');
         debugPrint('Stack trace: $stackTrace');
       }
       rethrow;

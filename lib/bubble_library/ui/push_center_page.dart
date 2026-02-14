@@ -77,13 +77,15 @@ class PushCenterPage extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.campaign),
-            tooltip: 'Send test notification',
+            tooltip: 'Send a test notification',
             onPressed: () async {
               await NotificationService().showTestBubbleNotification();
               // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Test notification sent.')),
-              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Test notification sent.')),
+                );
+              }
             },
           ),
         ],
@@ -148,8 +150,7 @@ class PushCenterPage extends ConsumerWidget {
                                     Text(
                                         '${lp.pushConfig.freqPerDay}/day · ${lp.pushConfig.timeMode.name}',
                                         style: TextStyle(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.75),
+                                            color: context.tokens.textSecondary,
                                             fontSize: 12)),
                                   ],
                                 ),
@@ -240,12 +241,19 @@ class PushCenterPage extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('library error: $e'),
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (e, _) => const Text(
+                  'We couldn’t load your notification settings. Please try again later.',
+                  textAlign: TextAlign.left,
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('products error: $e'),
+            error: (e, _) => const Text(
+              'We couldn’t load your products right now. Please try again later.',
+              textAlign: TextAlign.left,
+            ),
           ),
           const SizedBox(height: 24),
         ],

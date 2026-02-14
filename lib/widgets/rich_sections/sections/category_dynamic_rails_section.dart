@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/v2_providers.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/layout_constants.dart';
 import '../../app_card.dart';
 import '../../../data/models.dart';
 import '../../../pages/product_page.dart';
@@ -94,6 +96,12 @@ class _RailBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth * 0.55).clamp(180.0, kMaxSmallCardWidth);
+    final imageHeight = cardWidth / kCoverAspectRatio;
+    const textArea = 78.0; // 原 170-92
+    final railHeight = imageHeight + textArea;
+
     return async.when(
       data: (ps) {
         if (ps.isEmpty) {
@@ -117,23 +125,27 @@ class _RailBlock extends StatelessWidget {
                 )),
             const SizedBox(height: 10),
             SizedBox(
-              height: 170,
+              height: railHeight,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: ps.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (_, i) {
                   final p = ps[i];
-                  return _MiniProductCard(product: p);
+                  return _MiniProductCard(
+                    product: p,
+                    cardWidth: cardWidth,
+                    imageHeight: imageHeight,
+                  );
                 },
               ),
             ),
           ],
         );
       },
-      loading: () => const SizedBox(
-        height: 170,
-        child: Center(child: CircularProgressIndicator()),
+      loading: () => SizedBox(
+        height: railHeight,
+        child: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => AppCard(
         child: Padding(
@@ -148,14 +160,20 @@ class _RailBlock extends StatelessWidget {
 
 class _MiniProductCard extends StatelessWidget {
   final Product product;
-  const _MiniProductCard({required this.product});
+  final double cardWidth;
+  final double imageHeight;
+  const _MiniProductCard({
+    required this.product,
+    required this.cardWidth,
+    required this.imageHeight,
+  });
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
 
     return SizedBox(
-      width: 240,
+      width: cardWidth,
       child: AppCard(
         padding: EdgeInsets.zero,
         onTap: () => Navigator.of(context).push(
@@ -170,13 +188,18 @@ class _MiniProductCard extends StatelessWidget {
               ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(20)),
-                child: Image.network(
-                  product.coverImageUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: product.coverImageUrl!,
                   width: double.infinity,
-                  height: 92,
+                  height: imageHeight,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 92,
+                  placeholder: (_, __) => Container(
+                    height: imageHeight,
+                    color: tokens.chipBg,
+                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    height: imageHeight,
                     color: tokens.chipBg,
                     child: Icon(Icons.image_not_supported,
                         color: tokens.textSecondary),
@@ -185,7 +208,7 @@ class _MiniProductCard extends StatelessWidget {
               )
             else
               Container(
-                height: 92,
+                height: imageHeight,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: tokens.chipBg,

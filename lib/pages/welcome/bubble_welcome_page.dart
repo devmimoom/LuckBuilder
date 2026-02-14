@@ -36,10 +36,10 @@ class _BubbleWelcomePageState extends State<BubbleWelcomePage>
         onTap: widget.onFinished,
         child: FadeTransition(
           opacity: _fadeController,
-          child: Stack(
+          child: const Stack(
             children: [
-              Positioned.fill(child: const _PremiumBackground()),
-              const _CenterContent(),
+              Positioned.fill(child: _PremiumBackground()),
+              _CenterContent(),
             ],
           ),
         ),
@@ -180,7 +180,7 @@ class _TapHintState extends State<_TapHint>
       builder: (context, child) {
         return Opacity(
           opacity: 0.4 + (_controller.value * 0.25),
-          child: Text(
+          child: const Text(
             'Tap to enter',
             style: TextStyle(
               fontSize: 14,

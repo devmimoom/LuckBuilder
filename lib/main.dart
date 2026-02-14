@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 
 import 'app_scaffold.dart';
@@ -17,6 +19,10 @@ import 'pages/welcome/onboarding_store.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 禁止 Google Fonts 在運行時下載字型（避免審核或離線時的問題）
+  GoogleFonts.config.allowRuntimeFetching = false;
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -26,14 +32,11 @@ void main() async {
   final auth = FirebaseAuth.instance;
   if (auth.currentUser == null) {
     try {
-      final userCredential = await auth.signInAnonymously();
-      debugPrint('匿名登入成功: uid=${userCredential.user?.uid}');
+      await auth.signInAnonymously();
     } catch (e) {
       // 如果匿名登入失敗，記錄錯誤但不阻止應用程式啟動
-      debugPrint('匿名登入失敗: $e');
+      if (kDebugMode) debugPrint('Anonymous sign-in failed: $e');
     }
-  } else {
-    debugPrint('用戶已登入: uid=${auth.currentUser?.uid}');
   }
 
   if (auth.currentUser != null) {

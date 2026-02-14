@@ -103,11 +103,6 @@ class MePage extends ConsumerWidget {
               'English',
               style: TextStyle(color: tokens.textSecondary),
             ),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Language options coming soon.')),
-              );
-            },
           ),
           ListTile(
             leading: Icon(Icons.info_outline, color: tokens.primary),
@@ -143,11 +138,20 @@ class MePage extends ConsumerWidget {
             ),
             onTap: () => _showResetDialog(context, ref),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Subscription / Favorites / Settings (MVP placeholder)',
-            style: TextStyle(color: tokens.textSecondary),
-          ),
+          // Apple 審核要求：帳號刪除功能
+          if (FirebaseAuth.instance.currentUser?.isAnonymous == false)
+            ListTile(
+              leading: const Icon(Icons.delete_forever_outlined, color: Colors.red),
+              title: const Text(
+                'Delete account',
+                style: TextStyle(color: Colors.red),
+              ),
+              subtitle: Text(
+                'Permanently delete your account and all associated data.',
+                style: TextStyle(color: tokens.textSecondary, fontSize: 12),
+              ),
+              onTap: () => _showDeleteAccountDialog(context, ref),
+            ),
         ],
       ),
     );
@@ -261,6 +265,126 @@ class MePage extends ConsumerWidget {
       }
     } finally {
       // 释放资源
+      progressNotifier.dispose();
+    }
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This will permanently delete your account and all data, including:\n'
+          '• Your learning progress\n'
+          '• All settings and preferences\n'
+          '• Purchase history (credits are non-refundable)\n'
+          '• All local data and notifications\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _performDeleteAccount(context, ref);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete permanently'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final progressNotifier = ValueNotifier<String>('Deleting account...');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: ValueListenableBuilder<String>(
+              valueListenable: progressNotifier,
+              builder: (context, progress, _) => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(progress),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final resetService = ResetService();
+
+      progressNotifier.value = 'Clearing cloud data...';
+      await Future.delayed(const Duration(milliseconds: 100));
+      await resetService.resetAll();
+
+      progressNotifier.value = 'Deleting account...';
+      await Future.delayed(const Duration(milliseconds: 100));
+      await FirebaseAuth.instance.currentUser?.delete();
+
+      progressNotifier.value = 'Signing in as guest...';
+      await FirebaseAuth.instance.signInAnonymously();
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      ref.invalidate(libraryProductsProvider);
+      ref.invalidate(wishlistProvider);
+      ref.invalidate(savedItemsProvider);
+      ref.invalidate(globalPushSettingsProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account deleted. You are now signed in as a guest.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+      if (context.mounted) {
+        final message = e.code == 'requires-recent-login'
+            ? 'For security, please sign out and sign in again, then try deleting your account.'
+            : 'Failed to delete account: ${e.message}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete account: $e'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+      if (kDebugMode) {
+        debugPrint('Delete account failed: $e');
+      }
+    } finally {
       progressNotifier.dispose();
     }
   }

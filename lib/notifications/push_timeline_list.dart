@@ -491,7 +491,12 @@ class PushTimelineList extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('products error: $e')),
+      error: (e, _) => const Center(
+        child: Text(
+          'We couldn’t load your upcoming notifications. Please try again later.',
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }

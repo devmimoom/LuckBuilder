@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../app_card.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/layout_constants.dart';
 
 class LibraryRichCard extends StatelessWidget {
   final String title;
@@ -47,22 +49,34 @@ class LibraryRichCard extends StatelessWidget {
         children: [
           // 封面（有就顯示）
           if (coverImageUrl != null && coverImageUrl!.isNotEmpty)
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(20)),
-              child: Image.network(
-                coverImageUrl!,
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 120,
-                  color: tokens.chipBg,
-                  alignment: Alignment.center,
-                  child: Icon(Icons.image_not_supported,
-                      color: tokens.textSecondary),
-                ),
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final h = (constraints.maxWidth / kBannerAspectRatio)
+                    .clamp(120.0, 260.0);
+                return ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: CachedNetworkImage(
+                    imageUrl: coverImageUrl!,
+                    height: h,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      height: h,
+                      color: tokens.chipBg,
+                      alignment: Alignment.center,
+                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      height: h,
+                      color: tokens.chipBg,
+                      alignment: Alignment.center,
+                      child: Icon(Icons.image_not_supported,
+                          color: tokens.textSecondary),
+                    ),
+                  ),
+                );
+              },
             ),
 
           Padding(

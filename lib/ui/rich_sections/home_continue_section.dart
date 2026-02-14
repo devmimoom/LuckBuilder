@@ -90,14 +90,19 @@ class HomeContinueSection extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('library error: $e',
-                    style: TextStyle(color: tokens.textSecondary)),
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Text(
+                  'We couldn’t load your library right now. Please try again later.',
+                  style: TextStyle(color: tokens.textSecondary),
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('products error: $e',
-                style: TextStyle(color: tokens.textSecondary)),
+            error: (e, _) => Text(
+              'We couldn’t load your recent topics right now. Please try again later.',
+              style: TextStyle(color: tokens.textSecondary),
+            ),
           ),
         ],
       ),

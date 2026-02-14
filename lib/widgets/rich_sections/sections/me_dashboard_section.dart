@@ -247,14 +247,19 @@ class MeDashboardSection extends ConsumerWidget {
                         style: TextStyle(color: tokens.textSecondary)),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('global push error: $e',
-                    style: TextStyle(color: tokens.textSecondary)),
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Text(
+                  'We couldn’t load your notification settings. Please try again later.',
+                  style: TextStyle(color: tokens.textSecondary),
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('products error: $e',
-                style: TextStyle(color: tokens.textSecondary)),
+            error: (e, _) => Text(
+              'We couldn’t load your content summary right now. Please try again later.',
+              style: TextStyle(color: tokens.textSecondary),
+            ),
           ),
         ],
       ),
@@ -297,10 +302,19 @@ class MeDashboardSection extends ConsumerWidget {
     final tokens = context.tokens;
     return Row(
       children: items.map((e) {
-        return Expanded(
+        // 根據 label 長度決定 flex 值，讓各項目有適當的空間
+        final flex = switch (e.label) {
+          'Owned' => 7,
+          'Bookmarked' => 12,
+          'Favorites' => 9,
+          'Push' => 6,
+          _ => 6, // 預設值
+        };
+        return Flexible(
+          flex: flex,
           child: Container(
-            margin: const EdgeInsets.only(right: 10),
-            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: context.tokens.cardBg.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(18),
@@ -316,8 +330,10 @@ class MeDashboardSection extends ConsumerWidget {
                         color: tokens.textPrimary)),
                 const SizedBox(height: 6),
                 Text(e.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style:
-                        TextStyle(color: tokens.textSecondary, fontSize: 12)),
+                        TextStyle(color: tokens.textSecondary, fontSize: 11)),
               ],
             ),
           ),

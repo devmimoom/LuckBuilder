@@ -43,6 +43,8 @@
 	<true/>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>We use notifications to deliver daily content from OnePop.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

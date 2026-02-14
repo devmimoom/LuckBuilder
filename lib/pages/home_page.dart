@@ -6,9 +6,11 @@ import '../providers/home_sections_provider.dart';
 import '../widgets/app_card.dart';
 import '../widgets/product_rail.dart';
 import '../theme/app_tokens.dart';
+import '../theme/layout_constants.dart';
 import '../data/models.dart';
 import '../widgets/rich_sections/sections/home_for_you_section.dart';
 import '../widgets/rich_sections/user_learning_store.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'product_page.dart';
 
 class HomePage extends ConsumerWidget {
@@ -22,6 +24,13 @@ class HomePage extends ConsumerWidget {
     final newArrivals = ref.watch(HomeSectionsProvider.newArrivalsProvider);
     final comingSoon = ref.watch(HomeSectionsProvider.comingSoonProvider);
     final tokens = context.tokens;
+
+    // 動態計算 loading 佔位高度（與 ProductRail 計算一致）
+    final screenWidth = MediaQuery.of(context).size.width;
+    final lgCardW = (screenWidth * 0.45).clamp(180.0, kMaxCardWidth);
+    final smCardW = (screenWidth * 0.55).clamp(180.0, kMaxSmallCardWidth);
+    final lgLoadingH = lgCardW / kCoverAspectRatio + 100; // large textArea
+    final smLoadingH = smCardW / kCoverAspectRatio + 78;  // small textArea
 
     return SafeArea(
       child: ListView(
@@ -38,24 +47,13 @@ class HomePage extends ConsumerWidget {
                           style: TextStyle(color: tokens.textSecondary)),
                     ),
                   )
-                : SizedBox(
-                    height: 220,
-                    child: PageView.builder(
-                      itemCount: ps.length,
-                      itemBuilder: (_, i) => _BannerCard(
-                        product: ps[i],
-                        onTap: () {
-                          unawaited(
-                              UserLearningStore().markGlobalLearnedToday());
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => ProductPage(productId: ps[i].id),
-                          ));
-                        },
-                      ),
-                    ),
+                : AspectRatio(
+                    aspectRatio: kBannerAspectRatio,
+                    child: _BannerCarousel(products: ps),
                   ),
-            loading: () => const SizedBox(
-                height: 220, child: Center(child: CircularProgressIndicator())),
+            loading: () => const AspectRatio(
+                aspectRatio: kBannerAspectRatio,
+                child: Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -96,8 +94,9 @@ class HomePage extends ConsumerWidget {
                     size: ProductRailSize.large,
                     ctaText: 'View',
                   ),
-            loading: () => const SizedBox(
-                height: 212, child: Center(child: CircularProgressIndicator())),
+            loading: () => SizedBox(
+                height: lgLoadingH,
+                child: const Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -140,8 +139,9 @@ class HomePage extends ConsumerWidget {
                     size: ProductRailSize.large,
                     ctaText: 'View',
                   ),
-            loading: () => const SizedBox(
-                height: 212, child: Center(child: CircularProgressIndicator())),
+            loading: () => SizedBox(
+                height: lgLoadingH,
+                child: const Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -186,8 +186,9 @@ class HomePage extends ConsumerWidget {
                     dim: true,
                     showReleaseDate: true,
                   ),
-            loading: () => const SizedBox(
-                height: 180, child: Center(child: CircularProgressIndicator())),
+            loading: () => SizedBox(
+                height: smLoadingH,
+                child: const Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -232,8 +233,9 @@ class HomePage extends ConsumerWidget {
                     size: ProductRailSize.large,
                     ctaText: 'View',
                   ),
-            loading: () => const SizedBox(
-                height: 212, child: Center(child: CircularProgressIndicator())),
+            loading: () => SizedBox(
+                height: lgLoadingH,
+                child: const Center(child: CircularProgressIndicator())),
             error: (err, stack) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -281,12 +283,90 @@ class _Section extends StatelessWidget {
   }
 }
 
+class _BannerCarousel extends StatefulWidget {
+  final List<Product> products;
+
+  const _BannerCarousel({required this.products});
+
+  @override
+  State<_BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<_BannerCarousel> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _pageController.addListener(() {
+      final page = _pageController.page?.round() ?? 0;
+      if (page != _currentPage && mounted) {
+        setState(() => _currentPage = page);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final ps = widget.products;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Expanded(
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: ps.length,
+            itemBuilder: (_, i) => _BannerCard(
+              product: ps[i],
+              onTap: () {
+                unawaited(
+                    UserLearningStore().markGlobalLearnedToday());
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ProductPage(productId: ps[i].id),
+                ));
+              },
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(ps.length, (i) {
+              final isActive = i == _currentPage;
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: isActive ? 8 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isActive
+                      ? tokens.primary
+                      : tokens.textSecondary.withValues(alpha: 0.4),
+                ),
+              );
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _BannerCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
   const _BannerCard({required this.product, required this.onTap});
-
-  static const double _bannerHeight = 220.0;
 
   @override
   Widget build(BuildContext context) {
@@ -296,21 +376,22 @@ class _BannerCard extends StatelessWidget {
       child: AppCard(
         padding: EdgeInsets.zero,
         onTap: onTap,
-        child: SizedBox(
-          height: _bannerHeight,
-          width: double.infinity,
+        child: SizedBox.expand(
           child: product.coverImageUrl != null &&
                   product.coverImageUrl!.isNotEmpty
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(26),
-                  child: Image.network(
-                    product.coverImageUrl!,
+                  child: CachedNetworkImage(
+                    imageUrl: product.coverImageUrl!,
                     width: double.infinity,
-                    height: _bannerHeight,
+                    height: double.infinity,
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: _bannerHeight,
+                    placeholder: (context, url) => Container(
+                      color: tokens.chipBg,
+                      child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                    errorWidget: (context, url, error) => Container(
                       color: tokens.chipBg,
                       child: Icon(Icons.image_not_supported,
                           color: tokens.textSecondary),
@@ -318,7 +399,6 @@ class _BannerCard extends StatelessWidget {
                   ),
                 )
               : Container(
-                  height: _bannerHeight,
                   decoration: BoxDecoration(
                     color: tokens.chipBg,
                     borderRadius: BorderRadius.circular(26),
