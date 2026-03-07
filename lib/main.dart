@@ -10,6 +10,9 @@ import 'theme/app_themes.dart';
 import 'navigation/app_nav.dart';
 import 'pages/welcome/bubble_welcome_page.dart';
 import 'pages/welcome/onboarding_screen.dart';
+import 'localization/app_language.dart';
+import 'localization/app_language_provider.dart';
+import 'bubble_library/notifications/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,8 +21,18 @@ void main() async {
   GoogleFonts.config.allowRuntimeFetching = false;
 
   runApp(AppBootstrapper(
-    builder: (themeController, initialHasSeenOnboarding) => ProviderScope(
-      overrides: [themeControllerProvider.overrideWithValue(themeController)],
+    builder: (themeController, initialHasSeenOnboarding, initialLang) => ProviderScope(
+      overrides: [
+        themeControllerProvider.overrideWithValue(themeController),
+        appLanguageProvider.overrideWith((ref) {
+          ref.listenSelf((_, next) {
+            saveLanguage(next);
+            // 語言切換時，同步更新 NotificationService 使用的語言
+            NotificationService().updateLanguage(next);
+          });
+          return initialLang;
+        }),
+      ],
       child: MyApp(
         themeController: themeController,
         initialHasSeenOnboarding: initialHasSeenOnboarding,

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+
 import 'models.dart';
+import 'search_suggestions_data.dart';
 
 /// Firestore collection names (與 Console 一致：snake_case)
 class Col {
@@ -300,27 +302,44 @@ class V2Repository {
     return [];
   }
 
-  /// Fetch search suggestions from ui/search_suggestions_v1
-  /// Returns fallback if doc missing or empty
-  Future<({List<String> suggested, List<String> trending})> fetchSearchSuggestions() async {
+  /// Fetch search suggestions from ui/search_suggestions_v1。
+  /// 若後端有提供繁中欄位 suggestedZh / trendingZh，一併回傳，否則為空陣列。
+  Future<SearchSuggestionsData> fetchSearchSuggestions() async {
     const fallbackSuggested = ['flutter UI design', 'flashcards app', 'notification habits'];
     const fallbackTrending = ['AI', 'Space', 'Aesthetics', 'Health', 'Finance', 'Mindset'];
 
     try {
-      final doc = await _firestore.collection(Col.ui).doc('search_suggestions_v1').get();
+      final doc = await _firestore
+          .collection(Col.ui)
+          .doc('search_suggestions_v1')
+          .get();
       if (!doc.exists || doc.data() == null) {
-        return (suggested: fallbackSuggested, trending: fallbackTrending);
+        return const SearchSuggestionsData(
+          suggested: fallbackSuggested,
+          trending: fallbackTrending,
+          suggestedZh: <String>[],
+          trendingZh: <String>[],
+        );
       }
       final data = doc.data()!;
-      final suggested = _parseStringList(data['suggested']);
-      final trending = _parseStringList(data['trending']);
-      return (
+      final List<String> suggested = _parseStringList(data['suggested']);
+      final List<String> trending = _parseStringList(data['trending']);
+      final List<String> suggestedZh = _parseStringList(data['suggestedZh']);
+      final List<String> trendingZh = _parseStringList(data['trendingZh']);
+      return SearchSuggestionsData(
         suggested: suggested.isNotEmpty ? suggested : fallbackSuggested,
         trending: trending.isNotEmpty ? trending : fallbackTrending,
+        suggestedZh: suggestedZh,
+        trendingZh: trendingZh,
       );
     } catch (e) {
       debugPrint('Error fetching search suggestions: $e');
-      return (suggested: fallbackSuggested, trending: fallbackTrending);
+      return const SearchSuggestionsData(
+        suggested: fallbackSuggested,
+        trending: fallbackTrending,
+        suggestedZh: <String>[],
+        trendingZh: <String>[],
+      );
     }
   }
 
@@ -435,6 +454,46 @@ class V2Repository {
       return merged;
     }
     return [];
+  }
+
+  /// 取得首頁橫幅項目：若有 items 則每則使用 itemImageUrl（沒有則用產品封面），一張圖可對應多個產品
+  Future<List<BannerItem>> fetchBannerItems(String listId) async {
+    final list = await fetchFeaturedList(listId);
+    if (list == null) return [];
+    if (list.items.isNotEmpty) {
+      final bannerItems = <BannerItem>[];
+      for (final item in list.items) {
+        List<Product> products = [];
+        if (item.productIds.isNotEmpty) {
+          products = await fetchProductsByIdsOrdered(item.productIds);
+        }
+        if (products.isEmpty && item.topicIds.isNotEmpty) {
+          final seen = <String>{};
+          for (final topicId in item.topicIds) {
+            final byTopic = await fetchProductsByTopic(topicId);
+            for (final p in byTopic) {
+              if (seen.add(p.id)) products.add(p);
+            }
+          }
+        }
+        if (products.isNotEmpty) {
+          final imageUrl = (item.itemImageUrl != null && item.itemImageUrl!.isNotEmpty)
+              ? item.itemImageUrl
+              : products.first.coverImageUrl;
+          bannerItems.add(BannerItem(
+            products: products,
+            imageUrl: imageUrl,
+            titleOverride: item.itemTitle,
+            titleZhOverride: item.itemTitleZh,
+          ));
+        }
+      }
+      return bannerItems;
+    }
+    final products = await fetchProductsForFeaturedList(list);
+    return products
+        .map((p) => BannerItem(products: [p], imageUrl: p.coverImageUrl))
+        .toList();
   }
 
   // 根據 ID 獲取產品

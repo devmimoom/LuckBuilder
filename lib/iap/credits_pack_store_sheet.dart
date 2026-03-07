@@ -8,6 +8,9 @@ import '../bubble_library/providers/providers.dart';
 import '../theme/app_tokens.dart';
 import '../ui/glass.dart';
 import 'credits_iap_service.dart';
+import '../localization/app_language_provider.dart';
+import '../localization/app_language.dart';
+import '../localization/app_strings.dart';
 
 /// 額度包商店：1 / 3 / 10 額度，購買後寫入 Firestore
 void showCreditsPackStoreSheet(BuildContext context, WidgetRef ref) {
@@ -68,6 +71,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
   }
 
   Future<void> _purchase(StoreProduct product) async {
+    final lang = widget.ref.read(appLanguageProvider);
     String? uid;
     try {
       uid = widget.ref.read(uidProvider);
@@ -77,7 +81,9 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
     if (uid == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sign in to purchase credits.')),
+          SnackBar(
+            content: Text(uiString(lang, 'sign_in_purchase_credits')),
+          ),
         );
       }
       return;
@@ -101,7 +107,10 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
         widget.ref.invalidate(creditsBalanceProvider);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Added $credits credit(s).')),
+            SnackBar(
+              content: Text(uiString(lang, 'added_credits')
+                  .replaceFirst('{n}', '$credits')),
+            ),
           );
           Navigator.of(context).pop();
         }
@@ -113,7 +122,8 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Purchase completed but product "${product.identifier}" is not recognized. Please contact support.'),
+              content: Text(uiString(lang, 'purchase_unrecognized')
+                  .replaceFirst('{id}', product.identifier)),
               duration: const Duration(seconds: 5),
             ),
           );
@@ -139,6 +149,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final lang = widget.ref.watch(appLanguageProvider);
     if (_loading) {
       return SafeArea(
         child: Padding(
@@ -157,13 +168,13 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
               Icon(Icons.error_outline, size: 48, color: tokens.textSecondary),
               const SizedBox(height: 12),
               Text(
-                'No credit packs available.',
+                uiString(lang, 'no_credit_packs'),
                 style: TextStyle(fontSize: 16, color: tokens.textSecondary),
               ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
+                child: Text(uiString(lang, 'close')),
               ),
             ],
           ),
@@ -180,7 +191,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
               Icon(Icons.stars_rounded, size: 28, color: tokens.primary),
               const SizedBox(width: 10),
               Text(
-                'Buy credits',
+                uiString(lang, 'credits_title'),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -191,7 +202,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
           ),
           const SizedBox(height: 8),
           Text(
-            'Use credits to unlock any product. No expiry.',
+            uiString(lang, 'credits_use_hint'),
             style: TextStyle(fontSize: 14, color: tokens.textSecondary, height: 1.4),
           ),
           const SizedBox(height: 24),
@@ -239,7 +250,8 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '$credits credit${credits > 1 ? 's' : ''}',
+                                      uiString(lang, 'credits_label')
+                                          .replaceFirst('{n}', '$credits'),
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
@@ -248,7 +260,8 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '$perCreditPrice per credit',
+                                      uiString(lang, 'per_credit_price')
+                                          .replaceFirst('{price}', perCreditPrice),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: tokens.textSecondary,
@@ -290,7 +303,9 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            isBestValue ? 'Best value' : 'Most popular',
+                            isBestValue
+                                ? uiString(lang, 'credits_best_value')
+                                : uiString(lang, 'credits_most_popular'),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -307,7 +322,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(uiString(lang, 'close')),
           ),
         ],
       ),
@@ -331,15 +346,16 @@ String _userFriendlyPurchaseErrorMessage(dynamic e) {
         ? (e.details as Map)['userCancelled'] == true
         : false;
     if (userCancelled) {
-      return 'Purchase cancelled.';
+      return uiString(detectSystemLanguage(), 'purchase_cancelled');
     }
     if (code == 'INVALID_RECEIPT' ||
         (e.message ?? '').toLowerCase().contains('receipt is not valid')) {
-      return 'Receipt could not be verified. Try again or use a different payment method.';
+      return uiString(detectSystemLanguage(), 'receipt_invalid');
     }
     if (code != null && code.isNotEmpty) {
-      return 'Purchase failed ($code). Try again later.';
+      return uiString(detectSystemLanguage(), 'purchase_failed_code')
+          .replaceFirst('{code}', code);
     }
   }
-  return 'Purchase could not be completed. Try again later.';
+  return uiString(detectSystemLanguage(), 'purchase_failed_generic');
 }

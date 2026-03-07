@@ -10,6 +10,8 @@ import '../../services/auth_service.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
+import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -45,9 +47,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
       ref.invalidate(uidProvider);
       final message = switch (result) {
-        SignInResult.linked => 'Account upgraded.',
-        SignInResult.signedInToExisting => 'Signed in with existing account.',
-        SignInResult.signedIn => 'Signed in.',
+        SignInResult.linked => uiString(ref.read(appLanguageProvider), 'account_upgraded_msg'),
+        SignInResult.signedInToExisting => uiString(ref.read(appLanguageProvider), 'signed_in_existing_msg'),
+        SignInResult.signedIn => uiString(ref.read(appLanguageProvider), 'signed_in_msg'),
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
@@ -57,16 +59,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AuthService.messageFromAuthException(e)),
+          content: Text(AuthService.messageFromAuthException(e, ref.read(appLanguageProvider))),
           duration: const Duration(seconds: 4),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(uiString(ref.read(appLanguageProvider), 'auth_something_wrong')),
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -98,9 +100,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
       ref.invalidate(uidProvider);
       final message = switch (result) {
-        SignInResult.linked => 'Account upgraded.',
-        SignInResult.signedInToExisting => 'Signed in with existing account.',
-        SignInResult.signedIn => 'Signed in.',
+        SignInResult.linked => uiString(ref.read(appLanguageProvider), 'account_upgraded_msg'),
+        SignInResult.signedInToExisting => uiString(ref.read(appLanguageProvider), 'signed_in_existing_msg'),
+        SignInResult.signedIn => uiString(ref.read(appLanguageProvider), 'signed_in_msg'),
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
@@ -113,16 +115,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AuthService.messageFromAuthException(e)),
+          content: Text(AuthService.messageFromAuthException(e, ref.read(appLanguageProvider))),
           duration: const Duration(seconds: 4),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(uiString(ref.read(appLanguageProvider), 'auth_something_wrong')),
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -141,9 +143,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
       ref.invalidate(uidProvider);
       final message = switch (result) {
-        SignInResult.linked => 'Account upgraded.',
-        SignInResult.signedInToExisting => 'Signed in with existing account.',
-        SignInResult.signedIn => 'Signed in.',
+        SignInResult.linked => uiString(ref.read(appLanguageProvider), 'account_upgraded_msg'),
+        SignInResult.signedInToExisting => uiString(ref.read(appLanguageProvider), 'signed_in_existing_msg'),
+        SignInResult.signedIn => uiString(ref.read(appLanguageProvider), 'signed_in_msg'),
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
@@ -156,7 +158,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AuthService.messageFromAuthException(e)),
+          content: Text(AuthService.messageFromAuthException(e, ref.read(appLanguageProvider))),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -167,7 +169,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
       final message = e.message.isNotEmpty
           ? e.message
-          : 'Something went wrong. Please try again.';
+          : uiString(ref.read(appLanguageProvider), 'auth_something_wrong');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -177,9 +179,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(uiString(ref.read(appLanguageProvider), 'auth_something_wrong')),
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -190,10 +192,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sign in', style: TextStyle(color: tokens.textPrimary)),
+        title: Text(uiString(lang, 'sign_in_page_title'), style: TextStyle(color: tokens.textPrimary)),
         backgroundColor: tokens.bg,
         elevation: 0,
         leading: IconButton(
@@ -216,8 +219,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'example@email.com',
+                    labelText: uiString(lang, 'email_label'),
+                    hintText: uiString(lang, 'email_hint'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -225,8 +228,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     fillColor: tokens.cardBg,
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your email';
-                    if (!v.contains('@')) return 'Please enter a valid email';
+                    if (v == null || v.trim().isEmpty) return uiString(lang, 'enter_email_validator');
+                    if (!v.contains('@')) return uiString(lang, 'valid_email_validator');
                     return null;
                   },
                 ),
@@ -237,7 +240,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   enableSuggestions: false,
                   textInputAction: TextInputAction.done,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: uiString(lang, 'password_label'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -253,7 +256,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter your password';
+                    if (v == null || v.isEmpty) return uiString(lang, 'enter_password_validator');
                     return null;
                   },
                 ),
@@ -268,7 +271,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 builder: (_) => const ForgotPasswordPage(),
                               ),
                             ),
-                    child: Text('Forgot password?', style: TextStyle(color: tokens.primary)),
+                    child: Text(uiString(lang, 'forgot_password_link'), style: TextStyle(color: tokens.primary)),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -292,8 +295,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           )
                         : Text(
                             ref.watch(authServiceProvider).isAnonymous
-                                ? 'Upgrade account (Sign in)'
-                                : 'Sign in',
+                                ? uiString(lang, 'upgrade_sign_in_cta')
+                                : uiString(lang, 'sign_in_cta'),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -308,7 +311,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'Or sign in with',
+                        uiString(lang, 'or_sign_with'),
                         style: TextStyle(
                           fontSize: 13,
                           color: tokens.textSecondary,
@@ -330,7 +333,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       side: BorderSide(color: tokens.cardBorder),
                     ),
                     icon: const Icon(Icons.g_mobiledata, size: 24),
-                    label: const Text('Sign in with Google'),
+                    label: Text(uiString(lang, 'sign_in_google')),
                   ),
                 ),
                 if (Platform.isIOS) ...[
@@ -346,7 +349,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         side: BorderSide(color: tokens.cardBorder),
                       ),
                       icon: const Icon(Icons.apple, size: 24),
-                      label: const Text('Sign in with Apple'),
+                      label: Text(uiString(lang, 'sign_in_apple')),
                     ),
                   ),
                 ],
@@ -355,7 +358,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account?",
+                      uiString(lang, 'donot_have_account'),
                       style: TextStyle(color: tokens.textSecondary),
                     ),
                     TextButton(
@@ -366,7 +369,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   builder: (_) => const RegisterPage(),
                                 ),
                               ),
-                      child: Text('Sign up', style: TextStyle(color: tokens.primary)),
+                      child: Text(uiString(lang, 'sign_up'),
+                          style: TextStyle(color: tokens.primary)),
                     ),
                   ],
                 ),

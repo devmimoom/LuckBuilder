@@ -137,6 +137,7 @@ class MeLibraryBookshelfSection extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ReadingProgress(
+                    lang: lang,
                     totalPercent: totalPercent,
                     totalRead: totalRead,
                     totalCards: totalCards,
@@ -315,19 +316,19 @@ class _LibraryHeader extends StatelessWidget {
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             foregroundColor: _libGold,
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'View all',
-                style: TextStyle(
+                uiString(lang, 'view_all_label'),
+                style: const TextStyle(
                   color: _libGold,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(width: 2),
-              Icon(
+              const SizedBox(width: 2),
+              const Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 10,
                 color: _libGold,
@@ -342,6 +343,7 @@ class _LibraryHeader extends StatelessWidget {
 
 class _ReadingProgress extends StatelessWidget {
   const _ReadingProgress({
+    required this.lang,
     required this.totalPercent,
     required this.totalRead,
     required this.totalCards,
@@ -349,6 +351,7 @@ class _ReadingProgress extends StatelessWidget {
     required this.unreadCount,
   });
 
+  final AppLanguage lang;
   final int totalPercent;
   final int totalRead;
   final int totalCards;
@@ -377,9 +380,9 @@ class _ReadingProgress extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Reading Progress',
-                      style: TextStyle(
+                    Text(
+                      uiString(lang, 'library_reading_progress_title'),
+                      style: const TextStyle(
                         color: _libText,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -434,7 +437,7 @@ class _ReadingProgress extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '$readingCount reading',
+                      '$readingCount${uiString(lang, 'library_reading_suffix')}',
                       style: const TextStyle(
                         color: _libTextMuted,
                         fontSize: 9,
@@ -442,7 +445,7 @@ class _ReadingProgress extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '$unreadCount unread',
+                      '$unreadCount${uiString(lang, 'library_unread_suffix')}',
                       style: const TextStyle(
                         color: _libTextMuted,
                         fontSize: 9,
@@ -703,6 +706,8 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ProviderScope.containerOf(context, listen: false)
+        .read(appLanguageProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
@@ -715,11 +720,11 @@ class _EmptyState extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: _libBorder),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'Your bookshelf is empty.\nStart exploring to add your first book.',
+                uiString(lang, 'library_empty_title'),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: _libTextSub,
                   fontSize: 12,
                 ),
@@ -727,9 +732,9 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            '✨ Unlock a topic to see it here.',
-            style: TextStyle(
+          Text(
+            uiString(lang, 'library_empty_hint'),
+            style: const TextStyle(
               color: _libTextMuted,
               fontSize: 11,
             ),

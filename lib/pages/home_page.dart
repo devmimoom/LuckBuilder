@@ -17,6 +17,7 @@ import '../localization/app_language_provider.dart';
 import '../localization/app_strings.dart';
 import '../services/wishlist_request_service.dart';
 import 'product_page.dart';
+import 'product_list_page.dart';
 import 'search_page.dart';
 
 class HomePage extends ConsumerWidget {
@@ -24,7 +25,7 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final banners = ref.watch(bannerProductsProvider);
+    final banners = ref.watch(bannerItemsProvider);
     final weekly = ref.watch(featuredProductsProvider('weekly_pick'));
     final hot = ref.watch(featuredProductsProvider('hot_all'));
     final newArrivals = ref.watch(HomeSectionsProvider.newArrivalsProvider);
@@ -64,7 +65,7 @@ class HomePage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 0, kPageHorizontalPadding, 0),
             child: banners.when(
-              data: (ps) => ps.isEmpty
+              data: (items) => items.isEmpty
                   ? AppCard(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -75,7 +76,7 @@ class HomePage extends ConsumerWidget {
                     )
                   : AspectRatio(
                       aspectRatio: kHomeHeroAspectRatio,
-                      child: _BannerCarousel(products: ps, lang: lang),
+                      child: _BannerCarousel(items: items, lang: lang),
                     ),
               loading: () => const AspectRatio(
                   aspectRatio: kHomeHeroAspectRatio,
@@ -600,11 +601,11 @@ class _GreetingHeader extends StatelessWidget {
               Text(
                 uiString(lang, 'what_are_we_learning_today'),
                 style: TextStyle(
-                  color: tokens.textPrimary,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  height: 1.25,
-                  letterSpacing: -0.8,
+                  color: tokens.primary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                  letterSpacing: 0,
                 ),
               ),
             ],
@@ -674,10 +675,10 @@ class _Section extends StatelessWidget {
 }
 
 class _BannerCarousel extends StatefulWidget {
-  final List<Product> products;
+  final List<BannerItem> items;
   final AppLanguage lang;
 
-  const _BannerCarousel({required this.products, required this.lang});
+  const _BannerCarousel({required this.items, required this.lang});
 
   @override
   State<_BannerCarousel> createState() => _BannerCarouselState();
@@ -708,21 +709,32 @@ class _BannerCarouselState extends State<_BannerCarousel> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final ps = widget.products;
+    final items = widget.items;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Expanded(
           child: PageView.builder(
             controller: _pageController,
-            itemCount: ps.length,
+            itemCount: items.length,
             itemBuilder: (_, i) => _BannerCard(
-              product: ps[i],
+              item: items[i],
               lang: widget.lang,
               onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => ProductPage(productId: ps[i].id),
-                ));
+                final b = items[i];
+                if (b.products.isEmpty) return; // 理論上不應發生（repository 不建空 BannerItem）
+                if (b.products.length == 1) {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => ProductPage(productId: b.products.first.id),
+                  ));
+                } else {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => ProductListPage(
+                      productIds: b.products.map((p) => p.id).toList(),
+                      title: b.titleOverride ?? b.titleZhOverride,
+                    ),
+                  ));
+                }
               },
             ),
           ),
@@ -732,7 +744,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
-            children: List.generate(ps.length, (i) {
+            children: List.generate(items.length, (i) {
               final isActive = i == _currentPage;
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -754,11 +766,11 @@ class _BannerCarouselState extends State<_BannerCarousel> {
 }
 
 class _BannerCard extends StatelessWidget {
-  final Product product;
+  final BannerItem item;
   final AppLanguage lang;
   final VoidCallback onTap;
   const _BannerCard({
-    required this.product,
+    required this.item,
     required this.lang,
     required this.onTap,
   });
@@ -766,12 +778,19 @@ class _BannerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final hasImage = product.coverImageUrl != null &&
-        product.coverImageUrl!.isNotEmpty;
+    final product = item.leadingProduct;
+    final imageUrl = item.imageUrl ?? product?.coverImageUrl;
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
     final title = lang == AppLanguage.zhTw
-        ? (product.titleZh?.isNotEmpty == true ? product.titleZh! : product.title)
-        : (product.titleEn?.isNotEmpty == true ? product.titleEn! : product.title);
-    final subtitle = uiString(lang, 'quick_read');
+        ? (item.titleZhOverride?.isNotEmpty == true
+            ? item.titleZhOverride!
+            : (product?.titleZh?.isNotEmpty == true ? product!.titleZh! : product?.title ?? ''))
+        : (item.titleOverride?.isNotEmpty == true
+            ? item.titleOverride!
+            : (product?.titleEn?.isNotEmpty == true ? product!.titleEn! : product?.title ?? ''));
+    // 繁中介面不再顯示「精華速讀」副標
+    final String? subtitle =
+        lang == AppLanguage.zhTw ? null : uiString(lang, 'quick_read');
 
     return AppCard(
       padding: EdgeInsets.zero,
@@ -782,10 +801,10 @@ class _BannerCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 背景圖
+              // 背景圖（優先 itemImageUrl，否則產品封面）
               if (hasImage)
                 CachedNetworkImage(
-                  imageUrl: product.coverImageUrl!,
+                  imageUrl: imageUrl,
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
@@ -844,13 +863,14 @@ class _BannerCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 13,
+                    if (subtitle != null && subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 12),
                     Center(
                       child: Material(

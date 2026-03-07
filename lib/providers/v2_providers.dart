@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/repository.dart';
 import '../data/models.dart';
+import '../data/search_suggestions_data.dart';
 
 final firestoreProvider =
     Provider<FirebaseFirestore>((ref) => FirebaseFirestore.instance);
@@ -33,12 +34,11 @@ final featuredProductsProvider =
   return repo.fetchProductsForFeaturedList(list);
 });
 
-final bannerProductsProvider = FutureProvider<List<Product>>((ref) async {
+/// 首頁橫幅：使用 itemImageUrl（試算表 itemImageUrl）優先，沒有則用產品封面
+final bannerItemsProvider = FutureProvider<List<BannerItem>>((ref) async {
   final repo = ref.watch(v2RepoProvider);
-  final list = await repo.fetchFeaturedList('home_banners');
-  if (list == null) return [];
-  final products = await repo.fetchProductsForFeaturedList(list);
-  return products.take(3).toList();
+  final items = await repo.fetchBannerItems('home_banners');
+  return items;
 });
 
 /// coming soon 的 productId set（由 featured_lists/coming_soon 產生）
@@ -53,6 +53,19 @@ final comingSoonIdsProvider = Provider<Set<String>>((ref) {
 final productsByTopicProvider =
     FutureProvider.family<List<Product>, String>((ref, topicId) async {
   return ref.watch(v2RepoProvider).fetchProductsByTopic(topicId);
+});
+
+/// 依 product ID 列表取得產品（保持順序）；key 為 ids 以分號串接（與 Excel 一致，避免 ID 含逗號時錯切）
+const _kProductIdsSeparator = ';';
+final productsByIdsProvider =
+    FutureProvider.family<List<Product>, String>((ref, idListKey) async {
+  final ids = idListKey
+      .split(_kProductIdsSeparator)
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
+  if (ids.isEmpty) return [];
+  return ref.watch(v2RepoProvider).fetchProductsByIdsOrdered(ids);
 });
 
 final productProvider =
@@ -70,7 +83,7 @@ final previewItemsProvider =
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
 final searchSuggestionsProvider =
-    FutureProvider<({List<String> suggested, List<String> trending})>((ref) async {
+    FutureProvider<SearchSuggestionsData>((ref) async {
   return ref.watch(v2RepoProvider).fetchSearchSuggestions();
 });
 

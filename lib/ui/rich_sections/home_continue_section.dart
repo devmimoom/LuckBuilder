@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../theme/app_tokens.dart';
 import '../../widgets/app_card.dart';
+import '../../localization/app_language_provider.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_strings.dart';
 
 // 讀泡泡庫資料（已購買/推播設定/進度）
 import '../../bubble_library/providers/providers.dart';
@@ -16,13 +19,14 @@ class HomeContinueSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     // 未登入：直接顯示提示（避免 uidProvider throw）
     try {
       ref.read(uidProvider);
     } catch (_) {
       return AppCard(
         child: Text(
-          'Sign in to see Continue: recent topics, day progress, and next notification.',
+          uiString(lang, 'continue_sign_in_hint'),
           style: TextStyle(color: context.tokens.textSecondary),
         ),
       );
@@ -39,7 +43,7 @@ class HomeContinueSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Continue',
+          Text(uiString(lang, 'continue_label'),
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -56,7 +60,7 @@ class HomeContinueSection extends ConsumerWidget {
                       .toList();
 
                   if (visible.isEmpty) {
-                    return Text('No purchased topics yet. Browse categories or search.',
+                    return Text(uiString(lang, 'no_purchased_yet'),
                         style: TextStyle(color: tokens.textSecondary));
                   }
 
@@ -77,11 +81,15 @@ class HomeContinueSection extends ConsumerWidget {
                     children: [
                       for (final lp in top) ...[
                         _ContinueCard(
-                          title: productsMap[lp.productId]!.title,
+                          title: (lang == AppLanguage.zhTw &&
+                                  (productsMap[lp.productId]?.titleZh?.isNotEmpty ?? false))
+                              ? productsMap[lp.productId]!.titleZh!
+                              : productsMap[lp.productId]!.title,
                           productId: lp.productId,
                           day: lp.progress.nextSeq,
                           pushEnabled: lp.pushEnabled,
                           nextEntry: _nextEntryFor(upcoming, lp.productId),
+                          lang: lang,
                           onTap: () =>
                               onContinue(lp.productId, lp.progress.nextSeq),
                         ),
@@ -93,14 +101,14 @@ class HomeContinueSection extends ConsumerWidget {
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text(
-                  'We couldn’t load your library right now. Please try again later.',
+                  uiString(lang, 'library_load_error'),
                   style: TextStyle(color: tokens.textSecondary),
                 ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Text(
-              'We couldn’t load your recent topics right now. Please try again later.',
+              uiString(lang, 'content_load_error'),
               style: TextStyle(color: tokens.textSecondary),
             ),
           ),
@@ -147,6 +155,7 @@ class _ContinueCard extends StatelessWidget {
   final bool pushEnabled;
   final ScheduledPushEntry? nextEntry;
   final VoidCallback onTap;
+  final AppLanguage lang;
 
   const _ContinueCard({
     required this.title,
@@ -155,6 +164,7 @@ class _ContinueCard extends StatelessWidget {
     required this.pushEnabled,
     required this.nextEntry,
     required this.onTap,
+    required this.lang,
   });
 
   String _fmtTime(DateTime dt) =>
@@ -172,10 +182,13 @@ class _ContinueCard extends StatelessWidget {
     final tokens = context.tokens;
 
     final nextLine = !pushEnabled
-        ? 'Notifications off'
+        ? uiString(lang, 'push_off')
         : (nextEntry == null
-            ? 'No schedule for next 3 days'
-            : 'Next: ${_fmtTime(nextEntry!.when)} · ${nextEntry!.title}${_dayFromPayload(nextEntry!)}');
+            ? uiString(lang, 'no_schedule_next_3_days')
+            : uiString(lang, 'next_push_line')
+                .replaceFirst('{time}', _fmtTime(nextEntry!.when))
+                .replaceFirst(
+                    '{title}', '${nextEntry!.title}${_dayFromPayload(nextEntry!)}'));
 
     return InkWell(
       onTap: onTap,
@@ -201,11 +214,12 @@ class _ContinueCard extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                           color: tokens.textPrimary)),
                   const SizedBox(height: 6),
-                  Text('$day/365 · $productId',
+                  Text(
+                      '${uiString(lang, 'day_label').replaceFirst('{n}', '$day')}/365',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          TextStyle(color: tokens.textSecondary, fontSize: 12)),
+                      style: TextStyle(
+                          color: tokens.textSecondary, fontSize: 12)),
                   const SizedBox(height: 8),
                   Text(nextLine,
                       maxLines: 2,
@@ -222,8 +236,8 @@ class _ContinueCard extends StatelessWidget {
                 gradient: tokens.buttonGradient,
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: const Text('Continue',
-                  style: TextStyle(
+              child: Text(uiString(lang, 'continue_label'),
+                  style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
                       fontSize: 12)),

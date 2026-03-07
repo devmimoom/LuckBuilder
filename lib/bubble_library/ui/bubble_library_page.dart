@@ -310,7 +310,8 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           ? pushOrder.toString()
           : (pushOrder is num ? pushOrder.toInt().toString() : null) ??
               extractDayFromBody(e.body);
-      return day == null ? 'Next: ${e.title}' : 'Next: ${e.title} (#$day)';
+      final nextPrefix = uiString(lang, 'next_push_time').replaceFirst('{time}', '');
+      return day == null ? '$nextPrefix${e.title}' : '$nextPrefix${e.title} (#$day)';
     }
 
     final tokens = context.tokens;
@@ -324,7 +325,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 size: 64, color: tokens.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
-              'No purchased products yet.',
+              uiString(lang, 'no_purchased_yet'),
               style: TextStyle(
                   color: tokens.textPrimary, fontSize: 16),
             ),
@@ -373,13 +374,13 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                           color: tokens.textSecondary.withValues(alpha: 0.5)),
                       const SizedBox(height: 12),
                       Text(
-                        'No purchased products match your filters.',
+                        uiString(lang, 'no_purchased_match_filters'),
                         style: TextStyle(
                             color: tokens.textPrimary, fontSize: 16),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Try changing or clearing your filters.',
+                        uiString(lang, 'try_change_filters'),
                         style: TextStyle(
                             color: tokens.textSecondary, fontSize: 14),
                       ),
@@ -404,16 +405,17 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
         );
 
         return LibraryRichCard(
+          lang: lang,
           title: product.displayTitle(lang),
           coverImageUrl: null,
           totalItems: totalItems,
           level: product.level.isEmpty ? null : product.level,
           nextPushText: lp.pushEnabled
               ? (entry == null
-                  ? 'No schedule for next 3 days'
-                  : 'Next: ${fmtNextTime(entry.when)}')
-              : 'Notifications off',
-          latestTitle: entry == null ? 'Next: Not scheduled' : latestTitleText(entry),
+                  ? uiString(lang, 'no_schedule_next_3_days')
+                  : uiString(lang, 'next_push_time').replaceFirst('{time}', fmtNextTime(entry.when)))
+              : uiString(lang, 'notifications_off'),
+          latestTitle: entry == null ? uiString(lang, 'next_not_scheduled') : latestTitleText(entry),
           headerTrailing: PopupMenuButton<String>(
             icon: Icon(Icons.more_horiz, color: tokens.textSecondary),
             onSelected: (v) async {
@@ -437,17 +439,19 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                   children: [
                     Icon(lp.isFavorite ? Icons.star : Icons.star_border),
                     const SizedBox(width: 10),
-                    Text(lp.isFavorite ? 'Remove from favorites' : 'Add to favorites'),
+                    Text(lp.isFavorite
+                        ? uiString(lang, 'remove_from_favorites')
+                        : uiString(lang, 'add_to_favorites')),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'push',
                 child: Row(
                   children: [
-                    Icon(Icons.notifications_active_outlined),
-                    SizedBox(width: 10),
-                    Text('Notification settings'),
+                    const Icon(Icons.notifications_active_outlined),
+                    const SizedBox(width: 10),
+                    Text(uiString(lang, 'notification_settings_title')),
                   ],
                 ),
               ),
@@ -456,15 +460,21 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           onLearnNow: () async {
             // ignore: use_build_context_synchronously
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Logged: 1 session today.')));
+                .showSnackBar(
+              SnackBar(content: Text(uiString(lang, 'logged_one_session_today'))),
+            );
           },
           onMakeUpToday: () {
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Make up today (demo)')));
+                .showSnackBar(
+              SnackBar(content: Text(uiString(lang, 'make_up_today_demo'))),
+            );
           },
           onPreview3Days: () {
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Preview next 3 days (demo)')));
+                .showSnackBar(
+              SnackBar(content: Text(uiString(lang, 'preview_next_3_days_demo'))),
+            );
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => PushProductConfigPage(productId: lp.productId),
             ));
@@ -493,6 +503,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     Map<String, Product> productsMap,
   ) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
     final topicIds = <String>{};
     final levels = <String>{};
     for (final e in visibleLib) {
@@ -524,19 +535,19 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
               _purchasedPushChip(
                 tokens,
                 PurchasedPushFilter.all,
-                'All',
+                uiString(lang, 'all'),
               ),
               const SizedBox(width: 8),
               _purchasedPushChip(
                 tokens,
                 PurchasedPushFilter.pushing,
-                'Notifications on',
+                uiString(lang, 'notifications_on'),
               ),
               const SizedBox(width: 8),
               _purchasedPushChip(
                 tokens,
                 PurchasedPushFilter.off,
-                'Off',
+                uiString(lang, 'push_off'),
               ),
             ],
           ),
@@ -548,7 +559,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'Topic:',
+                  uiString(lang, 'topic_label'),
                   style: TextStyle(
                     fontSize: 12,
                     color: tokens.textSecondary,
@@ -583,7 +594,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 }),
                 const SizedBox(width: 12),
                 Text(
-                  'Level:',
+                  uiString(lang, 'level_label'),
                   style: TextStyle(
                     fontSize: 12,
                     color: tokens.textSecondary,
@@ -623,7 +634,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           // 關鍵字
           TextField(
             decoration: InputDecoration(
-              hintText: 'Search product title',
+              hintText: uiString(lang, 'search_product_title'),
               hintStyle: TextStyle(color: tokens.textSecondary),
               border: OutlineInputBorder(
                 borderSide: BorderSide(color: tokens.cardBorder),
@@ -648,7 +659,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 });
               },
               child: Text(
-                'Clear filters',
+                uiString(lang, 'clear_filters_btn'),
                 style: TextStyle(color: tokens.primary),
               ),
             ),
@@ -722,13 +733,13 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 size: 64, color: tokens.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
-              'No wishlist items yet.',
+              uiString(lang, 'wishlist_empty'),
               style: TextStyle(
                   color: tokens.textPrimary, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap the bookmark on a product page to add it.',
+              uiString(lang, 'wishlist_hint'),
               style: TextStyle(
                   color: tokens.textSecondary, fontSize: 14),
             ),
@@ -789,7 +800,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                                   fontSize: 16, fontWeight: FontWeight.w800)),
                         ),
                         IconButton(
-                          tooltip: 'Favorite',
+                          tooltip: uiString(lang, 'favorite'),
                           icon: Icon(w.isFavorite
                               ? Icons.star
                               : Icons.star_border),
@@ -798,7 +809,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                               .toggleFavorite(w.productId),
                         ),
                         IconButton(
-                          tooltip: 'Remove from wishlist',
+                          tooltip: uiString(lang, 'remove_from_wishlist'),
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () => ref
                               .read(localWishlistNotifierProvider)
@@ -810,8 +821,8 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                     Wrap(
                       spacing: 8,
                       children: [
-                        chip('Not purchased'),
-                        chip('Preview available'),
+                        chip(uiString(lang, 'not_purchased')),
+                        chip(uiString(lang, 'preview_available')),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -826,7 +837,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                               ),
                             ));
                           },
-                          child: const Text('Preview'),
+                          child: Text(uiString(lang, 'preview')),
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
@@ -835,7 +846,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                               builder: (_) => ProductPage(productId: w.productId),
                             ));
                           },
-                          child: const Text('Buy now'),
+                          child: Text(uiString(lang, 'buy_now')),
                         ),
                       ],
                     ),
@@ -876,13 +887,13 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 size: 64, color: tokens.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
-              'No favorites yet.',
+              uiString(lang, 'favorites_empty'),
               style: TextStyle(
                   color: tokens.textPrimary, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap the star on a product to add it to favorites.',
+              uiString(lang, 'favorites_hint'),
               style: TextStyle(
                   color: tokens.textSecondary, fontSize: 14),
             ),
@@ -916,7 +927,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                   child: Text(title,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w700))),
-              Text(isPurchased ? 'Purchased' : 'Not purchased',
+              Text(isPurchased ? uiString(lang, 'purchased_label') : uiString(lang, 'not_purchased'),
                   style: TextStyle(color: tokens.textSecondary)),
             ],
           ),
@@ -949,7 +960,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 if (snapshot.hasError) {
                   final tokens = context.tokens;
                   return Center(
-                    child: Text('Load error: ${snapshot.error}',
+                    child: Text('${uiString(lang, 'load_error')}${snapshot.error}',
                         style: TextStyle(color: tokens.textSecondary)),
                   );
                 }
@@ -1003,11 +1014,11 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('products error: $e')),
+          error: (e, _) => Center(child: Text('${uiString(lang, 'products_error')}$e')),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('saved items error: $e')),
+      error: (e, _) => Center(child: Text('${uiString(lang, 'saved_items_error')}$e')),
     );
   }
 
@@ -1033,6 +1044,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
 
   Widget _buildEmptyHistory(BuildContext context) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1041,13 +1053,13 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
               size: 64, color: tokens.textSecondary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
-            'No history yet.',
+            uiString(lang, 'history_empty'),
             style: TextStyle(
                 color: tokens.textPrimary, fontSize: 16),
           ),
           const SizedBox(height: 8),
           Text(
-            'Your progress will show here once you start.',
+            uiString(lang, 'history_empty_hint'),
             style: TextStyle(
                 color: tokens.textSecondary, fontSize: 14),
           ),
@@ -1116,10 +1128,10 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
               ? Center(
                   child: Text(
                     _selectedProductIds.isNotEmpty
-                        ? 'No content matches your filters'
-                        : showToLearn
-                            ? 'No pending items yet'
-                            : 'No completed items yet',
+                        ? uiString(lang, 'history_no_match_filters')
+                            : showToLearn
+                            ? uiString(lang, 'no_pending_items')
+                            : uiString(lang, 'no_completed_items'),
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontSize: 16,
@@ -1220,7 +1232,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                     children: [
                       _buildTabChip(
                         context,
-                        label: 'Pending',
+                        label: uiString(lang, 'pending'),
                         icon: Icons.schedule,
                         color: tokens.primary,
                         isSelected: _selectedHistoryTab == 0,
@@ -1229,7 +1241,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                       const SizedBox(width: 8),
                       _buildTabChip(
                         context,
-                        label: 'Done',
+                        label: uiString(lang, 'done'),
                         icon: Icons.check_circle,
                         color: tokens.primary,
                         isSelected: _selectedHistoryTab == 1,
@@ -1262,7 +1274,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                               _selectedProductIds.clear();
                             });
                           },
-                          child: const Text('Clear filters'),
+                          child: Text(uiString(lang, 'clear_filters_btn')),
                         ),
                       ],
                     ),
@@ -1293,7 +1305,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
   ) {
     final tokens = context.tokens;
       final product = productsMap[productId];
-      final productTitle = product?.displayTitle(lang) ?? 'Unknown product';
+      final productTitle = product?.displayTitle(lang) ?? uiString(lang, 'unknown_product');
     
     // 根據 showToLearn 過濾內容
     final filteredToLearn = showToLearn ? group['toLearn']! : <String>[];
@@ -1312,9 +1324,9 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     });
     
     final displayCount = showToLearn ? filteredToLearn.length : filteredLearned.length;
-    final subtitle = showToLearn
-        ? 'Pending: $displayCount'
-        : 'Done: $displayCount';
+    final subtitleLabel = showToLearn ? uiString(lang, 'pending') : uiString(lang, 'done');
+    final subtitle = '$subtitleLabel: $displayCount';
+    final itemsText = uiString(lang, 'items_only').replaceFirst('{n}', '$displayCount');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -1328,7 +1340,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
             ),
           ),
           subtitle: Text(
-            '$displayCount items ($subtitle)',
+            '$itemsText ($subtitle)',
             style: TextStyle(
               fontSize: 12,
               color: tokens.textSecondary,
@@ -1417,7 +1429,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
       error: (e, _) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: BubbleCard(
-          child: Text('Load error: $e',
+          child: Text('${uiString(lang, 'load_error')}$e',
               style: TextStyle(color: context.tokens.textSecondary)),
         ),
       ),
@@ -1433,7 +1445,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     AppLanguage lang,
   ) {
     final product = productsMap[contentItem.productId];
-    final productTitle = product?.displayTitle(lang) ?? 'Unknown product';
+    final productTitle = product?.displayTitle(lang) ?? uiString(lang, 'unknown_product');
     final tokens = context.tokens;
 
     return Padding(
@@ -1521,7 +1533,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                             : tokens.primary,
                       ),
                       label: Text(
-                        isLearned ? 'Mark pending' : 'Mark done',
+                        isLearned ? uiString(lang, 'mark_pending') : uiString(lang, 'mark_done'),
                         style: TextStyle(
                           fontSize: 12,
                           color: isLearned
@@ -1578,8 +1590,8 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
               right: 8,
               child: Tooltip(
                 message: isLearned
-                    ? 'Done: Lower priority for notifications. Only chosen when no pending items.'
-                    : 'Pending: Higher priority for notification scheduling.',
+                    ? uiString(lang, 'badge_done_tooltip')
+                    : uiString(lang, 'badge_pending_tooltip'),
                 waitDuration: const Duration(milliseconds: 500),
                 child: Container(
                   padding:
@@ -1604,7 +1616,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isLearned ? 'Done' : 'Pending',
+                        isLearned ? uiString(lang, 'done') : uiString(lang, 'pending'),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1657,7 +1669,8 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     try {
       uid = ref.read(uidProvider);
     } catch (_) {
-      return const Center(child: Text('Sign in to use this feature.'));
+      final lang = ref.watch(appLanguageProvider);
+      return Center(child: Text(uiString(lang, 'sign_in_to_use_feature')));
     }
 
     final productsAsync = ref.watch(productsMapProvider);
@@ -1673,8 +1686,9 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
 
             if (snapshot.hasError) {
               final tokens = context.tokens;
+              final lang = ref.watch(appLanguageProvider);
               return Center(
-                child: Text('Load error: ${snapshot.error}',
+                child: Text('${uiString(lang, 'load_error')}${snapshot.error}',
                     style: TextStyle(color: tokens.textSecondary)),
               );
             }
@@ -1691,7 +1705,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         size: 64, color: tokens.textSecondary.withValues(alpha: 0.5)),
                     const SizedBox(height: 16),
                     Text(
-                      'Tap the star to save your favorite bites.',
+                      uiString(ref.watch(appLanguageProvider), 'favorite_sentences_hint'),
                       style: TextStyle(
                           color: tokens.textSecondary.withValues(alpha: 0.6),
                           fontSize: 14),
@@ -1709,16 +1723,17 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 final sentence = sentences[index];
                 final tokens = context.tokens;
 
+                final lang = ref.watch(appLanguageProvider);
                 // 格式化收藏日期
-                String formatDate(DateTime date) {
+                String formatDate(DateTime date, AppLanguage l) {
                   final now = DateTime.now();
                   final diff = now.difference(date);
                   if (diff.inDays == 0) {
-                    return 'Today';
+                    return uiString(l, 'today_label');
                   } else if (diff.inDays == 1) {
-                    return 'Yesterday';
+                    return uiString(l, 'yesterday_label');
                   } else if (diff.inDays < 7) {
-                    return '${diff.inDays} days ago';
+                    return uiString(l, 'days_ago').replaceFirst('{n}', '${diff.inDays}');
                   } else {
                     return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
                   }
@@ -1816,7 +1831,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: Text(
-                              formatDate(sentence.favoritedAt),
+                              formatDate(sentence.favoritedAt, lang),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: tokens.textSecondary.withValues(alpha: 0.5),
@@ -1839,7 +1854,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                             // 刷新列表
                             setState(() {});
                           },
-                          tooltip: 'Remove from saved',
+                          tooltip: uiString(lang, 'remove_from_saved'),
                         ),
                       ),
                     ],
@@ -1851,7 +1866,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('products error: $e')),
+      error: (e, _) => Center(child: Text('${uiString(ref.watch(appLanguageProvider), 'products_error')}$e')),
     );
   }
 }

@@ -7,6 +7,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'scheduled_push_cache.dart';
 import '../../notifications/push_exclusion_store.dart';
 import 'push_orchestrator.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_strings.dart';
 
 class NotificationService {
   static final NotificationService _i = NotificationService._();
@@ -15,9 +17,15 @@ class NotificationService {
 
   final _cache = ScheduledPushCache();
   bool _initialized = false;
+  AppLanguage _lang = detectSystemLanguage();
 
   final FlutterLocalNotificationsPlugin plugin =
       FlutterLocalNotificationsPlugin();
+
+  /// 更新通知文案所使用的語言（不重新初始化 plugin）
+  void updateLanguage(AppLanguage lang) {
+    _lang = lang;
+  }
 
   // ---- iOS Action IDs ----
   static const String iosCategoryBubbleActions = 'bubble_actions_v2';
@@ -83,10 +91,12 @@ class NotificationService {
 
   Future<void> init({
     required String uid,
+    AppLanguage? lang,
     void Function(Map<String, dynamic> data)? onTap,
     void Function(String? payload, String? actionId)? onSelect,
     void Function()? onStatusChanged,
   }) async {
+    if (lang != null) _lang = lang;
     _onStatusChanged = onStatusChanged;
     if (_initialized) return;
     _initialized = true;
@@ -100,6 +110,9 @@ class NotificationService {
     // iOS init：只保留兩顆 action
     // ✅ 將按鈕改為 foreground 模式，避免 iOS 背景執行的限制導致當機
     // ✅ 啟用 customDismissAction 以接收滑掉通知的回調
+    final doneLabel = uiString(_lang, 'notif_action_done');
+    final startOverLabel = uiString(_lang, 'notif_action_start_over');
+
     final iosInit = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -110,24 +123,22 @@ class NotificationService {
           actions: <DarwinNotificationAction>[
             DarwinNotificationAction.plain(
               actionLearned,
-              'Done',
+              doneLabel,
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
             ),
           ],
-          // ✅ 啟用自訂 dismiss action，當用戶滑掉通知時會收到回調
           options: <DarwinNotificationCategoryOption>{
             DarwinNotificationCategoryOption.customDismissAction,
           },
         ),
-        // ✅ 完成通知的 category（包含重新學習按鈕）
         DarwinNotificationCategory(
           iosCategoryCompletionActions,
           actions: <DarwinNotificationAction>[
             DarwinNotificationAction.plain(
               actionRestart,
-              'Start over',
+              startOverLabel,
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
@@ -546,13 +557,13 @@ class NotificationService {
 
     final androidDetails = AndroidNotificationDetails(
       'onepop_channel',
-      'OnePop',
-      channelDescription: 'OnePop daily',
+      uiString(_lang, 'notif_channel_main_name'),
+      channelDescription: uiString(_lang, 'notif_channel_main_desc'),
       importance: Importance.high,
       priority: Priority.high,
       styleInformation: BigTextStyleInformation(body),
-      actions: const [
-        AndroidNotificationAction(actionLearned, 'Done'),
+      actions: [
+        AndroidNotificationAction(actionLearned, uiString(_lang, 'notif_action_done')),
       ],
     );
 
@@ -615,19 +626,18 @@ class NotificationService {
       presentBadge: true,
     );
 
-    // Android 完成通知：包含重新學習按鈕
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'completion_channel',
-      'Completion',
-      channelDescription: 'Product completion notifications',
+      uiString(_lang, 'notif_channel_completion_name'),
+      channelDescription: uiString(_lang, 'notif_channel_completion_desc'),
       importance: Importance.max,
       priority: Priority.high,
       actions: [
-        AndroidNotificationAction(actionRestart, 'Start over'),
+        AndroidNotificationAction(actionRestart, uiString(_lang, 'notif_action_start_over')),
       ],
     );
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       iOS: iosDetails,
       android: androidDetails,
     );
@@ -639,12 +649,13 @@ class NotificationService {
     };
 
     try {
-      // 使用當前時間戳作為 ID，確保每次都是新的通知
       final notificationId = DateTime.now().millisecondsSinceEpoch.remainder(1000000);
+      final completionTitle = uiString(_lang, 'notif_completion_title');
+      final completionBody = uiString(_lang, 'notif_completion_body').replaceFirst('{title}', productTitle);
       await plugin.show(
         notificationId,
-        'All done! 🎉',
-        'You\'ve completed all content in "$productTitle"!',
+        completionTitle,
+        completionBody,
         details,
         payload: jsonEncode(payload),
       );
@@ -729,15 +740,14 @@ class NotificationService {
       presentBadge: true,
     );
 
-    // Android 完成通知：包含重新學習按鈕
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'completion_channel',
-      'Completion',
-      channelDescription: 'Product completion notifications',
+      uiString(_lang, 'notif_channel_completion_name'),
+      channelDescription: uiString(_lang, 'notif_channel_completion_desc'),
       importance: Importance.max,
       priority: Priority.high,
       actions: [
-        AndroidNotificationAction(actionRestart, 'Start over'),
+        AndroidNotificationAction(actionRestart, uiString(_lang, 'notif_action_start_over')),
       ],
     );
 
@@ -748,27 +758,27 @@ class NotificationService {
     };
 
     try {
-      // 使用產品 ID 的 hash 作為通知 ID，確保同一產品只會有一個完成通知
       final notificationId = (productId.hashCode.abs() % 900000) + 100000;
-      
+      final completionTitle = uiString(_lang, 'notif_completion_title');
+      final completionBody = uiString(_lang, 'notif_completion_body').replaceFirst('{title}', productTitle);
+
       await plugin.zonedSchedule(
         notificationId,
-        'All done! 🎉',
-        'You\'ve completed all content in "$productTitle"!',
+        completionTitle,
+        completionBody,
         tz.TZDateTime.from(scheduledTime, tz.local),
-        const NotificationDetails(android: androidDetails, iOS: iosDetails),
+        NotificationDetails(android: androidDetails, iOS: iosDetails),
         payload: jsonEncode(payload),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: null,
       );
-      
-      // ✅ 同步更新 cache（保存 notification ID，以便重新學習時能正確取消）
+
       await _cache.add(ScheduledPushEntry(
         when: scheduledTime,
-title: 'All done! 🎉',
-      body: 'You\'ve completed all content in "$productTitle"!',
+        title: completionTitle,
+        body: completionBody,
         payload: payload,
         notificationId: notificationId,
       ));
@@ -799,19 +809,18 @@ title: 'All done! 🎉',
       presentBadge: true,
     );
 
-    // Android 可先簡單帶過
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'onepop_test_channel',
-      'OnePop Test',
-      channelDescription: 'Test OnePop notifications',
+      uiString(_lang, 'notif_channel_test_name'),
+      channelDescription: uiString(_lang, 'notif_channel_test_desc'),
       importance: Importance.max,
       priority: Priority.high,
       actions: [
-        AndroidNotificationAction(actionLearned, 'Done'),
+        AndroidNotificationAction(actionLearned, uiString(_lang, 'notif_action_done')),
       ],
     );
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       iOS: iosDetails,
       android: androidDetails,
     );
@@ -828,9 +837,9 @@ title: 'All done! 🎉',
 
     try {
       await plugin.show(
-        999001, // 固定 id（測試時覆蓋同一則）
-        'OnePop 30 sec',
-        'Tap "Done" to mark as done.',
+        999001,
+        uiString(_lang, 'notif_test_title'),
+        uiString(_lang, 'notif_test_body'),
         details,
         payload: jsonEncode(payload),
       );
@@ -863,18 +872,18 @@ title: 'All done! 🎉',
       presentBadge: true,
     );
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'onepop_test_channel',
-      'OnePop Test',
-      channelDescription: 'Test OnePop notifications',
+      uiString(_lang, 'notif_channel_test_name'),
+      channelDescription: uiString(_lang, 'notif_channel_test_desc'),
       importance: Importance.max,
       priority: Priority.high,
       actions: [
-        AndroidNotificationAction(actionLearned, 'Done'),
+        AndroidNotificationAction(actionLearned, uiString(_lang, 'notif_action_done')),
       ],
     );
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       iOS: iosDetails,
       android: androidDetails,
     );
@@ -892,9 +901,9 @@ title: 'All done! 🎉',
 
     try {
       await plugin.show(
-        999002, // 與 showTestBubbleNotification 不同 id，避免覆蓋
+        999002,
         productTitle,
-        'Tap "Done" to mark as done.',
+        uiString(_lang, 'notif_test_body'),
         details,
         payload: jsonEncode(payload),
       );

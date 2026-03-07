@@ -11,6 +11,9 @@ import '../../../bubble_library/providers/providers.dart';
 import '../../../collections/wishlist_provider.dart';
 import '../../../data/models.dart';
 import '../../../pages/product_page.dart';
+import '../../../localization/app_language.dart';
+import '../../../localization/app_language_provider.dart';
+import '../../../localization/app_strings.dart';
 
 class HomeForYouSection extends ConsumerWidget {
   const HomeForYouSection({super.key});
@@ -18,6 +21,7 @@ class HomeForYouSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
 
     // 如果未登入：直接用熱門補（避免 uidProvider throw）
     bool loggedIn = true;
@@ -40,7 +44,7 @@ class HomeForYouSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('For you',
+          Text(uiString(lang, 'for_you_section_title'),
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -59,14 +63,14 @@ class HomeForYouSection extends ConsumerWidget {
                       );
 
                       if (picks.isEmpty) {
-                        return Text('No recommendations yet.',
+                        return Text(uiString(lang, 'no_recommendations_yet'),
                             style: TextStyle(color: tokens.textSecondary));
                       }
 
                       final sw = MediaQuery.of(context).size.width;
                       final cw = (sw * 0.45).clamp(180.0, kMaxCardWidth);
                       final imgH = cw / kCoverAspectRatio;
-                      const textArea = 78.0; // 需容納標題+副標+CTA+padding(10*2)
+                      const textArea = 98.0; // 需容納標題+副標+CTA+padding(10*2)
 
                       return SizedBox(
                         height: imgH + textArea,
@@ -78,6 +82,7 @@ class HomeForYouSection extends ConsumerWidget {
                           itemBuilder: (_, i) {
                             final p = picks[i];
                             return _ForYouCard(
+                              lang: lang,
                                 product: p,
                                 cardWidth: cw,
                                 imageHeight: imgH);
@@ -100,7 +105,7 @@ class HomeForYouSection extends ConsumerWidget {
               final sw = MediaQuery.of(context).size.width;
               final cw = (sw * 0.45).clamp(180.0, kMaxCardWidth);
               return SizedBox(
-                height: cw / kCoverAspectRatio + 78,
+                height: cw / kCoverAspectRatio + 98,
                 child: const Center(child: CircularProgressIndicator()),
               );
             },
@@ -252,10 +257,12 @@ class _ForYouCard extends StatelessWidget {
   final Product product;
   final double cardWidth;
   final double imageHeight;
+  final AppLanguage lang;
   const _ForYouCard({
     required this.product,
     required this.cardWidth,
     required this.imageHeight,
+    required this.lang,
   });
 
   @override
@@ -303,9 +310,14 @@ class _ForYouCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // 唯一 flex：吃「剩餘」高度，避免總內容超過 textArea(78)-padding(20)=58px 而溢出
+                    // 唯一 flex：吃「剩餘」高度，避免總內容超過 textArea(98)-padding(20)=78px 而溢出
                     Expanded(
-                      child: Text(product.title,
+                      child: Text(
+                          (lang == AppLanguage.zhTw &&
+                                  product.titleZh != null &&
+                                  product.titleZh!.isNotEmpty)
+                              ? product.titleZh!
+                              : product.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -322,7 +334,7 @@ class _ForYouCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Align(
                       alignment: Alignment.bottomRight,
-                      child: Text('View ›',
+                      child: Text(uiString(lang, 'view_chevron'),
                           style: TextStyle(
                               color: tokens.primary,
                               fontSize: 12,

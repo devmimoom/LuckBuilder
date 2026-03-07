@@ -7,6 +7,7 @@ import '../theme/layout_constants.dart';
 import 'app_card.dart';
 import '../pages/product_page.dart';
 import '../localization/app_language.dart';
+import '../localization/app_strings.dart';
 import '../localization/bilingual_text.dart';
 
 enum ProductRailSize { large, medium, small }
@@ -90,7 +91,7 @@ class ProductRail extends StatelessWidget {
                       Icon(Icons.arrow_forward, 
                           color: tokens.primary, size: 32),
                       const SizedBox(height: 8),
-                      Text('View all',
+                      Text(uiString(effectiveLang, 'view_all_label'),
                           style: TextStyle(
                               color: tokens.primary,
                               fontWeight: FontWeight.w700)),
@@ -225,8 +226,10 @@ class ProductRail extends StatelessWidget {
                                 const SizedBox(height: 1),
                                 Text(
                                   dt == null
-                                      ? 'Coming soon'
-                                      : 'Release: ${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}',
+                                      ? uiString(effectiveLang, 'coming_soon_label')
+                                      : uiString(effectiveLang, 'release_date_label').replaceFirst(
+                                          '{date}',
+                                          '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}'),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: tokens.textSecondary.withValues(alpha: 0.7),

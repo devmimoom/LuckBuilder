@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'user_state_store.dart';
 import '../../theme/app_tokens.dart';
+import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 
 class SearchHistorySection extends StatefulWidget {
   final void Function(String) onTapQuery;
@@ -51,22 +54,31 @@ class SearchHistorySectionState extends State<SearchHistorySection> {
         Row(
           children: [
             Expanded(
-                child: Text('History',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: tokens.textPrimary))),
-            if (_recent.isNotEmpty)
-              IconButton(
+                child: Consumer(builder: (context, ref, _) {
+                  final lang = ref.watch(appLanguageProvider);
+                  return Text(uiString(lang, 'search_history_title'),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: tokens.textPrimary));
+                })),
+            Consumer(builder: (context, ref, _) {
+              final lang = ref.watch(appLanguageProvider);
+              if (_recent.isEmpty) return const SizedBox.shrink();
+              return IconButton(
                 onPressed: _clear,
                 icon: const Icon(Icons.delete_outline),
-                tooltip: 'Clear',
-              ),
+                tooltip: uiString(lang, 'clear'),
+              );
+            }),
           ],
         ),
         const SizedBox(height: 8),
         if (_recent.isEmpty)
-          Text('No search history yet',
-              style: TextStyle(color: tokens.textSecondary))
+          Consumer(builder: (context, ref, _) {
+            final lang = ref.watch(appLanguageProvider);
+            return Text(uiString(lang, 'search_history_empty'),
+                style: TextStyle(color: tokens.textSecondary));
+          })
         else
           Wrap(
             spacing: 8,

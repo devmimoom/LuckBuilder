@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bubble_library/providers/providers.dart';
 import '../../bubble_library/models/user_library.dart';
+import '../bubble_library/models/product.dart';
 import '../bubble_library/notifications/push_orchestrator.dart';
 import '../bubble_library/notifications/scheduled_push_cache.dart';
 import '../notifications/skip_next_store.dart';
 import '../notifications/push_timeline_provider.dart';
 import '../bubble_library/ui/product_library_page.dart';
 import 'push_exclusion_store.dart';
+import '../localization/app_language_provider.dart';
+import '../localization/app_strings.dart';
 
 import 'timeline_meta_mode.dart';
 import 'widgets/timeline_widgets.dart';
@@ -32,11 +35,12 @@ class PushTimelineList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
     String uid;
     try {
       uid = ref.read(uidProvider);
     } catch (_) {
-      return const Center(child: Text('Sign in first.'));
+      return Center(child: Text(uiString(lang, 'sign_in_to_use_feature')));
     }
 
     final metaMode = ref.watch(timelineMetaModeProvider);
@@ -55,9 +59,9 @@ class PushTimelineList extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
         child: Row(
           children: [
-            const Flexible(
-              child: Text('Next 3 days schedule',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+            Flexible(
+              child: Text(uiString(lang, 'push_timeline_header'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1),
             ),
@@ -66,12 +70,13 @@ class PushTimelineList extends ConsumerWidget {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SegmentedButton<TimelineMetaMode>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: TimelineMetaMode.push,
-                      label: Text('Push', style: TextStyle(fontSize: 11)),
+                      label: Text(uiString(lang, 'notifications'),
+                          style: const TextStyle(fontSize: 11)),
                     ),
-                    ButtonSegment(
+                    const ButtonSegment(
                       value: TimelineMetaMode.nth,
                       label: Text('#N', style: TextStyle(fontSize: 11)),
                     ),
@@ -88,14 +93,16 @@ class PushTimelineList extends ConsumerWidget {
               iconSize: 20,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-              tooltip: 'Reschedule next 3 days',
+              tooltip: uiString(lang, 'push_timeline_tooltip'),
               icon: const Icon(Icons.refresh),
               onPressed: () async {
                 // 透過單一入口重排，內部會自動刷新 scheduledCacheProvider
                 await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Rescheduled next 3 days.')),
+                    SnackBar(
+                      content: Text(uiString(lang, 'rescheduled_next_3_days')),
+                    ),
                   );
                 }
               },
@@ -122,9 +129,9 @@ class PushTimelineList extends ConsumerWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Flexible(
-                  child: Text('Next 3 days schedule',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+                Flexible(
+                  child: Text(uiString(lang, 'push_timeline_header'),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1),
                 ),
@@ -132,15 +139,16 @@ class PushTimelineList extends ConsumerWidget {
                 Expanded(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: SegmentedButton<TimelineMetaMode>(
-                      segments: const [
-                        ButtonSegment(
+                  child: SegmentedButton<TimelineMetaMode>(
+                    segments: [
+                      ButtonSegment(
                           value: TimelineMetaMode.push,
-                          label: Text('Push', style: TextStyle(fontSize: 11)),
+                          label: Text(uiString(lang, 'notifications'),
+                              style: const TextStyle(fontSize: 11)),
                         ),
-                        ButtonSegment(
-                          value: TimelineMetaMode.nth,
-                          label: Text('#N', style: TextStyle(fontSize: 11)),
+                      const ButtonSegment(
+                        value: TimelineMetaMode.nth,
+                        label: Text('#N', style: TextStyle(fontSize: 11)),
                         ),
                       ],
                       selected: {metaMode},
@@ -156,14 +164,16 @@ class PushTimelineList extends ConsumerWidget {
                   iconSize: 20,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  tooltip: 'Reschedule',
+                  tooltip: uiString(lang, 'tooltip_reschedule'),
                   icon: const Icon(Icons.refresh),
                   onPressed: () async {
                     // 透過單一入口重排，內部會自動刷新 scheduledCacheProvider
                     await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Rescheduled next 3 days.')),
+                        SnackBar(
+                          content: Text(uiString(lang, 'rescheduled_next_3_days')),
+                        ),
                       );
                     }
                   },
@@ -172,7 +182,7 @@ class PushTimelineList extends ConsumerWidget {
                   iconSize: 20,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  tooltip: 'Close',
+                  tooltip: uiString(lang, 'tooltip_close'),
                   icon: const Icon(Icons.close),
                   onPressed: onClose ?? () => Navigator.of(context).pop(),
                 ),
@@ -203,11 +213,11 @@ class PushTimelineList extends ConsumerWidget {
                           final pushingProducts = lib.where((e) => !e.isHidden && e.pushEnabled).toList();
                           String emptyMessage;
                           if (!globalPush.enabled) {
-                            emptyMessage = 'Global notifications off.\nEnable them in Notification settings.';
+                            emptyMessage = uiString(lang, 'timeline_empty_global_off');
                           } else if (pushingProducts.isEmpty) {
-                            emptyMessage = 'No products with notifications on.\nEnable them in Notification settings.';
+                            emptyMessage = uiString(lang, 'timeline_empty_no_products');
                           } else {
-                            emptyMessage = 'No scheduled notifications.\nCheck quiet hours or date settings.';
+                            emptyMessage = uiString(lang, 'timeline_empty_no_scheduled');
                           }
                           
                           return Column(
@@ -355,15 +365,14 @@ class PushTimelineList extends ConsumerWidget {
                                       ?.toInt() ??
                                   0;
 
-                              final productTitle =
-                                  productsMap[productId]?.title ?? productId;
+                              final productTitle = productsMap[productId]?.displayTitle(lang) ?? productId;
                               // 第一行、第二行都用 product title
                               final displayTitle = productTitle;
 
                               // 第二行：產品名稱（product title）
                               final displayPreview = productTitle.isNotEmpty
                                   ? productTitle
-                                  : (day > 0 ? 'Day $day' : productId);
+                                  : (day > 0 ? uiString(lang, 'day_label').replaceFirst('{n}', '$day') : productId);
 
                               final lp = libMap[productId] as UserLibraryProduct?;
 
@@ -372,7 +381,7 @@ class PushTimelineList extends ConsumerWidget {
                                   case TimelineMetaMode.day:
                                     return ''; // Day 標籤已移除
                                   case TimelineMetaMode.push:
-                                    return lp != null ? pushHintFor(lp) : '';
+                                    return lp != null ? pushHintFor(lp, lang) : '';
                                   case TimelineMetaMode.nth:
                                     return r.seqInDayForProduct != null
                                         ? '#${r.seqInDayForProduct}'
@@ -398,6 +407,8 @@ class PushTimelineList extends ConsumerWidget {
                                 seqInDay: r.seqInDayForProduct,
                                 isFirst: prevIsHeader,
                                 isLast: nextIsHeader,
+                                doneLabel: uiString(lang, 'done'),
+                                savedLabel: uiString(lang, 'saved_label'),
                                 onTap: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -417,7 +428,7 @@ class PushTimelineList extends ConsumerWidget {
                                         children: [
                                           OutlinedButton.icon(
                                             icon: const Icon(Icons.visibility, size: 16),
-                                            label: const Text('View'),
+                                            label: Text(uiString(lang, 'view')),
                                             style: OutlinedButton.styleFrom(
                                               padding: const EdgeInsets.symmetric(
                                                 horizontal: 12,
@@ -442,7 +453,7 @@ class PushTimelineList extends ConsumerWidget {
                                           ),
                                           ElevatedButton.icon(
                                             icon: const Icon(Icons.skip_next, size: 16),
-                                            label: const Text('Skip'),
+                                            label: Text(uiString(lang, 'skip')),
                                             style: ElevatedButton.styleFrom(
                                               padding: const EdgeInsets.symmetric(
                                                 horizontal: 12,
@@ -456,7 +467,11 @@ class PushTimelineList extends ConsumerWidget {
                                                   ref: ref, days: 3);
                                               if (context.mounted) {
                                                 ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('Skipped and rescheduled.')),
+                                                  SnackBar(
+                                                    content: Text(
+                                                      uiString(lang, 'skipped_and_rescheduled'),
+                                                    ),
+                                                  ),
                                                 );
                                               }
                                             },
@@ -476,25 +491,28 @@ class PushTimelineList extends ConsumerWidget {
                     const Expanded(child: Center(child: CircularProgressIndicator())),
                   ],
                 ),
-                error: (e, _) => Center(child: Text('timeline error: $e')),
+                error: (e, _) =>
+                    Center(child: Text('${uiString(lang, 'timeline_error')}$e')),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('global push error: $e')),
+            error: (e, _) =>
+                Center(child: Text('${uiString(lang, 'global_push_error')}$e')),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('saved error: $e')),
+        error: (e, _) =>
+            Center(child: Text('${uiString(lang, 'saved_error')}$e')),
       );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('library error: $e')),
+          error: (e, _) => Center(child: Text('${uiString(lang, 'library_error')}$e')),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => const Center(
+      error: (e, _) => Center(
         child: Text(
-          'We couldn’t load your upcoming notifications. Please try again later.',
+          uiString(lang, 'timeline_load_error'),
           textAlign: TextAlign.center,
         ),
       ),

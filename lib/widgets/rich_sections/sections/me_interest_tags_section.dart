@@ -105,7 +105,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: _tags.map((t) => _chip(context, t)).toList(),
+              children: _tags.map((t) => _chip(context, lang, t)).toList(),
             ),
           const SizedBox(height: 14),
           Text(uiString(lang, 'interest_tags_suggested'),
@@ -136,7 +136,11 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
                         runSpacing: 10,
                         children: suggested.map((t) {
                           return _chipTappable(
-                              context, t, () => _save([..._tags, t]));
+                            context,
+                            lang,
+                            t,
+                            () => _save([..._tags, t]),
+                          );
                         }).toList(),
                       );
                     },
@@ -220,10 +224,58 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
     return list.map((e) => e.key).toList();
   }
 
+  String _displayTag(String raw, AppLanguage lang) {
+    if (lang != AppLanguage.zhTw) return raw;
+    switch (raw) {
+      case 'AI':
+        return 'AI';
+      case 'Space':
+        return '太空';
+      case 'Aesthetics':
+        return '美感';
+      case 'Finance':
+        return '理財';
+      case 'Health':
+        return '健康';
+      case 'Psychology':
+        return '心理學';
+      case 'Parenting':
+        return '親子';
+      case 'Productivity':
+        return '生產力';
+      case 'Coding':
+        return '程式';
+      case 'Career':
+        return '職涯';
+      case 'Reading':
+        return '閱讀';
+      case 'Communication':
+        return '溝通';
+      case 'English':
+        return '英文';
+      case 'Writing':
+        return '寫作';
+      case 'Habits':
+        return '習慣養成';
+      case 'Meditation':
+        return '冥想';
+      case 'Nutrition':
+        return '飲食營養';
+      case 'Fitness':
+        return '健身';
+      case 'Design':
+        return '設計';
+      case 'Entrepreneurship':
+        return '創業';
+      default:
+        return raw;
+    }
+  }
+
   static const _chipPadding = EdgeInsets.symmetric(horizontal: 14, vertical: 8);
   static const _chipFontSize = 13.0;
 
-  Widget _chip(BuildContext context, String text) {
+  Widget _chip(BuildContext context, AppLanguage lang, String text) {
     final tokens = context.tokens;
     return Container(
       padding: _chipPadding,
@@ -233,7 +285,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: tokens.cardBorder),
       ),
-      child: Text(text,
+      child: Text(_displayTag(text, lang),
           style: TextStyle(
               color: tokens.textPrimary,
               fontSize: _chipFontSize,
@@ -241,7 +293,8 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
     );
   }
 
-  Widget _chipTappable(BuildContext context, String text, VoidCallback onTap) {
+  Widget _chipTappable(
+      BuildContext context, AppLanguage lang, String text, VoidCallback onTap) {
     final tokens = context.tokens;
     return Material(
       color: Colors.transparent,
@@ -256,7 +309,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: tokens.cardBorder),
           ),
-          child: Text(text,
+          child: Text(_displayTag(text, lang),
               style: TextStyle(
                   color: tokens.textPrimary,
                   fontSize: _chipFontSize,
@@ -308,7 +361,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
           builder: (context, setModal) {
             Widget selectableChip(String t) {
               final isSel = selected.contains(t);
-              return _selectableChip(context, tokens, t, isSel, () {
+              return _selectableChip(context, tokens, lang, t, isSel, () {
                 setModal(() {
                   if (isSel) {
                     selected.remove(t);
@@ -427,7 +480,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
   }
 
   Widget _selectableChip(BuildContext context, AppTokens tokens,
-      String text, bool selected, VoidCallback onTap) {
+      AppLanguage lang, String text, bool selected, VoidCallback onTap) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -446,7 +499,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
               width: selected ? 1.5 : 1,
             ),
           ),
-          child: Text(text,
+          child: Text(_displayTag(text, lang),
               style: TextStyle(
                   color: tokens.textPrimary,
                   fontSize: _chipFontSize,

@@ -6,23 +6,49 @@ import '../widgets/app_card.dart';
 import '../theme/app_tokens.dart';
 import '../theme/layout_constants.dart';
 import '../localization/app_language_provider.dart';
+import '../localization/app_strings.dart';
 import '../localization/bilingual_text.dart';
 import 'product_page.dart';
 
 class ProductListPage extends ConsumerWidget {
-  final String topicId;
-  const ProductListPage({super.key, required this.topicId});
+  /// 依主題列出產品（與 productIds 二選一）
+  final String? topicId;
+  /// 依 ID 列表列出產品（與 topicId 二選一）；用於橫幅等多產品入口
+  final List<String>? productIds;
+  /// 列表頁標題；依 productIds 時使用，依 topicId 時可選
+  final String? title;
+
+  ProductListPage({
+    super.key,
+    this.topicId,
+    this.productIds,
+    this.title,
+  }) : assert(
+          (topicId != null && (productIds == null || productIds.isEmpty)) ||
+              (productIds != null && productIds.isNotEmpty && topicId == null),
+          'Provide exactly one of topicId or non-empty productIds',
+        );
+
+  bool get _byIds {
+    final ids = productIds;
+    return ids != null && ids.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final products = ref.watch(productsByTopicProvider(topicId));
+    final productsAsync = _byIds
+        ? ref.watch(productsByIdsProvider(productIds!.join(';')))
+        : ref.watch(productsByTopicProvider(topicId!));
     final tokens = context.tokens;
     final lang = ref.watch(appLanguageProvider);
+    final appBarTitle = _byIds
+        ? (title ?? 'Products')
+        : (title ?? 'Products · $topicId');
 
     return Scaffold(
-      appBar: AppBar(title: Text('Products · $topicId')),
+      appBar: AppBar(title: Text(appBarTitle)),
       backgroundColor: tokens.bg,
-      body: products.when(
+      body: productsAsync.when(
         data: (ps) => ps.isEmpty
             ? Center(
                 child: Padding(
@@ -34,36 +60,41 @@ class ProductListPage extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('No products in this topic',
+                          Text(
+                              _byIds
+                                  ? 'No products'
+                                  : 'No products in this topic',
                               style: TextStyle(
                                   color: tokens.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16)),
-                          const SizedBox(height: 12),
-                          Text('Topic ID: $topicId',
-                              style: TextStyle(
-                                  color: tokens.textSecondary, fontSize: 14)),
-                          const SizedBox(height: 8),
-                          Text('Query:',
-                              style: TextStyle(
-                                  color: tokens.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text('  • published = true',
-                              style: TextStyle(
-                                  color: tokens.textSecondary, fontSize: 12)),
-                          Text('  • topicId = "$topicId"',
-                              style: TextStyle(
-                                  color: tokens.textSecondary, fontSize: 12)),
-                          Text('  • orderBy(order)',
-                              style: TextStyle(
-                                  color: tokens.textSecondary, fontSize: 12)),
-                          const SizedBox(height: 12),
-                          Text(
-                              'Check that Firestore products have topicId set to "$topicId".',
-                              style: TextStyle(
-                                  color: tokens.textSecondary, fontSize: 12)),
+                          if (!_byIds) ...[
+                            const SizedBox(height: 12),
+                            Text('${uiString(lang, 'topic_id_label')}$topicId',
+                                style: TextStyle(
+                                    color: tokens.textSecondary, fontSize: 14)),
+                            const SizedBox(height: 8),
+                            Text(uiString(lang, 'query_label'),
+                                style: TextStyle(
+                                    color: tokens.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12)),
+                            const SizedBox(height: 4),
+                            Text('  • published = true',
+                                style: TextStyle(
+                                    color: tokens.textSecondary, fontSize: 12)),
+                            Text('  • topicId = "$topicId"',
+                                style: TextStyle(
+                                    color: tokens.textSecondary, fontSize: 12)),
+                            Text('  • orderBy(order)',
+                                style: TextStyle(
+                                    color: tokens.textSecondary, fontSize: 12)),
+                            const SizedBox(height: 12),
+                            Text(
+                                'Check that Firestore products have topicId set to "$topicId".',
+                                style: TextStyle(
+                                    color: tokens.textSecondary, fontSize: 12)),
+                          ],
                         ],
                       ),
                     ),
@@ -170,17 +201,18 @@ class ProductListPage extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Load failed:',
+                    Text(uiString(lang, 'load_failed'),
                         style: TextStyle(
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 16)),
                     const SizedBox(height: 12),
-                    Text('Topic ID: $topicId',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Text('Error:',
+                    if (!_byIds)
+                      Text('${uiString(lang, 'topic_id_label')}$topicId',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 14)),
+                    if (!_byIds) const SizedBox(height: 8),
+                    Text(uiString(lang, 'error_label'),
                         style: TextStyle(
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -193,41 +225,43 @@ class ProductListPage extends ConsumerWidget {
                       maxLines: 5,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    Text('Query:',
-                        style: TextStyle(
-                            color: tokens.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text('  • collection: products',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 12)),
-                    Text('  • published = true',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 12)),
-                    Text('  • topicId = "$topicId"',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 12)),
-                    Text('  • orderBy(order)',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 12)),
-                    const SizedBox(height: 8),
-                    Text('Possible causes:',
-                        style: TextStyle(
-                            color: tokens.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text('  • Missing Firestore index',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 12)),
-                    Text('  • Product documents missing topicId',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 12)),
-                    Text('  • topicId value mismatch',
-                        style: TextStyle(
-                            color: tokens.textSecondary, fontSize: 12)),
+                    if (!_byIds) ...[
+                      const SizedBox(height: 8),
+                      Text(uiString(lang, 'query_label'),
+                          style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text('  • collection: products',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 12)),
+                      Text('  • published = true',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 12)),
+                      Text('  • topicId = "$topicId"',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 12)),
+                      Text('  • orderBy(order)',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      Text(uiString(lang, 'possible_causes'),
+                          style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text('  • Missing Firestore index',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 12)),
+                      Text('  • Product documents missing topicId',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 12)),
+                      Text('  • topicId value mismatch',
+                          style: TextStyle(
+                              color: tokens.textSecondary, fontSize: 12)),
+                    ],
                   ],
                 ),
               ),

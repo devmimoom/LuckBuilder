@@ -10,10 +10,31 @@ def split_semicolon(s):
 def none_if_nan(v):
     return None if pd.isna(v) else v
 
+def _str_opt(v):
+    """回傳 None（不寫入 Firestore）若為空；否則回傳去空白字串。用於雙語欄位，僅有值時才寫入。"""
+    if v is None or pd.isna(v):
+        return None
+    s = str(v).strip()
+    return s if s else None
+
 def to_bool(v):
+    """Excel 的 TRUE/1 常被 pandas 讀成 float 1.0，需一併視為 True。"""
     if isinstance(v, bool): return v
     if pd.isna(v): return False
-    return str(v).strip().lower() in ("true", "1", "yes", "y")
+    if isinstance(v, (int, float)): return v != 0
+    s = str(v).strip().lower()
+    if s in ("true", "1", "yes", "y", "是", "✓", "√"): return True
+    if s in ("false", "0", "no", "n", "", "否", "✗"): return False
+    try: return float(s) != 0  # "1.0" -> True
+    except (ValueError, TypeError): return False
+
+
+def _product_published(row):
+    """讀取 PRODUCTS 的 published，支援 'published' / 'Published' 欄位；缺欄或空值時視為 True，避免誤設為未上架。"""
+    v = row.get("published") if not pd.isna(row.get("published")) else row.get("Published")
+    if pd.isna(v) or v is None or str(v).strip() == "":
+        return True
+    return to_bool(v)
 
 def _is_header_or_empty(row, id_key, id_value=None):
     """若該列為標題列或 ID 為空，則視為需跳過（不依賴固定跳過第一行）。"""
@@ -92,14 +113,18 @@ def main():
             if not order_ok:
                 continue  # 跳過說明列（order 為中文等）
             try:
-                segments.append({
+                seg = {
                     "id": str(r["segmentId"]).strip(),
                     "title": str(r["title"]).strip(),
                     "order": order_val,
                     "mode": str(r["mode"]).strip() if not pd.isna(r.get("mode")) else "tag",
                     "tag": none_if_nan(r.get("tag")),
                     "published": to_bool(r["published"]),
-                })
+                }
+                title_zh = _str_opt(r.get("title_zh"))
+                if title_zh is not None:
+                    seg["title_zh"] = title_zh
+                segments.append(seg)
             except (ValueError, KeyError) as e:
                 print(f"⚠️  跳過無效行: {e}")
                 continue
@@ -113,7 +138,8 @@ def main():
             print("⏭️  UI_SEGMENTS: 工作表為空，跳過更新（保留現有資料）")
 
     # 1b) UI_SEARCH_SUGGESTIONS -> ui/search_suggestions_v1
-    # 結構：第一行=英文列名 suggested / trending，第二行=中文說明，第三行起=數據（每格一筆或分號分隔）
+    # 結構：第一行=英文列名 suggested / trending / suggested_zh / trending_zh，
+    #     第二行=中文說明，第三行起=數據（每格一筆或分號分隔）
     if "UI_SEARCH_SUGGESTIONS" not in sheet_names:
         print("⏭️  UI_SEARCH_SUGGESTIONS: 工作表中不存在，跳過")
     else:
@@ -135,11 +161,24 @@ def main():
             return out
         suggested = flatten_cells(ss_df, "suggested")
         trending = flatten_cells(ss_df, "trending")
-        if suggested or trending:
-            db.collection("ui").document("search_suggestions_v1").set(
-                {"suggested": suggested, "trending": trending}, merge=True
+        # 新增：繁體中文欄位 suggested_zh / trending_zh（若不存在則為空陣列）
+        suggested_zh = flatten_cells(ss_df, "suggested_zh") if "suggested_zh" in ss_df.columns else []
+        trending_zh = flatten_cells(ss_df, "trending_zh") if "trending_zh" in ss_df.columns else []
+        if suggested or trending or suggested_zh or trending_zh:
+            payload = {
+                "suggested": suggested,
+                "trending": trending,
+            }
+            if suggested_zh:
+                payload["suggestedZh"] = suggested_zh
+            if trending_zh:
+                payload["trendingZh"] = trending_zh
+            db.collection("ui").document("search_suggestions_v1").set(payload, merge=True)
+            print(
+                "✅ UI_SEARCH_SUGGESTIONS: "
+                f"suggested={len(suggested)} 筆, trending={len(trending)} 筆, "
+                f"suggested_zh={len(suggested_zh)} 筆, trending_zh={len(trending_zh)} 筆"
             )
-            print(f"✅ UI_SEARCH_SUGGESTIONS: suggested={len(suggested)} 筆, trending={len(trending)} 筆")
         else:
             print("⏭️  UI_SEARCH_SUGGESTIONS: 工作表為空，跳過更新（保留現有資料）")
 
@@ -177,6 +216,9 @@ def main():
                     "bubbleGradStart": none_if_nan(r.get("bubbleGradStart")),
                     "bubbleGradEnd": none_if_nan(r.get("bubbleGradEnd")),
                 }
+                title_zh = _str_opt(r.get("title_zh"))
+                if title_zh is not None:
+                    data["title_zh"] = title_zh
                 topic_writes.append(lambda b, tid=tid, data=data: b.set(db.collection("topics").document(tid), data, merge=True))
             except (ValueError, KeyError) as e:
                 print(f"⚠️  跳過無效行: {e}")
@@ -216,7 +258,7 @@ def main():
                     "levelBenefit": none_if_nan(r.get("levelBenefit")),
                     "anchorGroup": none_if_nan(r.get("anchorGroup")),
                     "version": none_if_nan(r.get("version")),
-                    "published": to_bool(r.get("published")),
+                    "published": _product_published(r),
                     "coverImageUrl": none_if_nan(r.get("coverImageUrl")),
                     "coverStorageFile": none_if_nan(r.get("coverStorageFile")),
                     "itemCount": int(r.get("itemCount")) if not pd.isna(r.get("itemCount")) else None,
@@ -240,6 +282,17 @@ def main():
                     "contentArchitecture": none_if_nan(r.get("contentarchitecture")),
                     "creditsRequired": min(999, max(0, int(r.get("creditsRequired")))) if not pd.isna(r.get("creditsRequired")) else 1,
                 }
+                # 雙語欄位：以 snake_case 寫入 Firestore，與 App (lib/data/models.dart) 一致
+                # 註：spec1Label～spec4Label 未使用雙語欄位，不讀寫 spec*_zh
+                for col, fname in [
+                    ("title_zh", "title_zh"), ("title_en", "title_en"),
+                    ("levelGoal_zh", "levelGoal_zh"), ("levelGoal_en", "levelGoal_en"),
+                    ("levelBenefit_zh", "levelBenefit_zh"), ("levelBenefit_en", "levelBenefit_en"),
+                    ("contentArchitecture_zh", "contentArchitecture_zh"), ("contentArchitecture_en", "contentArchitecture_en"),
+                ]:
+                    val = _str_opt(r.get(col))
+                    if val is not None:
+                        data[fname] = val
                 prod_writes.append(lambda b, pid=pid, data=data: b.set(db.collection("products").document(pid), data, merge=True))
             except (ValueError, KeyError) as e:
                 print(f"⚠️  跳過無效行: {e}")
@@ -248,39 +301,77 @@ def main():
         print(f"✅ PRODUCTS: 已更新 {len(prod_writes)} 筆產品")
 
     # 4) FEATURED_LISTS -> featured_lists/{listId}
-    # ✅ Excel 結構：第一行=英文列名，第二行=中文說明，第三行開始=數據
+    # ✅ 依 listId 彙總：同一 listId 多列會合併成一份文件，並寫入 items[]（含 itemImageUrl、itemOrder）
     if "FEATURED_LISTS" not in sheet_names:
         print("⏭️  FEATURED_LISTS: 工作表中不存在，跳過")
     else:
         fl_df = pd.read_excel(xlsx, sheet_name="FEATURED_LISTS")
-        fl_writes = []
+        # 依 listId 分組
+        by_list = {}
         for idx, r in fl_df.iterrows():
             if _is_header_or_empty(r, "listId") or pd.isna(r.get("title")):
                 continue
             try:
                 lid = str(r["listId"]).strip()
-                ids = split_semicolon(r.get("ids"))
-                ftype = str(r.get("type")).strip() if not pd.isna(r.get("type")) else "productIds"
-                data = {
-                    "title": str(r["title"]).strip(),
-                    "published": True,
-                    "order": 0,
-                    "coverImageUrl": none_if_nan(r.get("coverImageUrl")),
-                    "coverStorageFile": none_if_nan(r.get("coverStorageFile")),
-                }
-                # 依 type 決定放哪個欄位
-                if ftype == "productIds":
-                    data["productIds"] = ids
-                elif ftype == "topicIds":
-                    data["topicIds"] = ids
-                else:
-                    data["ids"] = ids  # 不確定就保留原始
-                fl_writes.append(lambda b, lid=lid, data=data: b.set(db.collection("featured_lists").document(lid), data, merge=True))
+                if lid not in by_list:
+                    by_list[lid] = []
+                by_list[lid].append(r)
             except (ValueError, KeyError) as e:
                 print(f"⚠️  跳過無效行: {e}")
                 continue
+        fl_writes = []
+        for lid, rows in by_list.items():
+            try:
+                first = rows[0]
+                order_val, _ = _safe_order(first.get("order"), 0)
+                data = {
+                    "title": str(first["title"]).strip(),
+                    "published": True,
+                    "order": order_val,
+                    "coverImageUrl": none_if_nan(first.get("coverImageUrl")),
+                    "coverStorageFile": none_if_nan(first.get("coverStorageFile")),
+                }
+                all_product_ids = []
+                all_topic_ids = []
+                items = []
+                for r in rows:
+                    ids = split_semicolon(r.get("ids"))
+                    topic_ids = split_semicolon(r.get("topicIds"))
+                    ftype = str(r.get("type")).strip() if not pd.isna(r.get("type")) else "productIds"
+                    item_order = int(r.get("itemOrder")) if not pd.isna(r.get("itemOrder")) and str(r.get("itemOrder")).strip() != "" else len(items)
+                    try:
+                        item_order = int(float(str(item_order)))
+                    except (ValueError, TypeError):
+                        item_order = len(items)
+                    item = {
+                        "itemId": str(r.get("itemId", "")).strip() or f"item_{len(items)}",
+                        "itemTitle": _str_opt(r.get("itemTitle")),
+                        "itemTitleZh": _str_opt(r.get("itemTitleZh")),
+                        "itemImageUrl": _str_opt(r.get("itemImageUrl")),
+                        "itemOrder": item_order,
+                        "type": ftype,
+                    }
+                    if ftype == "productIds":
+                        item["productIds"] = ids
+                        all_product_ids.extend(ids)
+                    elif ftype == "topicIds":
+                        item["topicIds"] = topic_ids
+                        all_topic_ids.extend(topic_ids)
+                    else:
+                        item["productIds"] = ids
+                        all_product_ids.extend(ids)
+                    items.append(item)
+                data["items"] = items
+                if all_product_ids:
+                    data["productIds"] = all_product_ids
+                if all_topic_ids:
+                    data["topicIds"] = all_topic_ids
+                fl_writes.append(lambda b, lid=lid, data=data: b.set(db.collection("featured_lists").document(lid), data, merge=True))
+            except (ValueError, KeyError) as e:
+                print(f"⚠️  FEATURED_LISTS listId={lid}: {e}")
+                continue
         commit_in_batches(fl_writes)
-        print(f"✅ FEATURED_LISTS: 已更新 {len(fl_writes)} 筆精選清單")
+        print(f"✅ FEATURED_LISTS: 已更新 {len(fl_writes)} 筆精選清單（含 items 與 itemImageUrl）")
 
     # 5) CONTENT_ITEMS -> content_items/{itemId}
     # ✅ 第一列=英文欄位名，第二列=中文說明（跳過），第三列起=數據
@@ -318,6 +409,17 @@ def main():
                     "isPreview": to_bool(r.get("isPreview")),
                     "deepAnalysis": none_if_nan(r.get("deepAnalysis")),
                 }
+                # 雙語欄位：以 snake_case 寫入 Firestore，與 App (lib/data/models.dart) 一致
+                for col, fname in [
+                    ("anchorGroup_zh", "anchorGroup_zh"),
+                    ("anchor_zh", "anchor_zh"), ("anchor_en", "anchor_en"),
+                    ("content_zh", "content_zh"), ("content_en", "content_en"),
+                    ("intent_zh", "intent_zh"), ("intent_en", "intent_en"),
+                    ("deepAnalysis_zh", "deepAnalysis_zh"), ("deepAnalysis_en", "deepAnalysis_en"),
+                ]:
+                    val = _str_opt(r.get(col))
+                    if val is not None:
+                        data[fname] = val
                 ci_writes.append(lambda b, iid=iid, data=data: b.set(db.collection("content_items").document(iid), data, merge=True))
             except (ValueError, KeyError) as e:
                 print(f"⚠️  跳過無效行: {e}")

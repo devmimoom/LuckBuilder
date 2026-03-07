@@ -8,6 +8,8 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../theme/app_tokens.dart';
 import '../../bubble_library/providers/providers.dart';
 import '../../services/auth_service.dart';
+import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -49,7 +51,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            wasAnonymous ? 'Account upgraded.' : 'Signed up successfully.',
+            wasAnonymous ? uiString(ref.read(appLanguageProvider), 'account_upgraded_msg') : uiString(ref.read(appLanguageProvider), 'signed_up_msg'),
           ),
           duration: const Duration(seconds: 3),
         ),
@@ -62,16 +64,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AuthService.messageFromAuthException(e)),
+          content: Text(AuthService.messageFromAuthException(e, ref.read(appLanguageProvider))),
           duration: const Duration(seconds: 4),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(uiString(ref.read(appLanguageProvider), 'auth_something_wrong')),
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -105,7 +107,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       final message = switch (result) {
         SignInResult.linked => 'Account upgraded.',
         SignInResult.signedInToExisting => 'Signed in with existing account.',
-        SignInResult.signedIn => 'Signed up / signed in.',
+        SignInResult.signedIn => uiString(ref.read(appLanguageProvider), 'signed_in_msg'),
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
@@ -119,16 +121,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AuthService.messageFromAuthException(e)),
+          content: Text(AuthService.messageFromAuthException(e, ref.read(appLanguageProvider))),
           duration: const Duration(seconds: 4),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(uiString(ref.read(appLanguageProvider), 'auth_something_wrong')),
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -149,7 +151,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       final message = switch (result) {
         SignInResult.linked => 'Account upgraded.',
         SignInResult.signedInToExisting => 'Signed in with existing account.',
-        SignInResult.signedIn => 'Signed up / signed in.',
+        SignInResult.signedIn => uiString(ref.read(appLanguageProvider), 'signed_in_msg'),
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
@@ -163,7 +165,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AuthService.messageFromAuthException(e)),
+          content: Text(AuthService.messageFromAuthException(e, ref.read(appLanguageProvider))),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -174,7 +176,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
       final message = e.message.isNotEmpty
           ? e.message
-          : 'Something went wrong. Please try again.';
+          : uiString(ref.read(appLanguageProvider), 'auth_something_wrong');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
@@ -184,9 +186,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(uiString(ref.read(appLanguageProvider), 'auth_something_wrong')),
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -197,10 +199,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sign up', style: TextStyle(color: tokens.textPrimary)),
+        title: Text(uiString(lang, 'sign_up_page_title'), style: TextStyle(color: tokens.textPrimary)),
         backgroundColor: tokens.bg,
         elevation: 0,
         leading: IconButton(
@@ -223,8 +226,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'example@email.com',
+                    labelText: uiString(lang, 'email_label'),
+                    hintText: uiString(lang, 'email_hint'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -232,8 +235,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     fillColor: tokens.cardBg,
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your email';
-                    if (!v.contains('@')) return 'Please enter a valid email';
+                    if (v == null || v.trim().isEmpty) return uiString(lang, 'enter_email_validator');
+                    if (!v.contains('@')) return uiString(lang, 'valid_email_validator');
                     return null;
                   },
                 ),
@@ -244,8 +247,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   enableSuggestions: false,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    labelText: 'Password',
-                    hintText: 'At least 6 characters',
+                    labelText: uiString(lang, 'password_label'),
+                    hintText: uiString(lang, 'password_hint'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -261,8 +264,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter your password';
-                    if (v.length < 6) return 'Password must be at least 6 characters';
+                    if (v == null || v.isEmpty) return uiString(lang, 'enter_password_validator');
+                    if (v.length < 6) return uiString(lang, 'password_too_short_validator');
                     return null;
                   },
                 ),
@@ -273,7 +276,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   enableSuggestions: false,
                   textInputAction: TextInputAction.done,
                   decoration: InputDecoration(
-                    labelText: 'Confirm password',
+                    labelText: uiString(lang, 'confirm_password_label'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -289,8 +292,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please confirm your password';
-                    if (v != _passwordController.text) return 'Passwords do not match';
+                    if (v == null || v.isEmpty) return uiString(lang, 'enter_confirm_validator');
+                    if (v != _passwordController.text) return uiString(lang, 'passwords_no_match');
                     return null;
                   },
                 ),
@@ -315,8 +318,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           )
                         : Text(
                             ref.watch(authServiceProvider).isAnonymous
-                                ? 'Upgrade account (Sign up)'
-                                : 'Sign up',
+                                ? uiString(lang, 'upgrade_sign_up_cta')
+                                : uiString(lang, 'sign_up_cta'),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -331,7 +334,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'Or sign up / sign in with',
+                        uiString(lang, 'or_sign_with'),
                         style: TextStyle(
                           fontSize: 13,
                           color: tokens.textSecondary,
@@ -353,7 +356,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       side: BorderSide(color: tokens.cardBorder),
                     ),
                     icon: const Icon(Icons.g_mobiledata, size: 24),
-                    label: const Text('Sign up / Sign in with Google'),
+                    label: Text(uiString(lang, 'sign_up_google')),
                   ),
                 ),
                 if (Platform.isIOS) ...[
@@ -369,7 +372,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         side: BorderSide(color: tokens.cardBorder),
                       ),
                       icon: const Icon(Icons.apple, size: 24),
-                      label: const Text('Sign up / Sign in with Apple'),
+                      label: Text(uiString(lang, 'sign_up_apple')),
                     ),
                   ),
                 ],
@@ -378,14 +381,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account?',
+                      uiString(lang, 'already_have_account'),
                       style: TextStyle(color: tokens.textSecondary),
                     ),
                     TextButton(
                       onPressed: _loading
                           ? null
                           : () => Navigator.of(context).pop(),
-                      child: Text('Sign in', style: TextStyle(color: tokens.primary)),
+                      child: Text(uiString(lang, 'sign_in_cta'), style: TextStyle(color: tokens.primary)),
                     ),
                   ],
                 ),

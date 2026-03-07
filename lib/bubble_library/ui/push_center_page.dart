@@ -7,7 +7,9 @@ import '../models/push_config.dart';
 import '../notifications/push_orchestrator.dart';
 import '../notifications/notification_service.dart';
 import '../providers/providers.dart';
+import '../../localization/app_language.dart';
 import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 import 'push_product_config_page.dart';
 import 'widgets/bubble_card.dart';
 import '../../../pages/push_timeline_page.dart';
@@ -33,17 +35,18 @@ class PushCenterPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(uiString(lang, 'notifications')),
         actions: [
           IconButton(
             icon: const Icon(Icons.timeline),
-            tooltip: 'Next 3 days schedule',
+            tooltip: uiString(lang, 'push_timeline_tooltip'),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const PushTimelinePage()),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: uiString(lang, 'push_timeline_tooltip'),
             onPressed: () async {
               try {
                 final result = await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
@@ -52,7 +55,9 @@ class PushCenterPage extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Total notifications exceed daily cap (${result.totalEffectiveFreq} > ${result.dailyCap}). Some may be skipped.',
+                        uiString(lang, 'notifications_over_cap')
+                            .replaceFirst('{total}', '${result.totalEffectiveFreq}')
+                            .replaceFirst('{cap}', '${result.dailyCap}'),
                       ),
                     ),
                   );
@@ -62,17 +67,23 @@ class PushCenterPage extends ConsumerWidget {
                 final scheduled = await ref.read(scheduledCacheProvider.future);
                 if (!context.mounted) return;
                 final message = !global.enabled
-                    ? 'Notifications are off. Cannot schedule.'
+                    ? uiString(lang, 'notifications_off_cannot_schedule')
                     : scheduled.isEmpty
-                        ? 'Rescheduled but no notifications generated. Check product settings.'
-                        : 'Rescheduled ${scheduled.length} notifications for the next 3 days.';
+                        ? uiString(lang, 'rescheduled_none')
+                        : uiString(lang, 'rescheduled_count')
+                            .replaceFirst('{n}', '${scheduled.length}');
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(message)),
                 );
               } catch (e) {
                 if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Reschedule failed: $e')),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        uiString(lang, 'reschedule_failed')
+                            .replaceFirst('{error}', '$e'),
+                      ),
+                    ),
                   );
                 }
               }
@@ -80,13 +91,15 @@ class PushCenterPage extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.campaign),
-            tooltip: 'Send a test notification',
+            tooltip: uiString(lang, 'send_test_notification_tooltip'),
             onPressed: () async {
               await NotificationService().showTestBubbleNotification();
               // ignore: use_build_context_synchronously
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Test notification sent.')),
+                  SnackBar(
+                    content: Text(uiString(lang, 'test_notification_sent')),
+                  ),
                 );
               }
             },
@@ -97,14 +110,14 @@ class PushCenterPage extends ConsumerWidget {
         padding: const EdgeInsets.all(12),
         children: [
           globalAsync.when(
-            data: (g) => _globalCard(context, ref, g),
+            data: (g) => _globalCard(context, ref, g, lang),
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('global error: $e'),
+            error: (e, _) => Text('${uiString(lang, 'global_push_error')}$e'),
           ),
 
           const SizedBox(height: 12),
-          const Text('Active',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          Text(uiString(lang, 'push_active_title'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           productsAsync.when(
             data: (products) {
@@ -118,9 +131,9 @@ class PushCenterPage extends ConsumerWidget {
                   if (pushing.isEmpty && completed.isEmpty) {
                     final tokens = context.tokens;
                     return BubbleCard(
-                        child: Text('No products with notifications on',
-                            style: TextStyle(
-                                color: tokens.textSecondary)));
+                        child: Text(
+                            uiString(lang, 'push_no_products'),
+                            style: TextStyle(color: tokens.textSecondary)));
                   }
                   
                   return Column(
@@ -151,10 +164,11 @@ class PushCenterPage extends ConsumerWidget {
                                             fontWeight: FontWeight.w900)),
                                     const SizedBox(height: 6),
                                     Text(
-                                        '${lp.pushConfig.freqPerDay}/day · ${lp.pushConfig.timeMode.name}',
-                                        style: TextStyle(
-                                            color: context.tokens.textSecondary,
-                                            fontSize: 12)),
+                                      '${uiString(lang, 'per_day_suffix').replaceFirst('{n}', '${lp.pushConfig.freqPerDay}')} · ${lp.pushConfig.timeMode.name}',
+                                      style: TextStyle(
+                                          color: context.tokens.textSecondary,
+                                          fontSize: 12),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -178,13 +192,14 @@ class PushCenterPage extends ConsumerWidget {
                                     size: 20, 
                                     color: context.tokens.primary),
                                   const SizedBox(width: 8),
-                                  Text('All done',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
-                                      color: context.tokens.primary,
-                                    ),
-                                  ),
+                                      Text(
+                                        uiString(lang, 'push_all_done'),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: context.tokens.primary,
+                                        ),
+                                      ),
                                 ],
                               ),
                               const SizedBox(height: 12),
@@ -247,15 +262,15 @@ class PushCenterPage extends ConsumerWidget {
                 },
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
-                error: (e, _) => const Text(
-                  'We couldn’t load your notification settings. Please try again later.',
+                error: (e, _) => Text(
+                  uiString(lang, 'notification_settings_error'),
                   textAlign: TextAlign.left,
                 ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => const Text(
-              'We couldn’t load your products right now. Please try again later.',
+            error: (e, _) => Text(
+              uiString(lang, 'products_error'),
               textAlign: TextAlign.left,
             ),
           ),
@@ -266,7 +281,7 @@ class PushCenterPage extends ConsumerWidget {
   }
 
   Widget _globalCard(
-      BuildContext context, WidgetRef ref, GlobalPushSettings g) {
+      BuildContext context, WidgetRef ref, GlobalPushSettings g, AppLanguage lang) {
     final uid = ref.read(uidProvider);
     final repo = ref.read(pushSettingsRepoProvider);
 
@@ -274,8 +289,8 @@ class PushCenterPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Global settings',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          Text(uiString(lang, 'global_settings_title'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
           SwitchTheme(
             data: SwitchThemeData(
@@ -305,12 +320,14 @@ class PushCenterPage extends ConsumerWidget {
                 );
                 await Future.wait([writeFuture, rescheduleFuture]);
               },
-              title: const Text('Enable notifications'),
+              title: Text(uiString(lang, 'enable_notifications')),
             ),
           ),
           ListTile(
-            title: const Text('Daily cap (all products)'),
-            subtitle: Text('${g.dailyTotalCap} per day'),
+            title: Text(uiString(lang, 'daily_cap_all_products')),
+            subtitle: Text(
+              uiString(lang, 'per_day_suffix').replaceFirst('{n}', '${g.dailyTotalCap}'),
+            ),
             trailing: DropdownButton<int>(
               value: g.dailyTotalCap,
               // ✅ 修復深色主題下拉選單透明背景重疊問題
@@ -319,8 +336,9 @@ class PushCenterPage extends ConsumerWidget {
                 const presets = <int>[6, 8, 12, 20];
                 final values = {...presets, g.dailyTotalCap}.toList()..sort();
                 return values.map((e) {
-                  final label =
-                      presets.contains(e) ? '$e' : '$e (custom)';
+                  final label = presets.contains(e)
+                      ? '$e'
+                      : uiString(lang, 'custom_suffix').replaceFirst('{n}', '$e');
                   return DropdownMenuItem(value: e, child: Text(label));
                 }).toList();
               })(),
@@ -339,14 +357,24 @@ class PushCenterPage extends ConsumerWidget {
                   // ignore: use_build_context_synchronously
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Daily cap updated to $v.')),
+                      SnackBar(
+                        content: Text(
+                          uiString(lang, 'daily_cap_updated')
+                              .replaceFirst('{n}', '$v'),
+                        ),
+                      ),
                     );
                   }
                 } catch (e) {
                   // ignore: use_build_context_synchronously
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Update failed: $e')),
+                      SnackBar(
+                        content: Text(
+                          uiString(lang, 'update_failed_with_reason')
+                              .replaceFirst('{error}', '$e'),
+                        ),
+                      ),
                     );
                   }
                 }
@@ -366,7 +394,7 @@ class PushCenterPage extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'If total notifications exceed the daily cap, some may be delayed.',
+                    uiString(lang, 'notifications_over_cap_hint'),
                     style: TextStyle(
                       color: context.tokens.textSecondary,
                       fontSize: 12,
@@ -378,7 +406,7 @@ class PushCenterPage extends ConsumerWidget {
           ),
           // ✅ 勿擾 / 靜音時段（全域）
           ListTile(
-            title: const Text('Quiet hours (global)'),
+            title: Text(uiString(lang, 'quiet_hours_global')),
             subtitle: Text(formatTimeRange(g.quietHours)),
             trailing: const Icon(Icons.bedtime_outlined),
             onTap: () async {
@@ -404,8 +432,13 @@ class PushCenterPage extends ConsumerWidget {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                    content: Text(
-                        'Quiet hours set: ${formatTimeRange(TimeRange(start, end))}')),
+                  content: Text(
+                    uiString(lang, 'quiet_hours_set').replaceFirst(
+                      '{range}',
+                      formatTimeRange(TimeRange(start, end)),
+                    ),
+                  ),
+                ),
               );
             },
           ),
@@ -414,7 +447,7 @@ class PushCenterPage extends ConsumerWidget {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               icon: const Icon(Icons.restore),
-              label: const Text('Turn off quiet hours'),
+              label: Text(uiString(lang, 'quiet_hours_turn_off')),
               onPressed: () async {
                 final next = g.copyWith(
                   quietHours: const TimeRange(
@@ -433,15 +466,27 @@ class PushCenterPage extends ConsumerWidget {
 
                 // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Quiet hours turned off (00:00 - 00:00).')),
+                  SnackBar(
+                    content: Text(
+                      uiString(lang, 'quiet_hours_turned_off').replaceFirst(
+                        '{range}',
+                        formatTimeRange(
+                          const TimeRange(
+                            TimeOfDay(hour: 0, minute: 0),
+                            TimeOfDay(hour: 0, minute: 0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
           ),
           const SizedBox(height: 4),
-          Text('Changes will auto-reschedule the next 3 days.',
-              style: TextStyle(
-                  color: context.tokens.textSecondary, fontSize: 12)),
+          Text(uiString(lang, 'changes_autoreschedule'),
+              style:
+                  TextStyle(color: context.tokens.textSecondary, fontSize: 12)),
         ],
       ),
     );

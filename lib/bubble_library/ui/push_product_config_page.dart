@@ -15,6 +15,8 @@ import '../../widgets/rich_sections/user_learning_store.dart';
 import 'widgets/bubble_card.dart';
 import '../../providers/analytics_provider.dart';
 import '../../theme/app_tokens.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_strings.dart';
 
 class PushProductConfigPage extends ConsumerWidget {
   final String productId;
@@ -28,24 +30,23 @@ class PushProductConfigPage extends ConsumerWidget {
       _loggedConfigIds.add(productId);
       ref.read(analyticsProvider).logScreenView(screenName: 'push_config');
     }
+    final lang = ref.watch(appLanguageProvider);
     // 檢查是否登入
     String? uid;
     try {
       uid = ref.read(uidProvider);
     } catch (_) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Product notifications')),
-        body: const Center(child: Text('Sign in to use this feature.')),
+        appBar: AppBar(title: Text(uiString(lang, 'product_notifications_title'))),
+        body: Center(child: Text(uiString(lang, 'sign_in_to_use_feature'))),
       );
     }
-
-    final lang = ref.watch(appLanguageProvider);
     final libAsync = ref.watch(libraryProductsProvider);
     final productsAsync = ref.watch(productsMapProvider);
     final globalAsync = ref.watch(globalPushSettingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Product notifications')),
+      appBar: AppBar(title: Text(uiString(lang, 'product_notifications_title'))),
       body: productsAsync.when(
         data: (products) => globalAsync.when(
           data: (global) => libAsync.when(
@@ -89,14 +90,18 @@ class PushProductConfigPage extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('All done!',
+                                    Text(
+                                      uiString(lang, 'push_all_done'),
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
                                         color: context.tokens.primary,
                                       ),
                                     ),
                                     Text(
-                                      'Completed: ${lp.completedAt!.month}/${lp.completedAt!.day} ${lp.completedAt!.hour}:${lp.completedAt!.minute.toString().padLeft(2, '0')}',
+                                      uiString(lang, 'all_done_completed_at').replaceFirst(
+                                        '{date}',
+                                        '${lp.completedAt!.month}/${lp.completedAt!.day} ${lp.completedAt!.hour}:${lp.completedAt!.minute.toString().padLeft(2, '0')}',
+                                      ),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: context.tokens.textSecondary,
@@ -114,9 +119,10 @@ class PushProductConfigPage extends ConsumerWidget {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: () => _showRestartDialog(context, ref, uid!, productId, title),
+                            onPressed: () => _showRestartDialog(
+                                context, ref, uid!, productId, title, lang),
                             icon: const Icon(Icons.restart_alt),
-                            label: const Text('Start over'),
+                            label: Text(uiString(lang, 'start_over')),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
@@ -136,7 +142,7 @@ class PushProductConfigPage extends ConsumerWidget {
                           await PushOrchestrator.rescheduleNextDays(
                               ref: ref, days: 3);
                         },
-                        title: const Text('Notifications on'),
+                        title: Text(uiString(lang, 'notifications_on')),
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
@@ -150,13 +156,15 @@ class PushProductConfigPage extends ConsumerWidget {
                             );
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Test notification sent.')),
+                                SnackBar(
+                                  content:
+                                      Text(uiString(lang, 'test_notification_sent')),
+                                ),
                               );
                             }
                           },
                           icon: const Icon(Icons.campaign, size: 18),
-                          label: const Text('Send test notification'),
+                          label: Text(uiString(lang, 'send_test_notification')),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
@@ -170,8 +178,8 @@ class PushProductConfigPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Time mode',
-                          style: TextStyle(fontWeight: FontWeight.w900)),
+                      Text(uiString(lang, 'time_mode'),
+                          style: const TextStyle(fontWeight: FontWeight.w900)),
                       RadioListTile<PushTimeMode>(
                         value: PushTimeMode.preset,
                         groupValue: cfg.timeMode, // ignore: deprecated_member_use
@@ -186,20 +194,23 @@ class PushProductConfigPage extends ConsumerWidget {
                           await PushOrchestrator.rescheduleNextDays(
                               ref: ref, days: 3);
                         },
-                        title: const Text('Preset (recommended)'),
+                        title: Text(uiString(lang, 'preset_recommended')),
                       ),
                       if (cfg.timeMode == PushTimeMode.preset) ...[
                         _presetSlots(ref, uid!, productId, cfg),
                         const SizedBox(height: 16),
-                        const Text('Frequency (max 5 per day per product)',
-                            style: TextStyle(fontWeight: FontWeight.w900)),
+                        Text(uiString(lang, 'frequency_label'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w900)),
                         const SizedBox(height: 10),
                         DropdownButton<int>(
                           value: cfg.freqPerDay,
                           dropdownColor: context.tokens.cardBg,
                           items: const [1, 2, 3, 4, 5]
                               .map((e) => DropdownMenuItem(
-                                  value: e, child: Text('$e per day')))
+                                  value: e,
+                                  child: Text(uiString(lang, 'per_day_suffix')
+                                      .replaceFirst('{n}', '$e'))))
                               .toList(),
                           onChanged: (v) async {
                             if (v == null) return;
@@ -239,7 +250,7 @@ class PushProductConfigPage extends ConsumerWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Total frequency exceeds global cap.',
+                                        uiString(lang, 'total_freq_exceeds_cap'),
                                         style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           color: Colors.amber.shade800,
@@ -248,7 +259,9 @@ class PushProductConfigPage extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'All products total $totalFreq per day, above global cap ${global.dailyTotalCap}. Some notifications may not be sent.',
+                                        uiString(lang, 'total_freq_exceeds_cap_detail')
+                                            .replaceFirst('{total}', '$totalFreq')
+                                            .replaceFirst('{cap}', '${global.dailyTotalCap}'),
                                         style: TextStyle(
                                           color: Colors.amber.shade800,
                                           fontSize: 12,
@@ -262,8 +275,9 @@ class PushProductConfigPage extends ConsumerWidget {
                           ),
                         ],
                         const SizedBox(height: 16),
-                        const Text('Minimum interval (minutes)',
-                            style: TextStyle(fontWeight: FontWeight.w900)),
+                        Text(uiString(lang, 'minimum_interval_minutes'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w900)),
                         DropdownButton<int>(
                           value: cfg.minIntervalMinutes,
                           dropdownColor: context.tokens.cardBg,
@@ -307,10 +321,10 @@ class PushProductConfigPage extends ConsumerWidget {
                           await PushOrchestrator.rescheduleNextDays(
                               ref: ref, days: 3);
                         },
-                        title: const Text('Custom times'),
+                        title: Text(uiString(lang, 'custom_times_title')),
                       ),
                       if (cfg.timeMode == PushTimeMode.custom)
-                        _customTimes(context, ref, uid!, productId, cfg),
+                        _customTimes(context, ref, uid!, productId, cfg, lang),
                     ],
                   ),
                 ),
@@ -319,25 +333,25 @@ class PushProductConfigPage extends ConsumerWidget {
           },
             loading: () =>
                 const Center(child: CircularProgressIndicator()),
-            error: (e, _) => const Center(
+            error: (e, _) => Center(
               child: Text(
-                'We couldn’t load your library right now. Please try again later.',
+                uiString(lang, 'library_load_error'),
                 textAlign: TextAlign.center,
               ),
             ),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => const Center(
+          error: (e, _) => Center(
             child: Text(
-              'We couldn’t load your notification settings. Please try again later.',
+              uiString(lang, 'notification_settings_error'),
               textAlign: TextAlign.center,
             ),
           ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(
+        error: (e, _) => Center(
           child: Text(
-            'We couldn’t load this product right now. Please try again later.',
+            uiString(lang, 'product_load_error'),
             textAlign: TextAlign.center,
           ),
         ),
@@ -385,7 +399,7 @@ class PushProductConfigPage extends ConsumerWidget {
   }
 
   Widget _customTimes(BuildContext context, WidgetRef ref, String uid,
-      String productId, PushConfig cfg) {
+      String productId, PushConfig cfg, AppLanguage lang) {
     return Column(
       children: [
         Align(
@@ -424,7 +438,7 @@ class PushProductConfigPage extends ConsumerWidget {
               await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
             },
             icon: const Icon(Icons.add),
-            label: const Text('Add time (max 5)'),
+            label: Text(uiString(lang, 'add_time_btn')),
           ),
         ),
         ...cfg.customTimes.map((t) => ListTile(
@@ -468,20 +482,22 @@ class PushProductConfigPage extends ConsumerWidget {
     String uid,
     String productId,
     String productTitle,
+    AppLanguage lang,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Start over?'),
-        content: Text('This will clear all progress for "$productTitle" and re-enable notifications.\n\nContinue?'),
+        title: Text(uiString(lang, 'start_over_title')),
+        content: Text(uiString(lang, 'start_over_content')
+            .replaceFirst('{product}', productTitle)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(uiString(lang, 'cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Start over'),
+            child: Text(uiString(lang, 'start_over_confirm')),
           ),
         ],
       ),
@@ -545,7 +561,9 @@ class PushProductConfigPage extends ConsumerWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Started over. Notifications rescheduled and history cleared.')),
+          SnackBar(
+            content: Text(uiString(lang, 'started_over_toast')),
+          ),
         );
       }
     } catch (e) {
@@ -554,7 +572,12 @@ class PushProductConfigPage extends ConsumerWidget {
       }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Reset failed: $e')),
+          SnackBar(
+            content: Text(
+              uiString(lang, 'reset_failed_with_reason')
+                  .replaceFirst('{error}', '$e'),
+            ),
+          ),
         );
       }
     }

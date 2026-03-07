@@ -7,6 +7,7 @@ import '../models/content_item.dart';
 import '../models/user_library.dart';
 import '../../localization/app_language.dart';
 import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 import 'detail_page.dart';
 import 'widgets/bubble_card.dart';
 import '../../../theme/app_tokens.dart';
@@ -93,7 +94,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
     return Scaffold(
       backgroundColor: tokens.bg,
       appBar: AppBar(
-        title: const Text('Content'),
+        title: Text(uiString(lang, 'content_title')),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -101,7 +102,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
         data: (productsMap) {
           final product = productsMap[widget.productId];
           if (product == null) {
-            return const Center(child: Text('Product not found'));
+            return Center(child: Text(uiString(lang, 'product_not_found')));
           }
 
           return contentsAsync.when(
@@ -148,10 +149,14 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                       Wrap(
                                         spacing: 8,
                                         children: [
-                                          _chip(widget.isWishlistPreview
-                                              ? 'Preview'
-                                              : 'Library'),
-                                          _chip('${showItems.length} cards'),
+                                          _chip(
+                                            widget.isWishlistPreview
+                                                ? uiString(lang, 'preview')
+                                                : uiString(lang, 'my_library'),
+                                          ),
+                                          _chip(
+                                            '${showItems.length} ${uiString(lang, 'items')}',
+                                          ),
                                         ],
                                       ),
                                     ],
@@ -183,7 +188,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                         CrossAxisAlignment.baseline,
                                     textBaseline: TextBaseline.alphabetic,
                                     children: [
-                                      Text('Your progress',
+                                      Text(uiString(lang, 'your_progress'),
                                           style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
@@ -211,7 +216,9 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                      'Completed $completed/$total cards',
+                                      uiString(lang, 'completed_cards')
+                                          .replaceFirst('{done}', '$completed')
+                                          .replaceFirst('{total}', '$total'),
                                       style: TextStyle(
                                           fontSize: 12,
                                           color: tokens.textSecondary)),
@@ -332,17 +339,17 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('saved error: $e')),
+                error: (e, _) => Center(child: Text('${uiString(lang, 'saved_error')}$e')),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('content error: $e')),
+            error: (e, _) => Center(child: Text('${uiString(lang, 'content_error')}$e')),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(
+        error: (e, _) => Center(
           child: Text(
-            'We couldn’t load this content right now. Please try again later.',
+            uiString(lang, 'product_content_load_error'),
             textAlign: TextAlign.center,
           ),
         ),
@@ -354,7 +361,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
     try {
       ref.read(uidProvider);
     } catch (_) {
-      return const Center(child: Text('Sign in first.'));
+      return Center(child: Text(uiString(lang, 'sign_in_first')));
     }
 
     String ellipsize(String s, int max) =>
@@ -405,13 +412,15 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                   ? Icons.check_circle
                   : Icons.check_circle_outline),
               onPressed: null,
-              tooltip: (saved?.learned ?? false) ? 'Done' : 'Pending',
+              tooltip: (saved?.learned ?? false)
+                  ? uiString(lang, 'done')
+                  : uiString(lang, 'pending'),
             ),
             IconButton(
               icon: Icon(
                   (saved?.favorite ?? false) ? Icons.star : Icons.star_border),
               onPressed: null,
-              tooltip: (saved?.favorite ?? false) ? 'Saved' : 'Not saved',
+              tooltip: (saved?.favorite ?? false) ? uiString(lang, 'saved_label') : uiString(lang, 'not_saved'),
             ),
           ],
         ),

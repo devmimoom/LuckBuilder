@@ -8,6 +8,9 @@ import '../../widgets/app_card.dart';
 import '../../bubble_library/notifications/scheduled_push_cache.dart';
 import '../../bubble_library/providers/providers.dart';
 import '../../notifications/push_timeline_provider.dart';
+import '../../localization/app_language_provider.dart';
+import '../../localization/app_language.dart';
+import '../../localization/app_strings.dart';
 
 import '../../bubble_library/ui/product_library_page.dart';
 import '../../notifications/push_exclusion_store.dart';
@@ -148,6 +151,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
 
     // 未登入：提示（避免 uidProvider throw）
     try {
@@ -155,7 +159,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
     } catch (_) {
       return AppCard(
         child: Text(
-          'Sign in to see today\'s task: next notification countdown and completion status.',
+          uiString(lang, 'continue_sign_in_hint'),
           style: TextStyle(color: tokens.textSecondary),
         ),
       );
@@ -168,7 +172,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Today\'s task',
+          Text(uiString(lang, 'today_task_title'),
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -190,8 +194,9 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                       ? 0.0
                       : (actualPushed / actualScheduled).clamp(0.0, 1.0);
 
-                  final nextText =
-                      nextEntry == null ? 'No more pushes today' : _nextLine(nextEntry);
+                  final nextText = nextEntry == null
+                      ? uiString(lang, 'no_more_pushes_today')
+                      : _nextLine(nextEntry, lang);
 
                   final countdownText =
                       nextEntry == null ? '' : _countdown(nextEntry.when);
@@ -204,7 +209,9 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Today: $actualPushed / $actualScheduled',
+                              uiString(lang, 'today_progress')
+                                  .replaceFirst('{done}', '$actualPushed')
+                                  .replaceFirst('{total}', '$actualScheduled'),
                               style: TextStyle(
                                   color: tokens.textSecondary,
                                   fontWeight: FontWeight.w700),
@@ -305,7 +312,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                                     ),
                                   ));
                                 },
-                          child: const Text('Do 1 now'),
+                          child: Text(uiString(lang, 'do_one_now')),
                         ),
                       ),
                     ],
@@ -329,10 +336,12 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
   static String _fmtTime(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
-  static String _nextLine(ScheduledPushEntry e) {
+  static String _nextLine(ScheduledPushEntry e, AppLanguage lang) {
     final pid = e.payload['productId']?.toString() ?? '';
     final title = e.title.isNotEmpty ? e.title : pid;
-    return 'Next: ${_fmtTime(e.when)} · $title';
+    return uiString(lang, 'next_push_line')
+        .replaceFirst('{time}', _fmtTime(e.when))
+        .replaceFirst('{title}', title);
   }
 
   static String _countdown(DateTime when) {

@@ -6,6 +6,9 @@ import '../theme/app_tokens.dart';
 import '../data/models.dart';
 import '../widgets/rich_sections/sections/category_netflix_rails_section.dart';
 import 'product_list_page.dart';
+import '../localization/app_language.dart';
+import '../localization/app_language_provider.dart';
+import '../localization/app_strings.dart';
 
 // 預設漸層色盤（依 index % length 取用）
 const _kGradients = [
@@ -55,12 +58,13 @@ class ExploreSection extends ConsumerWidget {
     final selected = ref.watch(selectedSegmentProvider);
     final topicsAsync = ref.watch(topicsForSelectedSegmentProvider);
 
+    final lang = ref.watch(appLanguageProvider);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildHeader(context, ref, topicsAsync, tokens),
-        _buildChips(context, ref, segs, selected, tokens),
-        _buildGrid(context, ref, topicsAsync, tokens),
+        _buildChips(context, ref, segs, selected, tokens, lang),
+        _buildGrid(context, ref, topicsAsync, tokens, lang),
         const CategoryNetflixRailsSection(),
         const SizedBox(height: 24),
       ],
@@ -86,8 +90,40 @@ Widget _buildHeader(
         }
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Explore',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${ts.length} topics · $totalCards cards',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(color: tokens.textSecondary, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        child: SizedBox(
+          width: double.infinity,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'Explore',
@@ -96,51 +132,30 @@ Widget _buildHeader(
                   color: tokens.textPrimary,
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
-                '${ts.length} topics · $totalCards cards',
+                '— topics · — cards',
                 textAlign: TextAlign.left,
                 style: TextStyle(color: tokens.textSecondary, fontSize: 13),
               ),
             ],
           ),
-        );
-      },
-      loading: () => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Explore',
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                color: tokens.textPrimary,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              '— topics · — cards',
-              textAlign: TextAlign.left,
-              style: TextStyle(color: tokens.textSecondary, fontSize: 13),
-            ),
-          ],
         ),
       ),
       error: (_, __) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-        child: Text(
-          'Explore',
-          textAlign: TextAlign.left,
-          style: TextStyle(
-            color: tokens.textPrimary,
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
+        child: SizedBox(
+          width: double.infinity,
+          child: Text(
+            'Explore',
+            textAlign: TextAlign.left,
+            style: TextStyle(
+              color: tokens.textPrimary,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),
@@ -153,6 +168,7 @@ Widget _buildChips(
     AsyncValue<List<Segment>> segs,
     Segment? selected,
     AppTokens tokens,
+    AppLanguage lang,
   ) {
     return segs.when(
       data: (list) {
@@ -168,8 +184,9 @@ Widget _buildChips(
             itemBuilder: (_, i) {
               final s = list[i];
               final active = s.id == selectedId;
+              final displayTitle = s.displayTitle(lang);
               final emoji = _segmentEmoji[s.title] ?? '';
-              final label = emoji.isEmpty ? s.title : '$emoji  ${s.title}';
+              final label = emoji.isEmpty ? displayTitle : '$emoji  $displayTitle';
               return GestureDetector(
                 onTap: () =>
                     ref.read(selectedSegmentProvider.notifier).state = s,
@@ -221,11 +238,12 @@ const _kGridPadding = 20.0;
 const _kGridGap = 8.0;
 
 Widget _buildGrid(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<Topic>> topicsAsync,
-    AppTokens tokens,
-  ) {
+  BuildContext context,
+  WidgetRef ref,
+  AsyncValue<List<Topic>> topicsAsync,
+  AppTokens tokens,
+  AppLanguage lang,
+) {
     return topicsAsync.when(
       data: (ts) {
         if (ts.isEmpty) {
@@ -240,7 +258,7 @@ Widget _buildGrid(
               ),
               child: Center(
                 child: Text(
-                  'No topics available yet. Please check back soon.',
+                  uiString(lang, 'explore_no_topics'),
                   style: TextStyle(color: tokens.textSecondary),
                   textAlign: TextAlign.center,
                 ),
@@ -379,8 +397,8 @@ Widget _buildGrid(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Topics error:',
-                  style: TextStyle(
+              Text(uiString(ref.read(appLanguageProvider), 'topics_error_title'),
+                  style: const TextStyle(
                       color: Colors.red, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text('$err',
@@ -407,6 +425,7 @@ class _CategoryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     final productsAsync = ref.watch(productsByTopicProvider(topic.id));
     final cardCount = productsAsync.maybeWhen(
       data: (list) => list.length,
@@ -500,12 +519,13 @@ class _CategoryCard extends ConsumerWidget {
               Positioned(
                 bottom: bottomPadding,
                 left: leftPadding,
+                right: leftPadding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      topic.title,
+                      topic.displayTitle(lang),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: titleFontSize,
@@ -526,6 +546,8 @@ class _CategoryCard extends ConsumerWidget {
                         fontSize: subtitleFontSize,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

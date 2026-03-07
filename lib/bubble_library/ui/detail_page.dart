@@ -113,7 +113,7 @@ class DetailPage extends ConsumerWidget {
                           spacing: 8,
                           runSpacing: 6,
                           children: [
-                            _chip('intent：${item.intent}'),
+                            _chip('intent：${item.displayIntent(lang)}'),
                             _chip('◆${item.difficulty}'),
                           ],
                         ),
@@ -122,19 +122,11 @@ class DetailPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  // 1) 今日一句
+                  // 1) 今日一句（移除「精華速讀」標題，直接顯示內容）
                   BubbleCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          uiString(lang, 'quick_read'),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
                         Text(item.displayContent(lang),
                             style: const TextStyle(
                                 fontSize: 18,

@@ -17,6 +17,7 @@ class ContentItem {
   final String? anchorZh;
   final String? contentZh;
   final String? deepAnalysisZh;
+  final String? intentZh;
 
   const ContentItem({
     required this.id,
@@ -35,6 +36,7 @@ class ContentItem {
     this.anchorZh,
     this.contentZh,
     this.deepAnalysisZh,
+    this.intentZh,
   });
 
   static String? _str(dynamic v) {
@@ -77,6 +79,7 @@ class ContentItem {
       anchorZh: _str(m['anchorZh']) ?? _str(m['anchor_zh']),
       contentZh: _str(m['contentZh']) ?? _str(m['content_zh']),
       deepAnalysisZh: _str(m['deepAnalysisZh']) ?? _str(m['deepAnalysis_zh']),
+      intentZh: _str(m['intentZh']) ?? _str(m['intent_zh']),
     );
   }
 }
@@ -100,5 +103,10 @@ extension ContentItemDisplay on ContentItem {
   String displayDeepAnalysis(AppLanguage lang) {
     if (lang == AppLanguage.zhTw && deepAnalysisZh != null && deepAnalysisZh!.isNotEmpty) return deepAnalysisZh!;
     return deepAnalysis;
+  }
+
+  String displayIntent(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && intentZh != null && intentZh!.isNotEmpty) return intentZh!;
+    return intent;
   }
 }

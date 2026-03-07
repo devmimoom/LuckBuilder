@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pages/home_page.dart';
 import 'pages/explore_page.dart';
 import 'pages/me_page.dart';
-import 'pages/plus_placeholder_page.dart';
+import 'pages/plus_guide/plus_guide_page.dart';
 import 'widgets/app_background.dart';
 import 'theme/theme_controller.dart';
 import 'theme/app_tokens.dart';
@@ -41,7 +41,7 @@ class MainScaffold4Tabs extends ConsumerWidget {
             index: stackIndex,
             children: const [
               HomePage(),
-              PlusPlaceholderPage(),
+              PlusGuidePage(),
               ExplorePage(),
               MePage(),
             ],

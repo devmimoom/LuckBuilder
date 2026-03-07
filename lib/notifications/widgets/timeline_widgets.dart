@@ -73,6 +73,8 @@ Widget tlTimelineRow({
   required VoidCallback onTap,
   Widget? trailing,
   int? dayN, // Day N for "Day N · title" when > 0
+  String? doneLabel,
+  String? savedLabel,
 }) {
   final tokens = context.tokens;
   const axisWidth = 76.0;
@@ -171,8 +173,9 @@ Widget tlTimelineRow({
                       runSpacing: 6,
                       children: [
                         if ((saved?.learned ?? false))
-                          tlTag(context, 'Done', Icons.check_circle),
-                        if ((saved?.favorite ?? false)) tlTag(context, 'Saved', Icons.star),
+                          tlTag(context, doneLabel ?? 'Done', Icons.check_circle),
+                        if ((saved?.favorite ?? false))
+                          tlTag(context, savedLabel ?? 'Saved', Icons.star),
                       ],
                     ),
                     if ((saved?.learned ?? false) ||

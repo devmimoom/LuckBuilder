@@ -11,12 +11,16 @@ import '../../../bubble_library/providers/providers.dart';
 import '../../../collections/wishlist_provider.dart';
 import '../../../data/models.dart';
 import '../../../pages/product_page.dart';
+import '../../../localization/app_language.dart';
+import '../../../localization/app_language_provider.dart';
+import '../../../localization/app_strings.dart';
 
 class CategoryNetflixRails extends ConsumerWidget {
   const CategoryNetflixRails({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     final newArrivalsAsync = ref.watch(newArrivalsProvider);
     final hotAsync = ref.watch(featuredProductsProvider('hot_all'));
     final weeklyAsync = ref.watch(featuredProductsProvider('weekly_pick'));
@@ -50,7 +54,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _railTitle(context, 'For you'),
-                        _rail(context, forYou),
+                        _rail(context, forYou, lang),
                         const SizedBox(height: 18),
                       ],
                     );
@@ -75,7 +79,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _railTitle(context, 'New'),
-                    _rail(context, newList.take(10).toList()),
+                    _rail(context, newList.take(10).toList(), lang),
                     const SizedBox(height: 18),
                   ],
                 ),
@@ -98,7 +102,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _railTitle(context, 'Popular'),
-                    _rail(context, hot.take(10).toList()),
+                    _rail(context, hot.take(10).toList(), lang),
                     const SizedBox(height: 18),
                   ],
                 ),
@@ -121,7 +125,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _railTitle(context, 'Picks'),
-                    _rail(context, wk.take(10).toList()),
+                    _rail(context, wk.take(10).toList(), lang),
                   ],
                 ),
           loading: () {
@@ -156,7 +160,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                 color: context.tokens.textPrimary)),
       );
 
-  Widget _rail(BuildContext context, List<Product> products) {
+  Widget _rail(BuildContext context, List<Product> products, AppLanguage lang) {
     final tokens = context.tokens;
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = (screenWidth * 0.7).clamp(200.0, kMaxCardWidth);
@@ -210,7 +214,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(products[i].title,
+                        Text((lang == AppLanguage.zhTw && products[i].titleZh != null && products[i].titleZh!.isNotEmpty) ? products[i].titleZh! : products[i].title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -222,7 +226,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                                 color: tokens.textSecondary, fontSize: 12)),
                         Align(
                           alignment: Alignment.bottomRight,
-                          child: Text('View ›',
+                          child: Text(uiString(lang, 'view_chevron'),
                               style: TextStyle(
                                   color: tokens.primary,
                                   fontWeight: FontWeight.w800)),

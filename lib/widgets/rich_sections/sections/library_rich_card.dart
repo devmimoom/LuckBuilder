@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../app_card.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/layout_constants.dart';
+import '../../../localization/app_language.dart';
+import '../../../localization/app_strings.dart';
 
 class LibraryRichCard extends StatelessWidget {
   final String title;
@@ -22,6 +24,8 @@ class LibraryRichCard extends StatelessWidget {
   final VoidCallback? onPreview3Days;
   final VoidCallback? onTap;
 
+  final AppLanguage? lang;
+
   const LibraryRichCard({
     super.key,
     required this.title,
@@ -35,7 +39,17 @@ class LibraryRichCard extends StatelessWidget {
     this.onMakeUpToday,
     this.onPreview3Days,
     this.onTap,
+    this.lang,
   });
+
+  static String _levelDisplayName(String level, AppLanguage lang) {
+    final k = level.toLowerCase().replaceAll(' ', '_');
+    if (k.contains('foundation')) return uiString(lang, 'level_foundation');
+    if (k.contains('practical')) return uiString(lang, 'level_practical');
+    if (k.contains('deep')) return uiString(lang, 'level_deep_dive');
+    if (k.contains('specialized')) return uiString(lang, 'level_specialized');
+    return level;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +117,15 @@ class LibraryRichCard extends StatelessWidget {
                           if (totalItems != null) ...[
                             const SizedBox(height: 4),
                             Text(
-                              level != null && level!.isNotEmpty
-                                  ? '$totalItems items · $level'
-                                  : '$totalItems items',
+                              lang != null
+                                  ? (level != null && level!.isNotEmpty
+                                      ? uiString(lang!, 'items_and_level')
+                                          .replaceFirst('{n}', '$totalItems')
+                                          .replaceFirst('{level}', _levelDisplayName(level!, lang!))
+                                      : uiString(lang!, 'items_only').replaceFirst('{n}', '$totalItems'))
+                                  : (level != null && level!.isNotEmpty
+                                      ? '$totalItems items · $level'
+                                      : '$totalItems items'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: tokens.textSecondary,

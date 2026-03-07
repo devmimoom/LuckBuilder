@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
 import '../../bubble_library/notifications/notification_service.dart';
+import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 import '../ios_notification_guide_page.dart';
 import 'onboarding_store.dart';
 
@@ -189,6 +191,7 @@ class _Slide1 extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -199,28 +202,28 @@ class _Slide1 extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          const Expanded(
+          Expanded(
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _LogoWidget(),
-                  SizedBox(height: 40),
+                  const _LogoWidget(),
+                  const SizedBox(height: 40),
                   Text(
-                    'Welcome to\nOnePop',
+                    uiString(lang, 'onboard_welcome_title'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                       height: 1.2,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
-                    'Useful stuff delivered\nright when you need it',
+                    uiString(lang, 'onboard_welcome_sub'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       color: Color(0xCCFFFFFF),
                       height: 1.6,
@@ -253,32 +256,33 @@ class _Slide2 extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     return Container(
       color: Colors.white,
       child: Column(
         children: [
-          const Expanded(
+          Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(32, 60, 32, 40),
+              padding: const EdgeInsets.fromLTRB(32, 60, 32, 40),
               child: Column(
                 children: [
-                  SizedBox(height: 40),
-                  _NotificationDemo(),
-                  SizedBox(height: 40),
+                  const SizedBox(height: 40),
+                  _NotificationDemo(lang: lang),
+                  const SizedBox(height: 40),
                   Text(
-                    'Info comes to you',
-                    style: TextStyle(
+                    uiString(lang, 'onboard_slide2_title'),
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF0A0E27),
                       height: 1.2,
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
-                    'No need to remember to open an app. We send you bite-sized insights at just the right moments throughout your day.',
+                    uiString(lang, 'onboard_slide2_sub'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Color(0xFF666666),
                       height: 1.6,
@@ -311,53 +315,51 @@ class _Slide3 extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     return Container(
       color: const Color(0xFFFAFBFC),
       child: Column(
         children: [
-          const Expanded(
+          Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(32, 60, 32, 40),
+              padding: const EdgeInsets.fromLTRB(32, 60, 32, 40),
               child: Column(
                 children: [
                   Text(
-                    'Made for busy people',
-                    style: TextStyle(
+                    uiString(lang, 'onboard_slide3_title'),
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF0A0E27),
                       height: 1.2,
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
-                    'Built on what actually works',
-                    style: TextStyle(
+                    uiString(lang, 'onboard_slide3_sub'),
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Color(0xFF666666),
                       height: 1.6,
                     ),
                   ),
-                  SizedBox(height: 32),
+                  const SizedBox(height: 32),
                   _FeatureCard(
                     icon: '🎯',
-                    title: 'Quick reads',
-                    description:
-                        '60-80 words. Get the key idea in under a minute',
+                    title: uiString(lang, 'onboard_feature1_title'),
+                    description: uiString(lang, 'onboard_feature1_desc'),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _FeatureCard(
                     icon: '⏰',
-                    title: 'Smart timing',
-                    description:
-                        'Sent when you\'re most likely to remember and use it',
+                    title: uiString(lang, 'onboard_feature2_title'),
+                    description: uiString(lang, 'onboard_feature2_desc'),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _FeatureCard(
                     icon: '📚',
-                    title: 'Real topics',
-                    description:
-                        'Sleep, stress, focus, AI—stuff you can actually use',
+                    title: uiString(lang, 'onboard_feature3_title'),
+                    description: uiString(lang, 'onboard_feature3_desc'),
                   ),
                 ],
               ),
@@ -386,6 +388,7 @@ class _Slide4 extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     return Container(
       color: Colors.white,
       child: Column(
@@ -416,9 +419,9 @@ class _Slide4 extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
-                    'Turn on notifications',
-                    style: TextStyle(
+                  Text(
+                    uiString(lang, 'onboard_notif_title'),
+                    style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF0A0E27),
@@ -426,22 +429,21 @@ class _Slide4 extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Let OnePop send you helpful stuff throughout the day',
+                  Text(
+                    uiString(lang, 'onboard_notif_sub'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Color(0xFF666666),
                       height: 1.6,
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const _BenefitItem(text: 'Get 3-5 quick tips daily'),
+                  _BenefitItem(text: uiString(lang, 'onboard_benefit1')),
                   const SizedBox(height: 16),
-                  const _BenefitItem(
-                      text: 'We won\'t bug you during work or sleep'),
+                  _BenefitItem(text: uiString(lang, 'onboard_benefit2')),
                   const SizedBox(height: 16),
-                  const _BenefitItem(text: 'Change settings anytime you want'),
+                  _BenefitItem(text: uiString(lang, 'onboard_benefit3')),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -478,7 +480,8 @@ class _LogoWidget extends StatelessWidget {
 }
 
 class _NotificationDemo extends StatelessWidget {
-  const _NotificationDemo();
+  final dynamic lang;
+  const _NotificationDemo({required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -496,12 +499,10 @@ class _NotificationDemo extends StatelessWidget {
               ),
             );
           },
-          child: const _NotificationCard(
+          child: _NotificationCard(
             appName: 'OnePop',
-            time: 'now',
-            content: '💡 Quick Stress Relief\n'
-                'Breathe in for 4 seconds, hold for 7, breathe out for 8. '
-                'This simple trick activates your body\'s natural calm response.',
+            time: uiString(lang, 'onboard_demo_time_now'),
+            content: uiString(lang, 'onboard_demo_notif1'),
           ),
         ),
         const SizedBox(height: 12),
@@ -509,11 +510,10 @@ class _NotificationDemo extends StatelessWidget {
           opacity: 0.6,
           child: Transform.scale(
             scale: 0.95,
-            child: const _NotificationCard(
+            child: _NotificationCard(
               appName: 'OnePop',
-              time: '2h ago',
-              content: '🧠 Better Focus\n'
-                  'Work in 25-minute blocks, then take a 5-minute break...',
+              time: uiString(lang, 'onboard_demo_time_2h'),
+              content: uiString(lang, 'onboard_demo_notif2'),
             ),
           ),
         ),
@@ -740,6 +740,7 @@ class _NavigationWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     return Container(
       padding: const EdgeInsets.all(32),
       color: isDarkBg ? Colors.transparent : Colors.white,
@@ -753,7 +754,7 @@ class _NavigationWidget extends ConsumerWidget {
                 TextButton(
                   onPressed: onSkip,
                   child: Text(
-                    'Skip',
+                    uiString(lang, 'onboard_skip'),
                     style: TextStyle(
                       fontSize: 15,
                       color: isDarkBg
@@ -765,7 +766,7 @@ class _NavigationWidget extends ConsumerWidget {
                 const SizedBox(height: 8),
                 _GradientButton(
                   onPressed: onNext ?? () {},
-                  text: 'Get Started',
+                  text: uiString(lang, 'onboard_get_started'),
                 ),
               ],
             )
@@ -774,13 +775,13 @@ class _NavigationWidget extends ConsumerWidget {
               children: [
                 _GradientButton(
                   onPressed: onEnableNotifications ?? () {},
-                  text: 'Turn On & Start',
+                  text: uiString(lang, 'onboard_turn_on'),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: onSkip,
                   child: Text(
-                    'Maybe later',
+                    uiString(lang, 'onboard_maybe_later'),
                     style: TextStyle(
                       fontSize: 15,
                       color: isDarkBg
@@ -809,7 +810,7 @@ class _NavigationWidget extends ConsumerWidget {
                       ),
                     ),
                     child: Text(
-                      'Back',
+                      uiString(lang, 'onboard_back'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -824,7 +825,7 @@ class _NavigationWidget extends ConsumerWidget {
                 Expanded(
                   child: _GradientButton(
                     onPressed: onNext ?? () {},
-                    text: 'Next',
+                    text: uiString(lang, 'onboard_next'),
                   ),
                 ),
               ],

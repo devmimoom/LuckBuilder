@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_tokens.dart';
 import '../../bubble_library/providers/providers.dart';
 import '../../services/auth_service.dart';
+import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -38,11 +40,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
         _sent = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'If this email is registered, we sent a reset link. Check your inbox and spam folder; it may take a few minutes.',
+            uiString(ref.read(appLanguageProvider), 'reset_link_sent_msg'),
           ),
-          duration: Duration(seconds: 6),
+          duration: const Duration(seconds: 6),
         ),
       );
     } on FirebaseAuthException catch (e) {
@@ -50,7 +52,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AuthService.messageFromAuthException(e)),
+          content: Text(AuthService.messageFromAuthException(e, ref.read(appLanguageProvider))),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -58,9 +60,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(uiString(ref.read(appLanguageProvider), 'auth_something_wrong')),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -69,10 +71,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Forgot password', style: TextStyle(color: tokens.textPrimary)),
+        title: Text(uiString(lang, 'forgot_password_page_title'), style: TextStyle(color: tokens.textPrimary)),
         backgroundColor: tokens.bg,
         elevation: 0,
         leading: IconButton(
@@ -90,7 +93,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               children: [
                 const SizedBox(height: 24),
                 Text(
-                  'Enter the exact email you used to sign up. We will send a reset link. Check your spam folder if you don’t see it.',
+                  uiString(lang, 'forgot_password_desc'),
                   style: TextStyle(
                     color: tokens.textSecondary,
                     fontSize: 15,
@@ -104,8 +107,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   textInputAction: TextInputAction.done,
                   autocorrect: false,
                   decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'example@email.com',
+                    labelText: uiString(lang, 'email_label'),
+                    hintText: uiString(lang, 'email_hint'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -113,8 +116,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     fillColor: tokens.cardBg,
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your email';
-                    if (!v.contains('@')) return 'Please enter a valid email';
+                    if (v == null || v.trim().isEmpty) return uiString(lang, 'enter_email_validator');
+                    if (!v.contains('@')) return uiString(lang, 'valid_email_validator');
                     return null;
                   },
                 ),
@@ -138,7 +141,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                             ),
                           )
                         : Text(
-                            _sent ? 'Sent' : 'Send reset link',
+                            _sent ? uiString(lang, 'sent_label') : uiString(lang, 'send_reset_link'),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -150,7 +153,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                 TextButton(
                   onPressed: _loading ? null : () => Navigator.of(context).pop(),
                   child: Text(
-                    'Back to sign in',
+                    uiString(lang, 'back_to_sign_in'),
                     style: TextStyle(color: tokens.primary),
                   ),
                 ),

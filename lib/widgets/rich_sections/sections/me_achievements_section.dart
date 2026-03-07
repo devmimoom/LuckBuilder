@@ -8,6 +8,9 @@ import '../../../bubble_library/providers/providers.dart';
 import '../../../collections/wishlist_provider.dart';
 import '../user/me_prefs_store.dart';
 import '../user_learning_store.dart';
+import '../../../localization/app_language.dart';
+import '../../../localization/app_language_provider.dart';
+import '../../../localization/app_strings.dart';
 
 class MeAchievementsSection extends ConsumerStatefulWidget {
   const MeAchievementsSection({super.key});
@@ -57,6 +60,7 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
 
     final libAsync = _safeLib();
     final wishAsync = _safeWish();
@@ -67,14 +71,14 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
         children: [
           Row(
             children: [
-              Text('Milestones',
+              Text(uiString(lang, 'me_milestones_title'),
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                       color: tokens.textPrimary)),
               const Spacer(),
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: uiString(lang, 'refresh'),
                 onPressed: _reloadLocal,
                 icon: const Icon(Icons.refresh),
               ),
@@ -125,43 +129,43 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
 
                     final achievements = <_Ach>[
                       _Ach(
-                        title: 'Collector',
-                        desc: 'Collected (purchased + wishlist)',
+                        title: uiString(lang, 'me_ach_collector_title'),
+                        desc: uiString(lang, 'me_ach_collector_desc'),
                         current: purchased.length + wish.length,
                         targets: const [1, 5, 10, 30],
                         icon: Icons.inventory_2_outlined,
                       ),
                       _Ach(
-                        title: 'Notification pro',
-                        desc: 'Topics with notifications on',
+                        title: uiString(lang, 'me_ach_notification_pro_title'),
+                        desc: uiString(lang, 'me_ach_notification_pro_desc'),
                         current: pushing,
                         targets: const [1, 3, 5, 10],
                         icon: Icons.notifications_active_outlined,
                       ),
                       _Ach(
-                        title: 'Favorites',
-                        desc: 'Favorited topics count',
+                        title: uiString(lang, 'me_ach_favorites_title'),
+                        desc: uiString(lang, 'me_ach_favorites_desc'),
                         current: favIds.length,
                         targets: const [1, 3, 5, 10],
                         icon: Icons.star_border,
                       ),
                       _Ach(
-                        title: 'Personalized',
-                        desc: 'Set interest tags',
+                        title: uiString(lang, 'me_ach_personalized_title'),
+                        desc: uiString(lang, 'me_ach_personalized_desc'),
                         current: _tags.length,
                         targets: const [1, 3, 5, 10],
                         icon: Icons.local_offer_outlined,
                       ),
                       _Ach(
-                        title: 'Streak',
-                        desc: 'Streak days (local)',
+                        title: uiString(lang, 'me_ach_streak_title'),
+                        desc: uiString(lang, 'me_ach_streak_desc'),
                         current: streak,
                         targets: const [1, 3, 7, 14, 30],
                         icon: Icons.bolt_outlined,
                       ),
                       _Ach(
-                        title: 'Progress',
-                        desc: 'Total active days (local)',
+                        title: uiString(lang, 'me_ach_progress_title'),
+                        desc: uiString(lang, 'me_ach_progress_desc'),
                         current: learnedDays,
                         targets: const [1, 7, 30, 60, 100],
                         icon: Icons.auto_graph_outlined,
@@ -169,18 +173,19 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
                     ];
 
                     return Column(
-                      children:
-                          achievements.map((a) => _achRow(context, a)).toList(),
+                      children: achievements
+                          .map((a) => _achRow(context, lang, a))
+                          .toList(),
                     );
                   },
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Text('wishlist error: $e',
+                  error: (e, _) => Text('${uiString(lang, 'wishlist_error')}$e',
                       style: TextStyle(color: tokens.textSecondary)),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text('library error: $e',
+              error: (e, _) => Text('${uiString(lang, 'library_error')}$e',
                   style: TextStyle(color: tokens.textSecondary)),
             ),
         ],
@@ -206,7 +211,7 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
     }
   }
 
-  Widget _achRow(BuildContext context, _Ach a) {
+  Widget _achRow(BuildContext context, AppLanguage lang, _Ach a) {
     final tokens = context.tokens;
 
     final nextTarget = a.nextTarget();
@@ -248,7 +253,7 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
                                 fontWeight: FontWeight.w900)),
                       ),
                       Text(
-                        done ? 'Done' : '${a.current}/$target',
+                        done ? uiString(lang, 'done') : '${a.current}/$target',
                         style: TextStyle(
                             color: tokens.textSecondary, fontSize: 12),
                       ),

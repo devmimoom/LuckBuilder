@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/models.dart';
 import '../providers/v2_providers.dart';
 import '../bubble_library/providers/providers.dart';
 import '../ui/glass.dart';
@@ -16,6 +17,7 @@ import '../providers/analytics_provider.dart';
 import '../widgets/app_card.dart';
 import '../localization/app_language_provider.dart';
 import '../localization/bilingual_text.dart';
+import '../localization/app_strings.dart';
 
 class ProductPage extends ConsumerStatefulWidget {
   final String productId;
@@ -55,7 +57,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
     return Scaffold(
       backgroundColor: tokens.bg,
       appBar: AppBar(
-        title: const Text('Product'),
+        title: Text(uiString(lang, 'product_page_title')),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -63,7 +65,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
             data: (wish) {
               final isWish = wish.any((e) => e.productId == widget.productId);
               return IconButton(
-                tooltip: isWish ? 'Remove bookmark' : 'Add to bookmark',
+                tooltip: isWish
+                    ? uiString(lang, 'bookmark_removed')
+                    : uiString(lang, 'add_to_bookmark'),
                 icon: Icon(isWish ? Icons.bookmark : Icons.bookmark_outline),
                 onPressed: () async {
                   await ref.read(localWishlistNotifierProvider).toggleCollect(widget.productId);
@@ -71,7 +75,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isWish ? 'Removed from bookmark.' : 'Added to bookmark.'),
+                        content: Text(isWish
+                            ? uiString(lang, 'bookmark_removed')
+                            : uiString(lang, 'bookmark_added')),
                         duration: const Duration(seconds: 1),
                       ),
                     );
@@ -86,16 +92,18 @@ class _ProductPageState extends ConsumerState<ProductPage> {
       ),
       body: prod.when(
         data: (p) {
-          if (p == null) return const Center(child: Text('Product not found or not yet available.'));
+          if (p == null) return Center(child: Text(uiString(lang, 'product_not_found')));
           final isFullAccessUser = ref.watch(isFullAccessUserProvider);
           final now = DateTime.now();
           final releaseAt = p.releaseAt;
           final isComingSoon = comingSoonSet.contains(widget.productId) ||
               (releaseAt != null && releaseAt.isAfter(now));
-          final specs = [p.spec1Label, p.spec2Label, p.spec3Label, p.spec4Label]
-              .whereType<String>()
-              .where((s) => s.isNotEmpty)
-              .toList();
+          final specs = [
+            p.displaySpec1Label(lang),
+            p.displaySpec2Label(lang),
+            p.displaySpec3Label(lang),
+            p.displaySpec4Label(lang),
+          ].whereType<String>().where((s) => s.isNotEmpty).toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -208,11 +216,14 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                     .toList(),
               ),
               const SizedBox(height: 20),
-              Text('│ Preview',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: tokens.textPrimary)),
+              Text(
+                '│ ${uiString(lang, 'plus_guide_preview_items')}',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: tokens.textPrimary,
+                ),
+              ),
               const SizedBox(height: 10),
               previews.when(
                 data: (items) => SizedBox(
@@ -254,7 +265,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 6),
                                     child: Text(
-                                        '${it.intent} · d${it.difficulty}'),
+                                        '${it.displayIntent(lang)} · d${it.difficulty}'),
                                   ),
                                 ],
                               ),
@@ -272,11 +283,14 @@ class _ProductPageState extends ConsumerState<ProductPage> {
               ),
               if ((p.contentArchitecture ?? '').isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Text('│ Content structure',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: tokens.textPrimary)),
+                Text(
+                  '│ ${uiString(lang, 'plus_guide_content_arch')}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.textPrimary,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 GlassCard(
                   radius: 26,
@@ -331,7 +345,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                         Expanded(
                           child: OutlinedButton.icon(
                             icon: Icon(isWish ? Icons.bookmark : Icons.bookmark_outline),
-                            label: Text(isWish ? 'Bookmarked' : 'Add to bookmark'),
+                            label: Text(isWish
+                                ? uiString(lang, 'bookmarked')
+                                : uiString(lang, 'add_to_bookmark')),
                             onPressed: (uid == null)
                                 ? null
                                 : () async {
@@ -339,14 +355,19 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                                       await ref.read(localWishlistNotifierProvider).remove(widget.productId);
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Removed from bookmark.')),
+                                          SnackBar(
+                                            content:
+                                                Text(uiString(lang, 'bookmark_removed')),
+                                          ),
                                         );
                                       }
                                     } else {
                                       await ref.read(localWishlistNotifierProvider).toggleCollect(widget.productId);
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Added to bookmark.')),
+                                          SnackBar(
+                                            content: Text(uiString(lang, 'bookmark_added')),
+                                          ),
                                         );
                                       }
                                     }
@@ -360,7 +381,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                     height: 44,
                     child: Center(child: CircularProgressIndicator()),
                   ),
-                  error: (e, _) => Text('Bookmark error: $e'),
+                  error: (e, _) => Text('${uiString(lang, 'wishlist_error')}$e'),
                 ),
                 const SizedBox(height: 10),
 
@@ -393,7 +414,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                       icon: Icon(hasRemind
                           ? Icons.notifications_active
                           : Icons.notifications_active_outlined),
-                      label: Text(hasRemind ? 'Reminder set (tap to cancel)' : 'Notify me when available'),
+                      label: Text(hasRemind
+                          ? uiString(lang, 'reminder_set_label')
+                          : uiString(lang, 'notify_when_available')),
                       onPressed: (uid == null)
                           ? null
                           : () async {
@@ -406,8 +429,11 @@ class _ProductPageState extends ConsumerState<ProductPage> {
 
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Reminder cancelled.')),
-                                  );
+                                  SnackBar(
+                                    content:
+                                        Text(uiString(lang, 'reminder_cancelled')),
+                                  ),
+                                );
                                 }
                                 // 讓 FutureBuilder 重新讀
                                 if (context.mounted) {
@@ -433,8 +459,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                               await ns.schedule(
                                 id: notifId,
                                 when: remindAt,
-                                title: 'OnePop available',
-                                body: '${p.title} is now available. Come take a look!',
+                                title: uiString(lang, 'coming_soon_available_title'),
+                                body: uiString(lang, 'coming_soon_available_body')
+                                    .replaceFirst('{title}', p.title),
                                 payload: {
                                   'type': 'coming_soon_remind',
                                   'productId': widget.productId,
@@ -442,12 +469,18 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                               );
 
                               if (context.mounted) {
+                                final timeText =
+                                    '${remindAt.hour.toString().padLeft(2, '0')}:${remindAt.minute.toString().padLeft(2, '0')}';
                                 final dateText = (releaseAt != null)
-                                    ? '${remindAt.year}-${remindAt.month.toString().padLeft(2, '0')}-${remindAt.day.toString().padLeft(2, '0')} ${remindAt.hour.toString().padLeft(2, '0')}:${remindAt.minute.toString().padLeft(2, '0')}'
-                                    : 'Tomorrow ${remindAt.hour.toString().padLeft(2, '0')}:${remindAt.minute.toString().padLeft(2, '0')}';
+                                    ? '${remindAt.year}-${remindAt.month.toString().padLeft(2, '0')}-${remindAt.day.toString().padLeft(2, '0')} $timeText'
+                                    : uiString(lang, 'tomorrow_at_time')
+                                        .replaceFirst('{time}', timeText);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Reminder set: $dateText'),
+                                    content: Text(
+                                      uiString(lang, 'reminder_set')
+                                          .replaceFirst('{time}', dateText),
+                                    ),
                                   ),
                                 );
                               }
@@ -473,7 +506,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Load failed:',
+                  Text(uiString(lang, 'load_error'),
                       style: TextStyle(
                           color: tokens.textPrimary,
                           fontWeight: FontWeight.bold)),
@@ -495,6 +528,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
 
   Future<void> Function() _onUnlocked(WidgetRef ref) => () async {
         String? uid;
+        final lang = ref.read(appLanguageProvider);
         try {
           uid = ref.read(uidProvider);
         } catch (_) {
@@ -513,7 +547,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
           ref.invalidate(wishlistProvider);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Unlocked. You can enable banner notifications.')),
+              SnackBar(
+                content: Text(uiString(lang, 'unlocked_enable_banner')),
+              ),
             );
           }
         }
@@ -531,6 +567,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
 
   Future<void> Function() _onFreeAdded(WidgetRef ref) => () async {
         String? uid;
+        final lang = ref.read(appLanguageProvider);
         try {
           uid = ref.read(uidProvider);
         } catch (_) {
@@ -539,7 +576,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
         if (uid == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Sign in to add to your library.')),
+              SnackBar(
+                content: Text(uiString(lang, 'sign_in_to_add_library')),
+              ),
             );
           }
           return;
@@ -557,7 +596,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
         ref.invalidate(creditsBalanceProvider);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Added to your library.')),
+            SnackBar(
+              content: Text(uiString(lang, 'added_to_library')),
+            ),
           );
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -646,6 +687,7 @@ class _FreeProductBar extends ConsumerWidget {
             lp.productId == productId && !lp.isHidden) ??
         false;
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
 
     return GlassCard(
       radius: 22,
@@ -659,7 +701,9 @@ class _FreeProductBar extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    inLibrary ? 'In your library' : 'Free',
+                    inLibrary
+                        ? uiString(lang, 'in_library')
+                        : uiString(lang, 'free_label'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -669,8 +713,8 @@ class _FreeProductBar extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Text(
                     inLibrary
-                        ? 'Open and start.'
-                        : 'Add to your library and start.',
+                        ? uiString(lang, 'open_and_start')
+                        : uiString(lang, 'add_to_library_start'),
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.25,
@@ -689,7 +733,9 @@ class _FreeProductBar extends ConsumerWidget {
                   await onAdded();
                 }
               },
-              child: Text(inLibrary ? 'Start' : 'Add to Library'),
+              child: Text(inLibrary
+                  ? uiString(lang, 'start_button')
+                  : uiString(lang, 'add_to_library')),
             ),
           ],
         ),
@@ -721,6 +767,7 @@ class _CreditsProductBar extends ConsumerWidget {
             lp.productId == productId && !lp.isHidden) ??
         false;
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
     final canRedeem = !inLibrary && balance >= creditsRequired;
 
     return GlassCard(
@@ -736,10 +783,20 @@ class _CreditsProductBar extends ConsumerWidget {
                 children: [
                   Text(
                     inLibrary
-                        ? 'In your library'
+                        ? uiString(lang, 'in_your_library')
                         : canRedeem
-                            ? 'Use $creditsRequired credit${creditsRequired > 1 ? 's' : ''}'
-                            : '$creditsRequired credit${creditsRequired > 1 ? 's' : ''} to unlock',
+                            ? uiString(
+                                lang,
+                                creditsRequired > 1
+                                    ? 'use_credits_plural'
+                                    : 'use_credits',
+                              ).replaceFirst('{n}', '$creditsRequired')
+                            : uiString(
+                                lang,
+                                creditsRequired > 1
+                                    ? 'credits_to_unlock_plural'
+                                    : 'credits_to_unlock',
+                              ).replaceFirst('{n}', '$creditsRequired'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -749,10 +806,10 @@ class _CreditsProductBar extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Text(
                     inLibrary
-                        ? 'Open and start.'
+                        ? uiString(lang, 'open_and_start')
                         : balanceAsync.hasValue
-                            ? 'Balance: $balance. ${canRedeem ? 'Unlock this product.' : 'This product costs $creditsRequired credit${creditsRequired > 1 ? 's' : ''}. Get more to unlock.'}'
-                            : 'Loading…',
+                            ? '${uiString(lang, 'balance_credits').replaceFirst('{n}', '$balance')} ${canRedeem ? uiString(lang, 'unlock_this_product') : uiString(lang, creditsRequired > 1 ? 'product_costs_credits_plural' : 'product_costs_credits').replaceFirst('{n}', '$creditsRequired')}'
+                            : uiString(lang, 'loading_label'),
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.25,
@@ -773,7 +830,7 @@ class _CreditsProductBar extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    child: const Text('Start'),
+                    child: Text(uiString(lang, 'start_button')),
                   )
                 : canRedeem
                     ? FilledButton(
@@ -787,8 +844,10 @@ class _CreditsProductBar extends ConsumerWidget {
                           if (uid == null) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Sign in to use credits.')),
+                                SnackBar(
+                                  content: Text(
+                                      uiString(lang, 'sign_in_to_use_credits')),
+                                ),
                               );
                             }
                             return;
@@ -806,17 +865,22 @@ class _CreditsProductBar extends ConsumerWidget {
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed: $e')),
+                                SnackBar(
+                                  content: Text(
+                                    uiString(lang, 'action_failed')
+                                        .replaceFirst('{error}', '$e'),
+                                  ),
+                                ),
                               );
                             }
                           }
                         },
-                        child: Text(
-                            'Use $creditsRequired credit${creditsRequired > 1 ? 's' : ''}'),
+                        child: Text(uiString(lang, 'plus_guide_redeem_credits')
+                            .replaceFirst('{n}', '$creditsRequired')),
                       )
                     : FilledButton(
                         onPressed: onBuyCredits,
-                        child: const Text('Buy credits'),
+                        child: Text(uiString(lang, 'buy_credits')),
                       ),
           ],
         ),

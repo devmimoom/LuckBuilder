@@ -1,6 +1,9 @@
+import '../localization/app_language.dart';
+
 class Segment {
   final String id;
   final String title;
+  final String? titleZh;
   final int order;
   final String mode; // "all" | "tag"
   final String? tag;
@@ -9,6 +12,7 @@ class Segment {
   Segment({
     required this.id,
     required this.title,
+    this.titleZh,
     required this.order,
     required this.mode,
     required this.published,
@@ -18,6 +22,7 @@ class Segment {
   factory Segment.fromMap(Map<String, dynamic> m) => Segment(
         id: m['id'] ?? '',
         title: m['title'] ?? '',
+        titleZh: m['titleZh']?.toString() ?? m['title_zh']?.toString(),
         order: (m['order'] ?? 0) as int,
         mode: m['mode'] ?? 'all',
         tag: m['tag'],
@@ -25,9 +30,17 @@ class Segment {
       );
 }
 
+extension SegmentDisplay on Segment {
+  String displayTitle(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && titleZh != null && titleZh!.isNotEmpty) return titleZh!;
+    return title;
+  }
+}
+
 class Topic {
   final String id;
   final String title;
+  final String? titleZh;
   final bool published;
   final int order;
   final List<String> tags;
@@ -36,6 +49,7 @@ class Topic {
   Topic({
     required this.id,
     required this.title,
+    this.titleZh,
     required this.published,
     required this.order,
     required this.tags,
@@ -45,11 +59,77 @@ class Topic {
   factory Topic.fromDoc(String id, Map<String, dynamic> m) => Topic(
         id: id,
         title: m['title'] ?? '',
+        titleZh: m['titleZh']?.toString() ?? m['title_zh']?.toString(),
         published: (m['published'] ?? true) as bool,
         order: (m['order'] ?? 0) as int,
         tags: List<String>.from(m['tags'] ?? const []),
         bubbleImageUrl: m['bubbleImageUrl'],
       );
+}
+
+extension TopicDisplay on Topic {
+  String displayTitle(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && titleZh != null && titleZh!.isNotEmpty) return titleZh!;
+    return title;
+  }
+}
+
+/// 精選清單內的單一項目（如 home banner 一則橫幅），可帶專用 itemImageUrl
+class FeaturedListItem {
+  final String itemId;
+  final String? itemTitle;
+  final String? itemTitleZh;
+  final String? itemImageUrl;
+  final int itemOrder;
+  final String type;
+  final List<String> productIds;
+  final List<String> topicIds;
+
+  FeaturedListItem({
+    required this.itemId,
+    this.itemTitle,
+    this.itemTitleZh,
+    this.itemImageUrl,
+    this.itemOrder = 0,
+    this.type = 'productIds',
+    this.productIds = const [],
+    this.topicIds = const [],
+  });
+
+  static FeaturedListItem? fromMap(dynamic v) {
+    if (v is! Map<String, dynamic>) return null;
+    final m = v;
+    final ftype = (m['type'] ?? 'productIds').toString();
+    return FeaturedListItem(
+      itemId: (m['itemId'] ?? '').toString(),
+      itemTitle: m['itemTitle']?.toString(),
+      itemTitleZh: m['itemTitleZh']?.toString(),
+      itemImageUrl: m['itemImageUrl']?.toString(),
+      itemOrder: (m['itemOrder'] is int) ? m['itemOrder'] as int : int.tryParse(m['itemOrder']?.toString() ?? '0') ?? 0,
+      type: ftype,
+      productIds: List<String>.from(m['productIds'] ?? const []),
+      topicIds: List<String>.from(m['topicIds'] ?? const []),
+    );
+  }
+}
+
+/// 首頁橫幅顯示用：優先使用 itemImageUrl，沒有則用 leadingProduct.coverImageUrl；一張圖可對應多個產品
+class BannerItem {
+  final String? imageUrl;
+  final String? titleOverride;
+  final String? titleZhOverride;
+  final List<Product> products;
+
+  BannerItem({
+    required this.products,
+    this.imageUrl,
+    this.titleOverride,
+    this.titleZhOverride,
+  });
+
+  /// 用於標題、封面後備等顯示；空列表時為 null（不應出現，repository 不建空 BannerItem）
+  Product? get leadingProduct =>
+      products.isNotEmpty ? products.first : null;
 }
 
 class FeaturedList {
@@ -61,6 +141,7 @@ class FeaturedList {
   final List<String>? topicIds;
   final String? coverImageUrl;
   final String? coverStorageFile;
+  final List<FeaturedListItem> items;
 
   FeaturedList({
     required this.id,
@@ -71,21 +152,33 @@ class FeaturedList {
     this.topicIds,
     this.coverImageUrl,
     this.coverStorageFile,
+    this.items = const [],
   });
 
-  factory FeaturedList.fromDoc(String id, Map<String, dynamic> m) =>
-      FeaturedList(
-        id: id,
-        title: m['title'] ?? '',
-        published: (m['published'] ?? true) as bool,
-        order: (m['order'] ?? 0) as int,
-        productIds: List<String>.from(m['productIds'] ?? const []),
-        topicIds: m['topicIds'] != null
-            ? List<String>.from(m['topicIds'] as List)
-            : null,
-        coverImageUrl: m['coverImageUrl']?.toString(),
-        coverStorageFile: m['coverStorageFile']?.toString(),
-      );
+  factory FeaturedList.fromDoc(String id, Map<String, dynamic> m) {
+    final rawItems = m['items'];
+    final List<FeaturedListItem> items = [];
+    if (rawItems is List) {
+      for (final e in rawItems) {
+        final item = FeaturedListItem.fromMap(e);
+        if (item != null && item.itemId.isNotEmpty) items.add(item);
+      }
+      items.sort((a, b) => a.itemOrder.compareTo(b.itemOrder));
+    }
+    return FeaturedList(
+      id: id,
+      title: m['title'] ?? '',
+      published: (m['published'] ?? true) as bool,
+      order: (m['order'] ?? 0) as int,
+      productIds: List<String>.from(m['productIds'] ?? const []),
+      topicIds: m['topicIds'] != null
+          ? List<String>.from(m['topicIds'] as List)
+          : null,
+      coverImageUrl: m['coverImageUrl']?.toString(),
+      coverStorageFile: m['coverStorageFile']?.toString(),
+      items: items,
+    );
+  }
 }
 
 class Product {
@@ -110,6 +203,10 @@ class Product {
   final String? spec2Label;
   final String? spec3Label;
   final String? spec4Label;
+  final String? spec1LabelZh;
+  final String? spec2LabelZh;
+  final String? spec3LabelZh;
+  final String? spec4LabelZh;
 
   final int trialLimit;
   final int? releaseAtMs;
@@ -139,6 +236,10 @@ class Product {
     this.spec2Label,
     this.spec3Label,
     this.spec4Label,
+    this.spec1LabelZh,
+    this.spec2LabelZh,
+    this.spec3LabelZh,
+    this.spec4LabelZh,
     required this.trialLimit,
     this.releaseAtMs,
     this.createdAtMs,
@@ -168,6 +269,10 @@ class Product {
         spec2Label: m['spec2Label'],
         spec3Label: m['spec3Label'],
         spec4Label: m['spec4Label'],
+        spec1LabelZh: m['spec1LabelZh']?.toString() ?? m['spec1Label_zh']?.toString(),
+        spec2LabelZh: m['spec2LabelZh']?.toString() ?? m['spec2Label_zh']?.toString(),
+        spec3LabelZh: m['spec3LabelZh']?.toString() ?? m['spec3Label_zh']?.toString(),
+        spec4LabelZh: m['spec4LabelZh']?.toString() ?? m['spec4Label_zh']?.toString(),
         trialLimit: (m['trialLimit'] ?? 3) as int,
         releaseAtMs: (m['releaseAtMs'] is num)
             ? (m['releaseAtMs'] as num).toInt()
@@ -192,6 +297,25 @@ class Product {
       createdAtMs == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(createdAtMs!);
+}
+
+extension ProductDisplay on Product {
+  String? displaySpec1Label(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && spec1LabelZh != null && spec1LabelZh!.isNotEmpty) return spec1LabelZh;
+    return spec1Label;
+  }
+  String? displaySpec2Label(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && spec2LabelZh != null && spec2LabelZh!.isNotEmpty) return spec2LabelZh;
+    return spec2Label;
+  }
+  String? displaySpec3Label(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && spec3LabelZh != null && spec3LabelZh!.isNotEmpty) return spec3LabelZh;
+    return spec3Label;
+  }
+  String? displaySpec4Label(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && spec4LabelZh != null && spec4LabelZh!.isNotEmpty) return spec4LabelZh;
+    return spec4Label;
+  }
 }
 
 class ContentItem {
@@ -252,4 +376,12 @@ class ContentItem {
         deepAnalysisZh: m['deepAnalysisZh']?.toString() ?? m['deepAnalysis_zh']?.toString(),
         deepAnalysisEn: m['deepAnalysisEn']?.toString() ?? m['deepAnalysis_en']?.toString(),
       );
+}
+
+extension ContentItemDisplayLang on ContentItem {
+  String displayIntent(AppLanguage lang) {
+    if (lang == AppLanguage.zhTw && intentZh != null && intentZh!.isNotEmpty) return intentZh!;
+    if (lang == AppLanguage.en && intentEn != null && intentEn!.isNotEmpty) return intentEn!;
+    return intent;
+  }
 }

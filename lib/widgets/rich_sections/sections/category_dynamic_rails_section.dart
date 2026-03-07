@@ -10,6 +10,7 @@ import '../../../data/models.dart';
 import '../../../pages/product_page.dart';
 import '../../../localization/app_language.dart';
 import '../../../localization/app_language_provider.dart';
+import '../../../localization/app_strings.dart';
 import '../../../localization/bilingual_text.dart';
 
 class CategoryDynamicRailsSection extends ConsumerWidget {
@@ -42,7 +43,7 @@ class CategoryDynamicRailsSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'For you',
+              uiString(lang, 'cat_for_you'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
@@ -51,21 +52,21 @@ class CategoryDynamicRailsSection extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             _RailBlock(
-              title: 'For you',
+              title: uiString(lang, 'cat_for_you'),
               async: forYouAsync,
               emptyHint: 'No data (check Firestore featured_lists/$forYouId)',
               lang: lang,
             ),
             const SizedBox(height: 14),
             _RailBlock(
-              title: 'New',
+              title: uiString(lang, 'cat_new'),
               async: newAsync,
               emptyHint: 'No data (check Firestore featured_lists/$newId)',
               lang: lang,
             ),
             const SizedBox(height: 14),
             _RailBlock(
-              title: 'Popular',
+              title: uiString(lang, 'cat_popular'),
               async: hotAsync,
               emptyHint: 'No data (check Firestore featured_lists/$hotId)',
               lang: lang,

@@ -7,6 +7,8 @@ import '../../notifications/push_orchestrator.dart';
 import '../../models/push_config.dart';
 import 'bubble_card.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../localization/app_language_provider.dart';
+import '../../../localization/app_strings.dart';
 
 class PushTimelineSection extends ConsumerStatefulWidget {
   final Future<void> Function(ScheduledPushEntry entry)? onSkip;
@@ -105,6 +107,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
     
     if (_loading) {
       return const Padding(
@@ -124,12 +127,12 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Next 3 days schedule',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        Text(uiString(lang, 'push_timeline_header'),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
         BubbleCard(
           child: _upcoming.isEmpty
-              ? Text('Not scheduled. Tap refresh to reschedule.',
+              ? Text(uiString(lang, 'push_timeline_empty'),
                   style: TextStyle(color: tokens.textSecondary))
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,8 +162,10 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
                         final dayNum = pushOrder is int
                             ? pushOrder
                             : (pushOrder is num ? pushOrder.toInt() : null);
-                        final dayText =
-                            dayNum == null ? '' : ' · Day $dayNum';
+                        final dayText = dayNum == null
+                            ? ''
+                            : uiString(lang, 'day_number')
+                                .replaceFirst('{n}', '$dayNum');
 
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -189,7 +194,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
                                     await widget.onSkip!(e);
                                     await _loadAll(); // 跳過後重載 timeline
                                   },
-                                  child: const Text('Skip'),
+                                  child: Text(uiString(lang, 'skip')),
                                 ),
                               const Icon(Icons.chevron_right),
                             ],
@@ -211,8 +216,8 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
                 ),
         ),
         const SizedBox(height: 12),
-        const Text('Quiet hours',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        Text(uiString(lang, 'quiet_hours_title'),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
         // ✅ 從 Firestore 讀取勿擾時段
         ref.watch(globalPushSettingsProvider).when(
@@ -236,11 +241,11 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
                         children: [
                           OutlinedButton(
                               onPressed: () => _pickTime(isStart: true),
-                              child: const Text('Start')),
+                              child: Text(uiString(lang, 'start_label'))),
                           const SizedBox(width: 8),
                           OutlinedButton(
                               onPressed: () => _pickTime(isStart: false),
-                              child: const Text('End')),
+                              child: Text(uiString(lang, 'end_label'))),
                         ],
                       ),
                     ),
@@ -255,7 +260,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
           error: (_, __) {
             final tokens = context.tokens;
             return BubbleCard(
-              child: Text('Load error',
+              child: Text(uiString(lang, 'load_error_title'),
                   style: TextStyle(color: tokens.textSecondary)),
             );
           },
@@ -266,11 +271,11 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
             OutlinedButton.icon(
               onPressed: _loadAll,
               icon: const Icon(Icons.refresh),
-              label: const Text('Refresh schedule'),
+              label: Text(uiString(lang, 'refresh_schedule')),
             ),
             const SizedBox(width: 10),
             Text(
-              '(Source: local schedule cache)',
+              uiString(lang, 'source_local_cache'),
               style: TextStyle(
                   color: context.tokens.textSecondary, fontSize: 12),
             ),

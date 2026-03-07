@@ -14,6 +14,7 @@ import 'product_list_page.dart';
 import '../localization/app_language_provider.dart';
 import '../localization/app_language.dart';
 import '../localization/bilingual_text.dart';
+import '../localization/app_strings.dart';
 
 // ✅ 若你專案有這個 provider（泡泡庫在用），就能做「已購買/推播中」篩選。
 // 沒登入或不存在會自動 fallback，不會影響搜尋基本功能。
@@ -304,6 +305,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     // draft 必須跨 rebuild 保留，否則點 chip 後 setState 會把 draft 重置為 cur
     final draftNotifier = ValueNotifier<_SearchFilterState>(cur);
+    final lang = ref.read(appLanguageProvider);
 
     await showModalBottomSheet(
       context: context,
@@ -359,7 +361,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   children: [
                     Row(
                       children: [
-                        Text('Filters',
+                        Text(uiString(lang, 'filters'),
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
@@ -368,7 +370,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         TextButton(
                           onPressed: () =>
                               draftNotifier.value = const _SearchFilterState(),
-                          child: const Text('Clear'),
+                          child: Text(uiString(lang, 'clear')),
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
@@ -377,7 +379,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 draftNotifier.value;
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Apply'),
+                          child: Text(uiString(lang, 'apply')),
                         ),
                       ],
                     ),
@@ -387,9 +389,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       value: draft.onlyPurchased,
                       onChanged: (v) =>
                           draftNotifier.value = draft.copyWith(onlyPurchased: v),
-                      title: Text('Purchased only',
+                      title: Text(uiString(lang, 'purchased_only'),
                           style: TextStyle(color: tokens.textPrimary)),
-                      subtitle: Text('Sign in to filter by purchase',
+                      subtitle: Text(uiString(lang, 'purchased_only_sub'),
                           style: TextStyle(color: tokens.textSecondary)),
                     ),
                     SwitchListTile.adaptive(
@@ -397,13 +399,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       value: draft.onlyPushing,
                       onChanged: (v) =>
                           draftNotifier.value = draft.copyWith(onlyPushing: v),
-                      title: Text('Notifications on only',
+                      title: Text(uiString(lang, 'notifications_on_only'),
                           style: TextStyle(color: tokens.textPrimary)),
-                      subtitle: Text('Purchased and notifications enabled',
+                      subtitle: Text(
+                          uiString(lang, 'notifications_on_only_sub'),
                           style: TextStyle(color: tokens.textSecondary)),
                     ),
                     const SizedBox(height: 12),
-                    Text('Category (topicId)',
+                    Text(uiString(lang, 'category_label'),
                         style: TextStyle(
                             fontWeight: FontWeight.w900,
                             color: tokens.textPrimary)),
@@ -418,7 +421,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    Text('Level',
+                    Text(uiString(lang, 'level_label_filters'),
                         style: TextStyle(
                             fontWeight: FontWeight.w900,
                             color: tokens.textPrimary)),
@@ -481,7 +484,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   autofocus: true,
                   style: TextStyle(color: tokens.textPrimary),
                   decoration: InputDecoration(
-                    hintText: 'Search products or topics…',
+                    hintText: uiString(lang, 'search_products_or_topics_placeholder'),
                     hintStyle: TextStyle(color: tokens.textSecondary),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -650,26 +653,27 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       children: [
                         FilterChip(
                           selected: ownedFilter == SearchOwnedFilter.purchased,
-                          label: const Text('Purchased'),
+                          label: Text(uiString(lang, 'purchased_label')),
                           onSelected: (v) => ref.read(searchOwnedFilterProvider.notifier).state =
                               v ? SearchOwnedFilter.purchased : SearchOwnedFilter.all,
                         ),
                         const SizedBox(width: 8),
                         FilterChip(
                           selected: pushFilter == SearchPushFilter.pushingOnly,
-                          label: const Text('Notifications on'),
+                          label: Text(uiString(lang, 'notifications_on')),
                           onSelected: (v) => ref.read(searchPushFilterProvider.notifier).state =
                               v ? SearchPushFilter.pushingOnly : SearchPushFilter.all,
                         ),
                         const SizedBox(width: 8),
                         FilterChip(
                           selected: wishFilter == SearchWishFilter.wishedOnly,
-                          label: const Text('Bookmarked'),
+                          label: Text(uiString(lang, 'bookmarked_title')),
                           onSelected: (v) => ref.read(searchWishFilterProvider.notifier).state =
                               v ? SearchWishFilter.wishedOnly : SearchWishFilter.all,
                         ),
                         const SizedBox(width: 8),
                         _LevelChip(
+                          lang: lang,
                           current: levelFilter,
                           onChange: (next) =>
                               ref.read(searchLevelFilterProvider.notifier).state = next,
@@ -697,7 +701,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   context: context, products: products),
                               icon: const Icon(Icons.tune),
                               label: Text(
-                                hasActive ? 'Filters (applied)' : 'Filters',
+                                hasActive
+                                    ? uiString(lang, 'filters_applied')
+                                    : uiString(lang, 'filters'),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -711,18 +717,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   value: sort,
                                   // ✅ 修復深色主題下拉選單透明背景重疊問題
                                   dropdownColor: tokens.cardBg,
-                                  items: const [
+                                  items: [
                                     DropdownMenuItem(
                                       value: SearchSort.relevant,
-                                      child: Text('Sort: Relevance'),
+                                      child: Text(uiString(lang, 'sort_relevance')),
                                     ),
                                     DropdownMenuItem(
                                       value: SearchSort.title,
-                                      child: Text('Sort: Title'),
+                                      child: Text(uiString(lang, 'sort_title')),
                                     ),
                                     DropdownMenuItem(
                                       value: SearchSort.level,
-                                      child: Text('Sort: Level'),
+                                      child: Text(uiString(lang, 'sort_level')),
                                     ),
                                   ],
                                   onChanged: (v) {
@@ -747,7 +753,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       filterBar(),
                       Expanded(
                         child: Center(
-                          child: Text('No results for "$query"',
+                          child: Text(uiString(lang, 'no_results_for_query').replaceFirst('{query}', query),
                               style: TextStyle(
                                   fontSize: 16, color: tokens.textSecondary)),
                         ),
@@ -765,7 +771,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       const SizedBox(height: 10),
                       Expanded(
                         child: Center(
-                          child: Text('Filters applied, but no matching results',
+                          child: Text(uiString(lang, 'filters_no_match'),
                               style: TextStyle(
                                   fontSize: 16, color: tokens.textSecondary)),
                         ),
@@ -813,14 +819,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     ),
                                     if (isPurchased)
                                       _pill(
-                                          'Purchased',
+                                          uiString(lang, 'purchased_label'),
                                           tokens.primary
                                               .withValues(alpha: 0.16),
                                           tokens.primary),
                                     if (isPushing) ...[
                                       const SizedBox(width: 6),
                                       _pill(
-                                          'Notifications on',
+                                          uiString(lang, 'notifications_on'),
                                           tokens.primary
                                               .withValues(alpha: 0.12),
                                           tokens.primary),
@@ -851,7 +857,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Search error:',
+                        Text(uiString(lang, 'search_error'),
                             style: TextStyle(
                                 color: tokens.textPrimary,
                                 fontWeight: FontWeight.bold)),
@@ -904,7 +910,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 }
 
-class SearchForYouSection extends StatelessWidget {
+class SearchForYouSection extends ConsumerWidget {
   final List<String> keywords;
   final VoidCallback onRefresh;
   final void Function(String q) onTap;
@@ -917,8 +923,9 @@ class SearchForYouSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
     if (keywords.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 4, kPageHorizontalPadding, 12),
@@ -928,7 +935,7 @@ class SearchForYouSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('You might like',
+                Text(uiString(lang, 'you_might_like'),
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontWeight: FontWeight.w900,
@@ -938,7 +945,7 @@ class SearchForYouSection extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onRefresh,
                   icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Refresh'),
+                  label: Text(uiString(lang, 'refresh')),
                 ),
               ],
             ),
@@ -990,6 +997,7 @@ class _SearchExploreCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
+    final lang = ref.watch(appLanguageProvider);
     final productsMapAsync = ref.watch(allProductsMapProvider);
     final libAsync = _safeLib(ref);
     final wishAsync = _safeWish(ref);
@@ -1010,14 +1018,14 @@ class _SearchExploreCard extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Recently viewed',
+                      Text(uiString(lang, 'recently_viewed'),
                           style: TextStyle(
                               color: tokens.textSecondary,
                               fontWeight: FontWeight.w800)),
                       const SizedBox(height: 8),
                       if (recentTopics.isEmpty)
                         Text(
-                            'Open a few products and your top categories will show here',
+                            uiString(lang, 'search_recent_empty_hint'),
                             style: TextStyle(color: tokens.textSecondary))
                       else
                         Wrap(
@@ -1032,14 +1040,14 @@ class _SearchExploreCard extends ConsumerWidget {
                               .toList(),
                         ),
                       const SizedBox(height: 14),
-                      Text('You might like',
+                      Text(uiString(lang, 'you_might_like'),
                           style: TextStyle(
                               color: tokens.textSecondary,
                               fontWeight: FontWeight.w800)),
                       const SizedBox(height: 8),
                       if (maybeTry.isEmpty)
                         Text(
-                            'Add more to wishlist and we\'ll expand your recommendations',
+                            uiString(lang, 'search_wishlist_hint'),
                             style: TextStyle(color: tokens.textSecondary))
                       else
                         Wrap(
@@ -1059,21 +1067,21 @@ class _SearchExploreCard extends ConsumerWidget {
                 loading: () => const SizedBox(
                     height: 60,
                     child: Center(child: CircularProgressIndicator())),
-                error: (e, _) => Text('wishlist error: $e',
+                error: (e, _) => Text('${uiString(lang, 'wishlist_error')}$e',
                     style: TextStyle(color: tokens.textSecondary)),
               );
             },
             loading: () => const SizedBox(
                 height: 60,
                 child: Center(child: CircularProgressIndicator())),
-            error: (e, _) => Text('library error: $e',
+            error: (e, _) => Text('${uiString(lang, 'library_error')}$e',
                 style: TextStyle(color: tokens.textSecondary)),
           );
         },
         loading: () => const SizedBox(
             height: 60, child: Center(child: CircularProgressIndicator())),
         error: (e, _) => Text(
-          'Could not load suggestions right now.',
+          uiString(lang, 'suggestions_load_error'),
           style: TextStyle(color: tokens.textSecondary),
         ),
       ),
@@ -1162,40 +1170,41 @@ List<String> _maybeTryTopicIds(
 }
 
 class _LevelChip extends StatelessWidget {
+  final AppLanguage lang;
   final SearchLevelFilter current;
   final ValueChanged<SearchLevelFilter> onChange;
 
-  const _LevelChip({required this.current, required this.onChange});
+  const _LevelChip({required this.lang, required this.current, required this.onChange});
 
   @override
   Widget build(BuildContext context) {
     String label;
     switch (current) {
       case SearchLevelFilter.all:
-        label = 'Level';
+        label = uiString(lang, 'level_filter_all');
         break;
       case SearchLevelFilter.foundation:
-        label = 'Foundation';
+        label = uiString(lang, 'level_foundation');
         break;
       case SearchLevelFilter.practical:
-        label = 'Practical';
+        label = uiString(lang, 'level_practical');
         break;
       case SearchLevelFilter.deepDive:
-        label = 'Deep Dive';
+        label = uiString(lang, 'level_deep_dive');
         break;
       case SearchLevelFilter.specialized:
-        label = 'Specialized';
+        label = uiString(lang, 'level_specialized');
         break;
     }
 
     return PopupMenuButton<SearchLevelFilter>(
       onSelected: onChange,
-      itemBuilder: (_) => const [
-        PopupMenuItem(value: SearchLevelFilter.all, child: Text('All Levels')),
-        PopupMenuItem(value: SearchLevelFilter.foundation, child: Text('Foundation')),
-        PopupMenuItem(value: SearchLevelFilter.practical, child: Text('Practical')),
-        PopupMenuItem(value: SearchLevelFilter.deepDive, child: Text('Deep Dive')),
-        PopupMenuItem(value: SearchLevelFilter.specialized, child: Text('Specialized')),
+      itemBuilder: (_) => [
+        PopupMenuItem(value: SearchLevelFilter.all, child: Text(uiString(lang, 'all_levels'))),
+        PopupMenuItem(value: SearchLevelFilter.foundation, child: Text(uiString(lang, 'level_foundation'))),
+        PopupMenuItem(value: SearchLevelFilter.practical, child: Text(uiString(lang, 'level_practical'))),
+        PopupMenuItem(value: SearchLevelFilter.deepDive, child: Text(uiString(lang, 'level_deep_dive'))),
+        PopupMenuItem(value: SearchLevelFilter.specialized, child: Text(uiString(lang, 'level_specialized'))),
       ],
       child: Chip(
         label: Text(label),

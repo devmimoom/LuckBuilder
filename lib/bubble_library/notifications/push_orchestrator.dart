@@ -7,6 +7,7 @@ import '../models/global_push_settings.dart';
 import '../models/push_config.dart';
 import '../models/user_library.dart';
 import '../models/content_item.dart';
+import '../models/product.dart';
 import '../providers/providers.dart';
 import 'notification_service.dart';
 import 'push_scheduler.dart';
@@ -20,6 +21,7 @@ import 'scheduled_push_cache.dart';
 import '../../notifications/push_timeline_provider.dart';
 // ✅ 新增：衝突檢查
 import 'push_schedule_conflict_checker.dart';
+import '../../localization/app_language_provider.dart';
 
 /// 重排結果，供 UI 顯示超過每日上限等提示
 class RescheduleResult {
@@ -252,6 +254,8 @@ class PushOrchestrator {
     // ✅ 已完成通知：每個產品只排程一次（當推播到最後一則時）
     final completionScheduledForProduct = <String>{};
 
+    final lang = ref.read(appLanguageProvider);
+
     for (final t in tasks) {
       final contentItemId = t.item.id;
 
@@ -276,12 +280,11 @@ class PushOrchestrator {
       }
 
       final product = productsMap[t.productId];
-      final productTitle = product?.title ?? t.productId;
+      final productTitle = product?.displayTitle(lang) ?? t.productId;
       final topicId = product?.topicId ?? '';
 
-      // Title: productTitle only (no anchor); Body: content only
       final title = productTitle.trim().isNotEmpty ? productTitle.trim() : t.productId;
-      final body = t.item.content;
+      final body = t.item.displayContent(lang);
 
       final payload = {
         'type': 'bubble',

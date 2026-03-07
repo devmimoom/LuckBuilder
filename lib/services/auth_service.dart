@@ -6,6 +6,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:crypto/crypto.dart';
 
+import '../localization/app_language.dart';
+import '../localization/app_strings.dart';
+
 /// 登入結果：供 UI 區分「連結匿名升級」與「以既有帳號登入」。
 enum SignInResult {
   /// 匿名帳號已連結為正式帳號（uid 不變）
@@ -208,36 +211,40 @@ class AuthService {
     }
   }
 
-  /// 將 Firebase Auth 錯誤轉成使用者可讀訊息。
-  static String messageFromAuthException(FirebaseAuthException e) {
+  /// 將 Firebase Auth 錯誤轉成使用者可讀訊息（依語系）。
+  static String messageFromAuthException(
+    FirebaseAuthException e, [
+    AppLanguage lang = AppLanguage.en,
+  ]) {
+    final String key;
     switch (e.code) {
       case 'email-already-in-use':
-        return 'This email is already in use. Sign in or use another email.';
+        key = 'auth_err_email_in_use';
       case 'invalid-email':
-        return 'Please enter a valid email.';
+        key = 'auth_err_invalid_email';
       case 'operation-not-allowed':
-        return 'This sign-in method is not enabled. Enable it in Firebase Console: Authentication → Sign-in method.';
+        key = 'auth_err_operation_not_allowed';
       case 'weak-password':
-        return 'Password must be at least 6 characters.';
+        key = 'auth_err_weak_password';
       case 'user-disabled':
-        return 'This account has been disabled.';
+        key = 'auth_err_user_disabled';
       case 'user-not-found':
       case 'wrong-password':
-        return 'Invalid email or password. Please try again.';
       case 'invalid-credential':
-        return 'Invalid email or password. Please try again.';
+        key = 'auth_err_invalid_credential';
       case 'credential-already-in-use':
-        return 'This email is linked to another account. Use sign in instead.';
+        key = 'auth_err_credential_in_use';
       case 'requires-recent-login':
-        return 'Please sign in again to continue.';
+        key = 'auth_err_requires_recent_login';
       case 'too-many-requests':
-        return 'Too many attempts. Please try again later.';
+        key = 'auth_err_too_many_requests';
       case 'network-request-failed':
-        return 'Network error. Please check your connection.';
+        key = 'auth_err_network';
       case 'sign_in_canceled':
-        return 'Canceled';
+        key = 'auth_err_canceled';
       default:
-        return 'Something went wrong. Please try again.';
+        key = 'auth_something_wrong';
     }
+    return uiString(lang, key);
   }
 }

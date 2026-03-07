@@ -13,6 +13,7 @@ import 'notifications/timezone_init.dart';
 import 'providers/providers.dart';
 import 'ui/detail_page.dart';
 import 'ui/product_library_page.dart';
+import '../../localization/app_language_provider.dart';
 
 class BubbleBootstrapper extends ConsumerStatefulWidget {
   final Widget child;
@@ -225,6 +226,7 @@ class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper> {
     Future.microtask(() async {
       await ns.init(
         uid: uid,
+        lang: ref.read(appLanguageProvider),
         onTap: (data) {
           // 點擊通知本體
           final type = data['type'] as String?;

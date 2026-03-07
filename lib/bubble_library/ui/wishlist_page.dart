@@ -6,6 +6,7 @@ import '../providers/providers.dart';
 import '../models/product.dart';
 import '../models/user_library.dart';
 import '../../localization/app_language_provider.dart';
+import '../../localization/app_strings.dart';
 import 'product_library_page.dart';
 import '../../pages/product_page.dart';
 
@@ -21,10 +22,10 @@ class WishlistPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bookmarked'),
+        title: Text(uiString(lang, 'bookmarked_title')),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: uiString(lang, 'refresh'),
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.read(localWishlistNotifierProvider).refresh(),
           ),
@@ -57,7 +58,7 @@ class WishlistPage extends ConsumerWidget {
                         .compareTo((a['item'] as WishlistItem).addedAt));
 
               if (list.isEmpty) {
-                return const Center(child: Text('No wishlist items yet.'));
+                return Center(child: Text(uiString(lang, 'wishlist_empty')));
               }
 
               return ListView.separated(
@@ -85,7 +86,7 @@ class WishlistPage extends ConsumerWidget {
                                         fontSize: 16, fontWeight: FontWeight.w900)),
                               ),
                               IconButton(
-                                tooltip: 'Favorite',
+                                tooltip: uiString(lang, 'favorite'),
                                 icon: Icon(w.isFavorite
                                     ? Icons.star
                                     : Icons.star_border),
@@ -108,7 +109,7 @@ class WishlistPage extends ConsumerWidget {
                             children: [
                               OutlinedButton.icon(
                                 icon: const Icon(Icons.visibility),
-                                label: const Text('Preview'),
+                                label: Text(uiString(lang, 'preview')),
                                 onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -123,7 +124,7 @@ class WishlistPage extends ConsumerWidget {
                               const SizedBox(width: 10),
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.shopping_bag_outlined),
-                                label: const Text('Buy'),
+                                label: Text(uiString(lang, 'buy')),
                                 onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -134,7 +135,7 @@ class WishlistPage extends ConsumerWidget {
                               ),
                               const Spacer(),
                               IconButton(
-                                tooltip: 'Remove from wishlist',
+                                tooltip: uiString(lang, 'remove_from_wishlist'),
                                 icon: const Icon(Icons.delete_outline),
                                 onPressed: () => ref
                                     .read(localWishlistNotifierProvider)
@@ -150,23 +151,24 @@ class WishlistPage extends ConsumerWidget {
               );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('wishlist error: $e')),
+                error: (e, _) =>
+                    Center(child: Text('${uiString(lang, 'wishlist_error')}$e')),
               );
             },
             loading: () =>
                 const Center(child: CircularProgressIndicator()),
-            error: (e, _) => const Center(
+            error: (e, _) => Center(
               child: Text(
-                'We couldn’t load your library right now. Please try again later.',
+                uiString(lang, 'library_load_error'),
                 textAlign: TextAlign.center,
               ),
             ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(
+        error: (e, _) => Center(
           child: Text(
-            'We couldn’t load your wishlist right now. Please try again later.',
+            uiString(lang, 'wishlist_load_error'),
             textAlign: TextAlign.center,
           ),
         ),
