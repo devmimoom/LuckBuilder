@@ -37,6 +37,9 @@ class _BubbleWelcomePageState extends State<BubbleWelcomePage>
     return Consumer(
       builder: (context, ref, _) {
         final lang = ref.watch(appLanguageProvider);
+        debugPrint(
+          'BubbleWelcomePage build — lang=$lang, fadeValue=${_fadeController.value}',
+        );
         return Scaffold(
           body: GestureDetector(
             behavior: HitTestBehavior.translucent,
@@ -172,7 +175,9 @@ class _TapHintState extends State<_TapHint>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
+    )
+      ..repeat(reverse: true);
+    debugPrint('TapHint animation started — lang=${widget.lang}');
   }
 
   @override

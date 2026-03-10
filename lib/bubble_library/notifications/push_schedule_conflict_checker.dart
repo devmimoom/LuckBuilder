@@ -129,7 +129,7 @@ class PushScheduleConflictChecker {
         type: ConflictType.customTimesEmpty,
         productId: product.productId,
         message:
-            'Time mode is "custom" but no custom times are set; will fall back to default slots',
+            'Time mode is "custom" but no custom times are set; this product will not be scheduled until custom times are configured',
         severity: Severity.warning,
       ));
     }

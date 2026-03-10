@@ -18,6 +18,14 @@ class ContentItem {
   final String? contentZh;
   final String? deepAnalysisZh;
   final String? intentZh;
+  /// 橫幅標題（英）Firestore pushTitle
+  final String? pushTitle;
+  /// 橫幅預覽文字（英）Firestore pushTeaser
+  final String? pushTeaser;
+  /// 橫幅標題（繁中）Firestore pushTitle_zh，6–14 字
+  final String? pushTitleZh;
+  /// 橫幅預覽文字（繁中）Firestore pushTeaser_zh，17–32 字
+  final String? pushTeaserZh;
 
   const ContentItem({
     required this.id,
@@ -37,6 +45,10 @@ class ContentItem {
     this.contentZh,
     this.deepAnalysisZh,
     this.intentZh,
+    this.pushTitle,
+    this.pushTeaser,
+    this.pushTitleZh,
+    this.pushTeaserZh,
   });
 
   static String? _str(dynamic v) {
@@ -80,6 +92,10 @@ class ContentItem {
       contentZh: _str(m['contentZh']) ?? _str(m['content_zh']),
       deepAnalysisZh: _str(m['deepAnalysisZh']) ?? _str(m['deepAnalysis_zh']),
       intentZh: _str(m['intentZh']) ?? _str(m['intent_zh']),
+      pushTitle: _str(m['pushTitle']),
+      pushTeaser: _str(m['pushTeaser']),
+      pushTitleZh: _str(m['pushTitleZh']) ?? _str(m['pushTitle_zh']),
+      pushTeaserZh: _str(m['pushTeaserZh']) ?? _str(m['pushTeaser_zh']),
     );
   }
 }

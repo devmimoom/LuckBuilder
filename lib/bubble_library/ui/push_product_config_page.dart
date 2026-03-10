@@ -274,29 +274,6 @@ class PushProductConfigPage extends ConsumerWidget {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 16),
-                        Text(uiString(lang, 'minimum_interval_minutes'),
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w900)),
-                        DropdownButton<int>(
-                          value: cfg.minIntervalMinutes,
-                          dropdownColor: context.tokens.cardBg,
-                          items: const [60, 90, 120, 180]
-                              .map((e) =>
-                                  DropdownMenuItem(value: e, child: Text('$e')))
-                              .toList(),
-                          onChanged: (v) async {
-                            if (v == null) return;
-                            final newCfg = cfg.copyWith(minIntervalMinutes: v);
-                            await ref
-                                .read(libraryRepoProvider)
-                                .setPushConfig(uid!, productId, newCfg.toMap());
-                            ref.invalidate(libraryProductsProvider);
-                            await ref.read(libraryProductsProvider.future);
-                            await PushOrchestrator.rescheduleNextDays(
-                                ref: ref, days: 3);
-                          },
-                        ),
                       ],
                       RadioListTile<PushTimeMode>(
                         value: PushTimeMode.custom,

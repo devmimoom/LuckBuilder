@@ -416,6 +416,8 @@ def main():
                     ("content_zh", "content_zh"), ("content_en", "content_en"),
                     ("intent_zh", "intent_zh"), ("intent_en", "intent_en"),
                     ("deepAnalysis_zh", "deepAnalysis_zh"), ("deepAnalysis_en", "deepAnalysis_en"),
+                    ("pushTitle", "pushTitle"), ("pushTeaser", "pushTeaser"),
+                    ("pushTitle_zh", "pushTitle_zh"), ("pushTeaser_zh", "pushTeaser_zh"),
                 ]:
                     val = _str_opt(r.get(col))
                     if val is not None:

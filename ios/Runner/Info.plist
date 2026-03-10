@@ -38,6 +38,18 @@
 			<key>CFBundleURLName</key>
 			<string>Google Sign-In</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>onepop</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>OnePop Open</string>
+			<key>CFBundleURLIdentifier</key>
+			<string>com.onepop.app</string>
+		</dict>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

@@ -21,6 +21,7 @@ import 'scheduled_push_cache.dart';
 import '../../notifications/push_timeline_provider.dart';
 // ✅ 新增：衝突檢查
 import 'push_schedule_conflict_checker.dart';
+import '../../localization/app_language.dart';
 import '../../localization/app_language_provider.dart';
 
 /// 重排結果，供 UI 顯示超過每日上限等提示
@@ -282,19 +283,64 @@ class PushOrchestrator {
       final product = productsMap[t.productId];
       final productTitle = product?.displayTitle(lang) ?? t.productId;
       final topicId = product?.topicId ?? '';
+      final contentZh = t.item.displayContent(lang);
+      final deepZh = t.item.displayDeepAnalysis(lang);
+      final contentEn = t.item.content;
+      final deepEn = t.item.deepAnalysis;
+      final productTitleEn = product?.title ?? t.productId;
 
-      final title = productTitle.trim().isNotEmpty ? productTitle.trim() : t.productId;
-      final body = t.item.displayContent(lang);
+      // 橫幅格式：
+      // - title  : 💡 Pop Knowledge: title / 💡 OnePop 知識推送：title
+      // - subtitle: （拿掉）
+      // - body   : pushTeaser（依語言）
+      const String lightbulb = '\u{1F4A1}'; // 💡
+      final String productTitleDisplay =
+          productTitle.trim().isNotEmpty ? productTitle.trim() : t.productId;
+
+      final String bodyRaw;
+      if (lang == AppLanguage.zhTw) {
+        bodyRaw = t.item.pushTeaserZh?.trim().isNotEmpty == true
+            ? t.item.pushTeaserZh!.trim()
+            : contentZh;
+      } else {
+        bodyRaw = t.item.pushTeaser?.trim().isNotEmpty == true
+            ? t.item.pushTeaser!.trim()
+            : contentEn;
+      }
+      // 合理的 teaser 長度：最多 90 個字元
+      const int maxTeaserLength = 90;
+      final String body = bodyRaw.length > maxTeaserLength
+          ? bodyRaw.substring(0, maxTeaserLength)
+          : bodyRaw;
+
+      final bool isZh = lang == AppLanguage.zhTw;
+      final String subtitlePrefix = isZh ? 'OnePop 知識推送' : 'Pop Knowledge';
+      final String title = isZh
+          ? '$lightbulb $subtitlePrefix：$productTitleDisplay'
+          : '$lightbulb $subtitlePrefix: $productTitleDisplay';
 
       final payload = {
         'type': 'bubble',
         'uid': uid,
         'productId': t.productId,
         'contentItemId': t.item.id,
-        // ✅ 加入 topicId 和 pushOrder，供 LearningProgressService 使用
         'topicId': topicId,
-        'contentId': t.item.id, // 兼容性：contentId 和 contentItemId 都提供
+        'contentId': t.item.id,
         'pushOrder': t.item.pushOrder,
+        'itemId': t.item.id,
+        'lang': appLanguageCode(lang),
+        // Hero header / Extension 用（保留純產品名稱與完整文案）
+        'heroTitle': productTitleDisplay,
+        'heroSubtitle': title,
+        // 繁中（Extension 依 lang 擇一顯示）
+        'content_zh': contentZh,
+        'deepAnalysis_zh': deepZh,
+        'topicTitle_zh': topicId,
+        'productTitle_zh': productTitle.trim().isNotEmpty ? productTitle.trim() : t.productId,
+        // 英文
+        'content': contentEn,
+        'deepAnalysis': deepEn,
+        'productTitle': productTitleEn.trim().isNotEmpty ? productTitleEn.trim() : t.productId,
       };
 
       try {
@@ -304,6 +350,7 @@ class PushOrchestrator {
           when: t.when,
           title: title,
           body: body,
+          subtitle: null,
           payload: payload,
         );
 

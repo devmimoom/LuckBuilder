@@ -163,11 +163,23 @@ class PushCenterPage extends ConsumerWidget {
                                             fontSize: 15,
                                             fontWeight: FontWeight.w900)),
                                     const SizedBox(height: 6),
-                                    Text(
-                                      '${uiString(lang, 'per_day_suffix').replaceFirst('{n}', '${lp.pushConfig.freqPerDay}')} · ${lp.pushConfig.timeMode.name}',
-                                      style: TextStyle(
-                                          color: context.tokens.textSecondary,
-                                          fontSize: 12),
+                                    Builder(
+                                      builder: (_) {
+                                        final cfg = lp.pushConfig;
+                                        // custom 模式下：每天幾則 = 自訂時間數量（最多 5）
+                                        final perDayCount = cfg.timeMode == PushTimeMode.custom
+                                            ? cfg.customTimes.length.clamp(0, 5)
+                                            : cfg.freqPerDay;
+                                        final perDayText = uiString(lang, 'per_day_suffix')
+                                            .replaceFirst('{n}', '$perDayCount');
+                                        return Text(
+                                          '$perDayText · ${cfg.timeMode.name}',
+                                          style: TextStyle(
+                                            color: context.tokens.textSecondary,
+                                            fontSize: 12,
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),

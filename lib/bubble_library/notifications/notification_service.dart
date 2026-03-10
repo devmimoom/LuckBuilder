@@ -29,6 +29,8 @@ class NotificationService {
 
   // ---- iOS Action IDs ----
   static const String iosCategoryBubbleActions = 'bubble_actions_v2';
+  /// Content Extension 展開用；橫幅保留「我學會了」按鈕
+  static const String iosCategoryDeepDive = 'ONEPOP_DEEP_DIVE';
   static const String iosCategoryCompletionActions = 'completion_actions_v1';
   static const String actionLearned = 'ACTION_LEARNED';
   static const String actionRestart = 'ACTION_RESTART';
@@ -120,6 +122,21 @@ class NotificationService {
       notificationCategories: <DarwinNotificationCategory>[
         DarwinNotificationCategory(
           iosCategoryBubbleActions,
+          actions: <DarwinNotificationAction>[
+            DarwinNotificationAction.plain(
+              actionLearned,
+              doneLabel,
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+          options: <DarwinNotificationCategoryOption>{
+            DarwinNotificationCategoryOption.customDismissAction,
+          },
+        ),
+        DarwinNotificationCategory(
+          iosCategoryDeepDive,
           actions: <DarwinNotificationAction>[
             DarwinNotificationAction.plain(
               actionLearned,
@@ -546,12 +563,17 @@ class NotificationService {
     required String title,
     required String body,
     required Map<String, dynamic> payload,
+    /// 橫幅副標（💡 Pop Knowledge/知識推送：anchor；iOS 為 subtitle，Android 展開時顯示在 body 前）
+    String? subtitle,
+    /// iOS 用；null 時使用 ONEPOP_DEEP_DIVE（觸發 Content Extension + 橫幅「我學會了」）
+    String? iosCategoryIdentifier,
   }) async {
     if (kDebugMode) {
       debugPrint('🔔 NotificationService.schedule:');
       debugPrint('  - id: $id');
       debugPrint('  - when: $when');
       debugPrint('  - title: $title');
+      if (subtitle != null) debugPrint('  - subtitle: $subtitle');
       debugPrint('  - tz.local: ${tz.local}');
     }
 
@@ -561,17 +583,20 @@ class NotificationService {
       channelDescription: uiString(_lang, 'notif_channel_main_desc'),
       importance: Importance.high,
       priority: Priority.high,
-      styleInformation: BigTextStyleInformation(body),
+      styleInformation: BigTextStyleInformation(
+        (subtitle != null && subtitle.isNotEmpty) ? '$subtitle\n$body' : body,
+      ),
       actions: [
         AndroidNotificationAction(actionLearned, uiString(_lang, 'notif_action_done')),
       ],
     );
 
-    const iosDetails = DarwinNotificationDetails(
-      categoryIdentifier: iosCategoryBubbleActions,
+    final iosDetails = DarwinNotificationDetails(
+      categoryIdentifier: iosCategoryIdentifier ?? iosCategoryDeepDive,
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      subtitle: (subtitle != null && subtitle.isNotEmpty) ? subtitle : null,
     );
 
     try {

@@ -163,23 +163,34 @@ class PushScheduler {
   }
 
   static List<TimeOfDay> _resolveTimes(PushConfig cfg) {
-    if (cfg.timeMode == PushTimeMode.custom && cfg.customTimes.isNotEmpty) {
-      if (kDebugMode) {
-        final customTimesStr = cfg.customTimes
-            .map((t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}')
-            .join(', ');
-        debugPrint('✅ _resolveTimes: 使用自訂時間模式，customTimes: [$customTimesStr]');
+    // ✅ timeMode 完全分離：
+    // - custom：只看 customTimes，不再 fallback 到 presetSlots
+    // - preset：只看 presetSlots，不理會 customTimes
+    if (cfg.timeMode == PushTimeMode.custom) {
+      if (cfg.customTimes.isNotEmpty) {
+        if (kDebugMode) {
+          final customTimesStr = cfg.customTimes
+              .map((t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}')
+              .join(', ');
+          debugPrint('✅ _resolveTimes: 使用自訂時間模式，customTimes: [$customTimesStr]');
+        }
+        final list = List<TimeOfDay>.from(cfg.customTimes)
+          ..sort((a, b) => _todToMin(a).compareTo(_todToMin(b)));
+        final result = list.take(5).toList();
+        if (kDebugMode) {
+          final resultStr = result
+              .map((t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}')
+              .join(', ');
+          debugPrint('✅ _resolveTimes: 返回自訂時間列表: [$resultStr]');
+        }
+        return result;
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️ _resolveTimes: timeMode=custom 但 customTimes 為空，將不排程此產品的推播時間');
+        }
+        // 自訂模式且沒有任何時間 → 不使用預設區段，直接回傳空列表
+        return const [];
       }
-      final list = List<TimeOfDay>.from(cfg.customTimes)
-        ..sort((a, b) => _todToMin(a).compareTo(_todToMin(b)));
-      final result = list.take(5).toList();
-      if (kDebugMode) {
-        final resultStr = result
-            .map((t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}')
-            .join(', ');
-        debugPrint('✅ _resolveTimes: 返回自訂時間列表: [$resultStr]');
-      }
-      return result;
     }
     if (kDebugMode) {
       debugPrint('ℹ️ _resolveTimes: 使用預設時間模式，timeMode: ${cfg.timeMode.name}, customTimes.isEmpty: ${cfg.customTimes.isEmpty}');
@@ -235,7 +246,14 @@ class PushScheduler {
     }
     
     if (times.isEmpty) {
-      // 自訂模式或其他情况：返回默认时间
+      // 自訂模式：若沒有任何時間，維持「不排程」行為，不再 fallback 到預設時段
+      if (timeMode == PushTimeMode.custom) {
+        if (kDebugMode) {
+          debugPrint('ℹ️ _applyFreq: timeMode=custom 且 times 為空，直接回傳空列表（不排程）');
+        }
+        return const [];
+      }
+      // 其他情況（例如 timeMode=preset 但仍為空）：使用預設時間 21-23 的起點
       return [presetSlotRanges['21-23']!.start];
     }
 
@@ -300,22 +318,12 @@ class PushScheduler {
       return enforced;
     }
 
-    // ✅ 自訂時間模式：如果 freq 大於 customTimes 數量，基於現有時間擴展
-    // 例如：customTimes=[07:14], freq=2 → [07:14, 09:14]（間隔 2 小時）
     if (timeMode == PushTimeMode.custom) {
-      final base = List<TimeOfDay>.from(times);
-      while (base.length < freq) {
-        final last = base.last;
-        final mins = _todToMin(last) + minIntervalMinutes; // 使用用戶設定的間隔
-        final newTime = TimeOfDay(hour: (mins ~/ 60) % 24, minute: mins % 60);
-        // 確保不超過當天結束（23:59）且不與現有時間重複
-        if (mins < 24 * 60 && !base.any((x) => _todToMin(x) == _todToMin(newTime))) {
-          base.add(newTime);
-        } else {
-          break; // 無法再擴展
-        }
-      }
-      base.sort((a, b) => _todToMin(a).compareTo(_todToMin(b)));
+      // ✅ 實作方案 A：
+      // custom 模式下「每天推幾則」完全由 customTimes 決定，
+      // 不再依據 freqPerDay 擴充時間點，只保留最多 5 個自訂時間。
+      final base = List<TimeOfDay>.from(times)
+        ..sort((a, b) => _todToMin(a).compareTo(_todToMin(b)));
       return base.take(5).toList();
     }
 

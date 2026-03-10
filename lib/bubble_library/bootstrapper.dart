@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../services/learning_progress_service.dart';
+import '../../services/shared_data_bridge.dart';
 import '../../notifications/push_exclusion_store.dart';
 import '../../widgets/rich_sections/user_learning_store.dart';
 import 'notifications/notification_service.dart';
@@ -11,6 +13,7 @@ import 'notifications/notification_scheduler.dart';
 import 'notifications/push_orchestrator.dart';
 import 'notifications/timezone_init.dart';
 import 'providers/providers.dart';
+import '../../notifications/push_timeline_provider.dart';
 import 'ui/detail_page.dart';
 import 'ui/product_library_page.dart';
 import '../../localization/app_language_provider.dart';
@@ -23,8 +26,77 @@ class BubbleBootstrapper extends ConsumerStatefulWidget {
   ConsumerState<BubbleBootstrapper> createState() => _BubbleBootstrapperState();
 }
 
-class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper> {
+class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper>
+    with WidgetsBindingObserver {
   bool _inited = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isIOS) {
+      WidgetsBinding.instance.addObserver(this);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isIOS) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && Platform.isIOS) {
+      _checkPendingDeepLink();
+      _syncExtensionCompletedState();
+    }
+  }
+
+  /// Extension「已讀完成」寫入 App Groups；resume 時同步到 PushExclusionStore 並刷新 UI
+  Future<void> _syncExtensionCompletedState() async {
+    if (!mounted) return;
+    String uid;
+    try {
+      uid = ref.read(uidProvider);
+    } catch (_) {
+      return;
+    }
+    try {
+      final itemIds = await SharedDataBridge.getTodayCompleted();
+      if (itemIds.isEmpty) return;
+      for (final itemId in itemIds) {
+        await PushExclusionStore.markOpened(uid, itemId);
+      }
+      await SharedDataBridge.cleanupOldData();
+      if (!mounted) return;
+      ref.invalidate(scheduledCacheProvider);
+      ref.invalidate(upcomingTimelineProvider);
+    } catch (_) {}
+  }
+
+  Future<void> _checkPendingDeepLink() async {
+    if (!mounted) return;
+    try {
+      const channel = MethodChannel('com.onepop.deeplink');
+      final map = await channel.invokeMapMethod<String, dynamic>('getPendingDeepLink');
+      if (!mounted || map == null) return;
+      final productId = (map['productId'] as String?)?.trim() ?? '';
+      final contentItemId = (map['contentItemId'] as String?)?.trim() ?? '';
+      if (contentItemId.isNotEmpty) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => DetailPage(contentItemId: contentItemId)),
+        );
+      } else if (productId.isNotEmpty) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ProductLibraryPage(productId: productId, isWishlistPreview: false),
+          ),
+        );
+      }
+    } catch (_) {}
+  }
 
   @override
   void didChangeDependencies() {
@@ -289,6 +361,11 @@ class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper> {
         );
       } catch (_) {}
     });
+
+    // onepop://open 深層連結（Extension「查看完整內容」）：冷啟動時首幀後取回並導航
+    if (Platform.isIOS) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkPendingDeepLink());
+    }
   }
 
   /// 處理通知按鈕點擊（確保在主線程執行）
