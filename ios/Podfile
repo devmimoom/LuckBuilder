@@ -1,6 +1,9 @@
 # Uncomment this line to define a global platform for your project
 platform :ios, '13.0'
 
+# 僅對 CocoaPods（第三方套件）關閉所有警告，App 自己的 Target 仍會顯示警告
+inhibit_all_warnings!
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 

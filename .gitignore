@@ -53,3 +53,6 @@ AuthKey_*.p8
 # Python
 .venv/
 venv/
+
+# Local env files
+*.env

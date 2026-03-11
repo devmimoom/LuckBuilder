@@ -35,4 +35,23 @@ class SharedDataBridge {
       await _channel.invokeMethod('cleanupOldData');
     } catch (_) {}
   }
+
+  /// 診斷：列出 App Group container 下的所有檔案與完成檔內容
+  static Future<String> getDiagnosticInfo() async {
+    if (!Platform.isIOS) return 'not iOS';
+    try {
+      final r = await _channel.invokeMethod<String>('getDiagnosticInfo');
+      return r ?? 'null';
+    } catch (e) {
+      return 'error: $e';
+    }
+  }
+
+  /// 同步完成後清除今日完成檔案，避免重複處理
+  static Future<void> clearTodayCompletedFile() async {
+    if (!Platform.isIOS) return;
+    try {
+      await _channel.invokeMethod('clearTodayCompletedFile');
+    } catch (_) {}
+  }
 }

@@ -109,8 +109,9 @@ class NotificationService {
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // iOS init：只保留兩顆 action
-    // ✅ 將按鈕改為 foreground 模式，避免 iOS 背景執行的限制導致當機
+    // iOS init：只保留需要的 action
+    // - bubble_actions / completion_actions 維持 foreground
+    // - ONEPOP_DEEP_DIVE 的 Done 不 foreground（由原生 didReceive action 轉發）
     // ✅ 啟用 customDismissAction 以接收滑掉通知的回調
     final doneLabel = uiString(_lang, 'notif_action_done');
     final startOverLabel = uiString(_lang, 'notif_action_start_over');
@@ -141,9 +142,8 @@ class NotificationService {
             DarwinNotificationAction.plain(
               actionLearned,
               doneLabel,
-              options: <DarwinNotificationActionOption>{
-                DarwinNotificationActionOption.foreground,
-              },
+              // Rich Notification 的 Done 不主動拉起 App，交由原生 didReceive action 轉發
+              options: <DarwinNotificationActionOption>{},
             ),
           ],
           options: <DarwinNotificationCategoryOption>{

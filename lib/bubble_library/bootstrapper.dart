@@ -16,7 +16,9 @@ import 'providers/providers.dart';
 import '../../notifications/push_timeline_provider.dart';
 import 'ui/detail_page.dart';
 import 'ui/product_library_page.dart';
+import 'ui/bubble_library_page.dart';
 import '../../localization/app_language_provider.dart';
+import '../../navigation/app_nav.dart';
 
 class BubbleBootstrapper extends ConsumerStatefulWidget {
   final Widget child;
@@ -26,22 +28,55 @@ class BubbleBootstrapper extends ConsumerStatefulWidget {
   ConsumerState<BubbleBootstrapper> createState() => _BubbleBootstrapperState();
 }
 
+/// Deep link（onepop://open）檢查時機：
+/// 1. 冷啟動：didChangeDependencies → addPostFrameCallback → 延遲 350ms → _checkPendingDeepLink
+/// 2. 溫啟動：resumed → 延遲 350ms → _checkPendingDeepLink(recheckAfterEmpty: true)；若第一次取到空則 300ms 後再查一次
+/// 3. App 已在前景：application:open:url 寫入後由 iOS 呼叫 checkPendingDeepLink → addPostFrameCallback → _checkPendingDeepLink
+const _deepLinkChannel = MethodChannel('com.onepop.deeplink');
+
 class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper>
     with WidgetsBindingObserver {
   bool _inited = false;
+  bool _isSyncingDone = false;
+  final Set<String> _processedDoneItemIds = {};
 
   @override
   void initState() {
     super.initState();
     if (Platform.isIOS) {
       WidgetsBinding.instance.addObserver(this);
+      // 讓 native 在 application:open:url 寫入 URL 後可通知 Flutter 檢查（App 已在前景時不會有 resumed）
+      _deepLinkChannel.setMethodCallHandler(_onDeepLinkChannelCall);
     }
+  }
+
+  Future<dynamic> _onDeepLinkChannelCall(MethodCall call) async {
+    if (call.method == 'checkPendingDeepLink') {
+      if (kDebugMode) debugPrint('🔗 [DeepLink] native invoked checkPendingDeepLink');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _checkPendingDeepLink();
+      });
+    } else if (call.method == 'syncExtensionDone') {
+      // Extension 按系統 action「Done」後由 AppDelegate didReceive 轉發到 Flutter
+      final args = call.arguments as Map<dynamic, dynamic>?;
+      final itemId = (args?['itemId'] as String?)?.trim() ?? '';
+      if (kDebugMode) debugPrint('✅ [ExtDone] native invoked syncExtensionDone, itemId=$itemId');
+      if (itemId.isNotEmpty) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!mounted) return;
+          _handleExtensionDoneItem(itemId);
+        });
+      }
+    }
+    return null;
   }
 
   @override
   void dispose() {
     if (Platform.isIOS) {
       WidgetsBinding.instance.removeObserver(this);
+      _deepLinkChannel.setMethodCallHandler(null);
     }
     super.dispose();
   }
@@ -49,53 +84,294 @@ class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && Platform.isIOS) {
-      _checkPendingDeepLink();
-      _syncExtensionCompletedState();
+      if (kDebugMode) debugPrint('🔗 [DeepLink] resumed, scheduling _checkPendingDeepLink in 350ms');
+      // 延遲再檢查，讓 iOS 有時間先執行 application:open:url 寫入 pending deep link（實測 150ms 仍常取到空）
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (!mounted) return;
+        _checkPendingDeepLink(recheckAfterEmpty: true);
+      });
+      // 延遲同步 Extension Done，讓 UserDefaults 跨 process 有時間 synchronize
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        _syncExtensionCompletedState();
+      });
     }
   }
 
-  /// Extension「已讀完成」寫入 App Groups；resume 時同步到 PushExclusionStore 並刷新 UI
-  Future<void> _syncExtensionCompletedState() async {
+  /// Extension「Done」：透過 iOS action 轉發帶 itemId 過來，處理單一 item
+  Future<void> _handleExtensionDoneItem(String itemId) async {
     if (!mounted) return;
-    String uid;
-    try {
-      uid = ref.read(uidProvider);
-    } catch (_) {
+    if (_processedDoneItemIds.contains(itemId)) {
+      if (kDebugMode) debugPrint('✅ [ExtDone] itemId=$itemId already processed, skip');
       return;
     }
+    _processedDoneItemIds.add(itemId);
+    if (kDebugMode) debugPrint('✅ [ExtDone] _handleExtensionDoneItem start, itemId=$itemId');
     try {
-      final itemIds = await SharedDataBridge.getTodayCompleted();
-      if (itemIds.isEmpty) return;
-      for (final itemId in itemIds) {
-        await PushExclusionStore.markOpened(uid, itemId);
+      String uid;
+      try {
+        uid = ref.read(uidProvider);
+      } catch (_) {
+        return;
       }
-      await SharedDataBridge.cleanupOldData();
+
+      await PushExclusionStore.markOpened(uid, itemId);
+      if (kDebugMode) debugPrint('✅ [ExtDone] markOpened done for $itemId');
+
+      try {
+        final libraryRepo = ref.read(libraryRepoProvider);
+        await libraryRepo.setSavedItem(uid, itemId, {'learned': true});
+        if (kDebugMode) debugPrint('✅ [ExtDone] setSavedItem learned=true for $itemId');
+      } catch (e) {
+        if (kDebugMode) debugPrint('❌ [ExtDone] setSavedItem error: $e');
+      }
+
+      try {
+        final item = await ref.read(contentRepoProvider).getOne(itemId);
+        if (kDebugMode) debugPrint('✅ [ExtDone] loaded contentItem product=${item.productId} pushOrder=${item.pushOrder}');
+        final productsMap = await ref.read(productsMapProvider.future);
+        final product = productsMap[item.productId];
+        final topicId = product?.topicId;
+        if (topicId != null && topicId.isNotEmpty) {
+          final progress = ref.read(learningProgressServiceProvider);
+          await progress.markLearnedAndAdvance(
+            topicId: topicId,
+            contentId: itemId,
+            pushOrder: item.pushOrder,
+            source: 'extension_done',
+          );
+          if (kDebugMode) debugPrint('✅ [ExtDone] markLearnedAndAdvance done');
+        }
+        await UserLearningStore().markLearnedTodayAndGlobal(item.productId);
+        if (kDebugMode) debugPrint('✅ [ExtDone] markLearnedTodayAndGlobal done');
+      } catch (e) {
+        if (kDebugMode) debugPrint('❌ [ExtDone] progress error: $e');
+      }
+
+      try {
+        await NotificationService().cancelByContentItemId(itemId);
+        if (kDebugMode) debugPrint('✅ [ExtDone] cancelByContentItemId done');
+      } catch (e) {
+        if (kDebugMode) debugPrint('❌ [ExtDone] cancelByContentItemId error: $e');
+      }
+
       if (!mounted) return;
+      ref.invalidate(savedItemsProvider);
+      ref.invalidate(libraryProductsProvider);
       ref.invalidate(scheduledCacheProvider);
       ref.invalidate(upcomingTimelineProvider);
-    } catch (_) {}
+      // Extension 按 Done 後，立刻重排未來 3 天（與 App 內 actionLearned 一致）
+      try {
+        final scheduler = ref.read(notificationSchedulerProvider);
+        await scheduler.schedule(
+          ref: ref,
+          days: 3,
+          source: 'extension_done',
+          immediate: true,
+        );
+        if (kDebugMode) {
+          debugPrint('✅ [ExtDone] rescheduleNextDays triggered (single item)');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('❌ [ExtDone] rescheduleNextDays error (single item): $e');
+        }
+      }
+      if (kDebugMode) debugPrint('✅ [ExtDone] _handleExtensionDoneItem done');
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ [ExtDone] _handleExtensionDoneItem error: $e');
+    }
   }
 
-  Future<void> _checkPendingDeepLink() async {
+  /// Extension「已讀完成」寫入 App Groups；resume 時同步到 App 內學習狀態（fallback 路徑）
+  Future<void> _syncExtensionCompletedState() async {
     if (!mounted) return;
+    if (_isSyncingDone) {
+      if (kDebugMode) debugPrint('✅ [ExtDone] already syncing, skip');
+      return;
+    }
+    _isSyncingDone = true;
+    if (kDebugMode) debugPrint('✅ [ExtDone] _syncExtensionCompletedState start');
     try {
-      const channel = MethodChannel('com.onepop.deeplink');
-      final map = await channel.invokeMapMethod<String, dynamic>('getPendingDeepLink');
+      String uid;
+      try {
+        uid = ref.read(uidProvider);
+      } catch (_) {
+        return;
+      }
+
+      final itemIds = await SharedDataBridge.getTodayCompleted();
+      if (kDebugMode) {
+        debugPrint('✅ [ExtDone] getTodayCompleted -> $itemIds');
+        // 診斷：列出 App Group container 下的所有檔案與完成檔內容
+        try {
+          final diag = await SharedDataBridge.getDiagnosticInfo();
+          debugPrint('✅ [ExtDone] diagnostic: $diag');
+        } catch (_) {}
+      }
+      if (itemIds.isEmpty) return;
+
+      final libraryRepo = ref.read(libraryRepoProvider);
+      final progress = ref.read(learningProgressServiceProvider);
+      final ns = NotificationService();
+
+      for (final itemId in itemIds) {
+        if (kDebugMode) debugPrint('✅ [ExtDone] handling itemId=$itemId');
+        // 1) 標記通知已讀
+        await PushExclusionStore.markOpened(uid, itemId);
+        if (kDebugMode) debugPrint('✅ [ExtDone] markOpened done for $itemId');
+
+        // 2) 標記 saved_items learned=true（讓 UI 顯示為已學習）
+        try {
+          await libraryRepo.setSavedItem(uid, itemId, {'learned': true});
+          if (kDebugMode) debugPrint('✅ [ExtDone] setSavedItem learned=true for $itemId');
+        } catch (e, st) {
+          if (kDebugMode) {
+            debugPrint('❌ [ExtDone] setSavedItem error for $itemId: $e');
+            debugPrint('$st');
+          }
+        }
+
+        // 3) 推進學習進度（需要 contentItem 的 productId / pushOrder / topicId）
+        try {
+          final item = await ref.read(contentRepoProvider).getOne(itemId);
+          if (kDebugMode) {
+            debugPrint(
+              '✅ [ExtDone] loaded contentItem id=$itemId product=${item.productId} pushOrder=${item.pushOrder}',
+            );
+          }
+          final productsMap = await ref.read(productsMapProvider.future);
+          final product = productsMap[item.productId];
+          final topicId = product?.topicId;
+          if (topicId != null && topicId.isNotEmpty) {
+            await progress.markLearnedAndAdvance(
+              topicId: topicId,
+              contentId: itemId,
+              pushOrder: item.pushOrder,
+              source: 'extension_done',
+            );
+            if (kDebugMode) {
+              debugPrint(
+                '✅ [ExtDone] markLearnedAndAdvance done topicId=$topicId product=${item.productId}',
+              );
+            }
+          } else {
+            if (kDebugMode) {
+              debugPrint(
+                '⚠️ [ExtDone] topicId is null/empty for product=${item.productId}',
+              );
+            }
+          }
+          await UserLearningStore().markLearnedTodayAndGlobal(item.productId);
+          if (kDebugMode) {
+            debugPrint('✅ [ExtDone] markLearnedTodayAndGlobal done product=${item.productId}');
+          }
+        } catch (e, st) {
+          if (kDebugMode) {
+            debugPrint('❌ [ExtDone] progress error for $itemId: $e');
+            debugPrint('$st');
+          }
+        }
+
+        // 4) 取消該則的已排程通知
+        try {
+          await ns.cancelByContentItemId(itemId);
+          if (kDebugMode) {
+            debugPrint('✅ [ExtDone] cancelByContentItemId done for $itemId');
+          }
+        } catch (e, st) {
+          if (kDebugMode) {
+            debugPrint('❌ [ExtDone] cancelByContentItemId error for $itemId: $e');
+            debugPrint('$st');
+          }
+        }
+      }
+
+      await SharedDataBridge.clearTodayCompletedFile();
+      await SharedDataBridge.cleanupOldData();
+      if (kDebugMode) debugPrint('✅ [ExtDone] cleanupOldData done');
+      if (!mounted) return;
+      ref.invalidate(savedItemsProvider);
+      ref.invalidate(libraryProductsProvider);
+      ref.invalidate(scheduledCacheProvider);
+      ref.invalidate(upcomingTimelineProvider);
+      // 批次同步 Extension Done（冷啟動 / fallback）後，一次性重排未來 3 天
+      try {
+        final scheduler = ref.read(notificationSchedulerProvider);
+        await scheduler.schedule(
+          ref: ref,
+          days: 3,
+          source: 'extension_done_batch',
+          immediate: true,
+        );
+        if (kDebugMode) {
+          debugPrint('✅ [ExtDone] rescheduleNextDays triggered (batch)');
+        }
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint('❌ [ExtDone] rescheduleNextDays error (batch): $e');
+          debugPrint('$st');
+        }
+      }
+      if (kDebugMode) debugPrint('✅ [ExtDone] _syncExtensionCompletedState done');
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('❌ [ExtDone] _syncExtensionCompletedState error: $e');
+        debugPrint('$st');
+      }
+    } finally {
+      _isSyncingDone = false;
+    }
+  }
+
+  Future<void> _checkPendingDeepLink({bool recheckAfterEmpty = false, int recheckAttempt = 0}) async {
+    if (!mounted) return;
+    if (kDebugMode) debugPrint('🔗 [DeepLink] _checkPendingDeepLink called (recheckAfterEmpty=$recheckAfterEmpty, recheckAttempt=$recheckAttempt)');
+    try {
+      final map = await _deepLinkChannel.invokeMapMethod<String, dynamic>('getPendingDeepLink');
+      if (kDebugMode) debugPrint('🔗 [DeepLink] getPendingDeepLink result: $map');
       if (!mounted || map == null) return;
       final productId = (map['productId'] as String?)?.trim() ?? '';
       final contentItemId = (map['contentItemId'] as String?)?.trim() ?? '';
+      final hasLink = contentItemId.isNotEmpty || productId.isNotEmpty;
+      if (!hasLink) {
+        if (kDebugMode) debugPrint('🔗 [DeepLink] hasLink=false, skipping');
+        // 第一次為空時可能 iOS 尚未寫入，再排程檢查（最多再試 2 次：300ms、400ms）
+        if (Platform.isIOS && (recheckAfterEmpty || recheckAttempt > 0) && recheckAttempt < 2) {
+          final delayMs = recheckAttempt == 0 ? 300 : 400;
+          if (kDebugMode) debugPrint('🔗 [DeepLink] scheduling check #${recheckAttempt + 2} in ${delayMs}ms');
+          Future.delayed(Duration(milliseconds: delayMs), () {
+            if (!mounted) return;
+            _checkPendingDeepLink(recheckAfterEmpty: false, recheckAttempt: recheckAttempt + 1);
+          });
+        }
+        return;
+      }
+      if (kDebugMode) debugPrint('🔗 [DeepLink] pushing BubbleLibraryPage then contentItemId=$contentItemId productId=$productId');
+      final nav = rootNavKey.currentState;
+      if (nav == null) {
+        if (kDebugMode) debugPrint('🔗 [DeepLink] rootNavKey.currentState is null, skipping');
+        return;
+      }
+      // 先進入「My Library」頁面，再依 payload 疊上該則卡片詳情或該產品庫
+      nav.push(
+        MaterialPageRoute(builder: (_) => const BubbleLibraryPage()),
+      );
       if (contentItemId.isNotEmpty) {
-        Navigator.of(context).push(
+        nav.push(
           MaterialPageRoute(builder: (_) => DetailPage(contentItemId: contentItemId)),
         );
       } else if (productId.isNotEmpty) {
-        Navigator.of(context).push(
+        nav.push(
           MaterialPageRoute(
             builder: (_) => ProductLibraryPage(productId: productId, isWishlistPreview: false),
           ),
         );
       }
-    } catch (_) {}
+      if (kDebugMode) debugPrint('🔗 [DeepLink] push done');
+    } catch (e, st) {
+      if (kDebugMode) debugPrint('🔗 [DeepLink] error: $e\n$st');
+    }
   }
 
   @override
@@ -362,9 +638,33 @@ class _BubbleBootstrapperState extends ConsumerState<BubbleBootstrapper>
       } catch (_) {}
     });
 
-    // onepop://open 深層連結（Extension「查看完整內容」）：冷啟動時首幀後取回並導航
+    // onepop://open 深層連結（Extension「查看完整內容」）：冷啟動時首幀後延遲再取回，與 resume 一致避免時序漏檢
     if (Platform.isIOS) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _checkPendingDeepLink());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (kDebugMode) debugPrint('🔗 [DeepLink] cold start: scheduling _checkPendingDeepLink in 350ms');
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (!mounted) return;
+          _checkPendingDeepLink();
+        });
+        // 冷啟動同步 Extension Done 狀態
+        if (kDebugMode) debugPrint('✅ [ExtDone] cold start: scheduling pending done check in 500ms');
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          if (!mounted) return;
+          // 先查原生端暫存的 pending done item
+          try {
+            final pendingItemId = await _deepLinkChannel.invokeMethod<String>('getPendingDoneItemId') ?? '';
+            if (pendingItemId.isNotEmpty) {
+              if (kDebugMode) debugPrint('✅ [ExtDone] cold start: pendingDoneItemId=$pendingItemId');
+              _handleExtensionDoneItem(pendingItemId);
+              return;
+            }
+          } catch (e) {
+            if (kDebugMode) debugPrint('❌ [ExtDone] getPendingDoneItemId error: $e');
+          }
+          // fallback：從 App Group 讀取（上次 App 關閉期間可能有按 Done）
+          _syncExtensionCompletedState();
+        });
+      });
     }
   }
 

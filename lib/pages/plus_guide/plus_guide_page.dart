@@ -16,6 +16,9 @@ import '../../providers/v2_providers.dart';
 import '../../theme/app_tokens.dart';
 import 'plus_guide_state.dart';
 
+/// True after the step-0 banner slide-in has played once (so we don't replay when returning from step 2).
+final plusGuideBannerAnimationPlayedProvider = StateProvider<bool>((ref) => false);
+
 // ─────────────────────────────────────────────
 // Layout constants
 // ─────────────────────────────────────────────
@@ -498,20 +501,8 @@ class _Step0Confirm extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 12),
-          Center(
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: c.surfaceSelected,
-              ),
-              child: const Center(
-                child: Text('✨', style: TextStyle(fontSize: 38)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 28),
+          _AnimatedMockNotificationBanner(lang: lang),
+          const SizedBox(height: 24),
           Text(
             uiString(lang, 'plus_guide_welcome_title'),
             style: tt.titleLarge?.copyWith(
@@ -1549,6 +1540,417 @@ class _Step4Done extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Mock notification banner + extension sheet
+// ─────────────────────────────────────────────
+
+/// Wraps the mock banner with a slide-down-from-top animation (like system banner).
+/// Starts only when the + tab is visible; plays once per session (no replay when returning from step 2).
+class _AnimatedMockNotificationBanner extends ConsumerStatefulWidget {
+  const _AnimatedMockNotificationBanner({required this.lang});
+  final AppLanguage lang;
+
+  @override
+  ConsumerState<_AnimatedMockNotificationBanner> createState() =>
+      _AnimatedMockNotificationBannerState();
+}
+
+class _AnimatedMockNotificationBannerState
+    extends ConsumerState<_AnimatedMockNotificationBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _opacity;
+  bool _scheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    final curve = Curves.easeOutCubic;
+    _slide = Tween<Offset>(
+      begin: const Offset(0, -1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: curve));
+    _opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: curve),
+    );
+    // 若動畫已播過（例如從 step 2 返回 step 0），直接顯示橫幅在最終位置，不重播
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(plusGuideBannerAnimationPlayedProvider)) {
+        _controller.value = 1.0;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scheduleBannerAnimation() {
+    if (ref.read(plusGuideBannerAnimationPlayedProvider)) return;
+    if (_scheduled) return;
+    _scheduled = true;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      _controller.forward().then((_) {
+        if (mounted) {
+          ref.read(plusGuideBannerAnimationPlayedProvider.notifier).state = true;
+        }
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<int>(bottomTabIndexProvider, (prev, next) {
+      if (next != 1) return;
+      _scheduleBannerAnimation();
+    });
+    // 若已在 + tab（例如從 step 2 返回 step 0），也要播橫幅動畫，否則橫幅會一直不顯示
+    final currentTab = ref.watch(bottomTabIndexProvider);
+    if (currentTab == 1) {
+      _scheduleBannerAnimation();
+    }
+    return FadeTransition(
+      opacity: _opacity,
+      child: SlideTransition(
+        position: _slide,
+        child: _MockNotificationBanner(lang: widget.lang),
+      ),
+    );
+  }
+}
+
+class _MockNotificationBanner extends StatelessWidget {
+  const _MockNotificationBanner({required this.lang});
+  final AppLanguage lang;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _GuideColors.of(context);
+    final tt = Theme.of(context).textTheme;
+
+    return GestureDetector(
+      onLongPress: () {
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => const _NotificationExtensionSheet(),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: c.cardShadow,
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(
+                  colors: [c.accent, c.accentDeep],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: const Center(
+                child: Text(
+                  'OP',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'OnePop',
+                          style: tt.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: c.titleText,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'now',
+                        style: tt.bodySmall?.copyWith(
+                          color: c.mutedText,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    uiString(lang, 'plus_guide_notify_title'),
+                    style: tt.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: c.titleText,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    uiString(lang, 'plus_guide_notify_body'),
+                    style: tt.bodySmall?.copyWith(
+                      color: c.bodyText,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationExtensionSheet extends StatelessWidget {
+  const _NotificationExtensionSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _GuideColors.of(context);
+    final tt = Theme.of(context).textTheme;
+
+    return FractionallySizedBox(
+      heightFactor: 0.7,
+      child: Container(
+        decoration: BoxDecoration(
+          color: c.cardStart,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: c.cardShadow,
+              blurRadius: 24,
+              offset: const Offset(0, -8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'OnePop',
+                    style: tt.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: c.mutedText,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '今日的學習提醒已準備好',
+                    style: tt.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: c.titleText,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '長按通知即可快速打開 Extension，在鎖定畫面直接開始 OnePop 任務。',
+                    style: tt.bodyMedium?.copyWith(
+                      color: c.bodyText,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.rectangle,
+                              borderRadius: BorderRadius.circular(10),
+                              gradient: LinearGradient(
+                                colors: [c.accent, c.accentDeep],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'OP',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'OnePop',
+                                  style: tt.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: c.titleText,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '專注 5 分鐘，完成今天的一小步',
+                                  style: tt.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: c.titleText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: c.surfaceSelected,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              '・滑到右邊可以延後提醒\n・點一下即可直接進入 OnePop',
+                              style: tt.bodySmall?.copyWith(
+                                color: c.bodyText,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: c.accent,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(44),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text(
+                                '開始學習',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(44),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                side: BorderSide(
+                                  color: c.accent,
+                                  width: 1.4,
+                                ),
+                              ),
+                              child: Text(
+                                '稍後提醒',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: c.accentDeep,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
