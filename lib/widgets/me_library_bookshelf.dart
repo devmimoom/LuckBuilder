@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../theme/app_spacing.dart';
 import '../bubble_library/providers/providers.dart';
 import '../bubble_library/ui/bubble_library_page.dart';
 import '../bubble_library/models/product.dart' as lib_product;
@@ -144,7 +145,7 @@ class MeLibraryBookshelfSection extends ConsumerWidget {
                     readingCount: readingCount,
                     unreadCount: unreadCount,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   _BookshelfRow(
                     books: books.take(4).toList(),
                     onTapBook: (book) {
@@ -168,7 +169,7 @@ class MeLibraryBookshelfSection extends ConsumerWidget {
               );
             }),
             child: const SizedBox(
-              height: 72,
+              height: AppSpacing.navItemHeight,
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             ),
           ),
@@ -180,7 +181,7 @@ class MeLibraryBookshelfSection extends ConsumerWidget {
               );
             }),
             child: Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.xs),
               child: Text(
                 '${uiString(lang, 'library_error')}$e',
                 style: const TextStyle(
@@ -200,7 +201,7 @@ class MeLibraryBookshelfSection extends ConsumerWidget {
           );
         }),
         child: const SizedBox(
-          height: 72,
+          height: AppSpacing.navItemHeight,
           child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
         ),
       ),
@@ -212,7 +213,7 @@ class MeLibraryBookshelfSection extends ConsumerWidget {
           );
         }),
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(AppSpacing.xs),
           child: Text(
             '${uiString(lang, 'library_error')}$e',
             style: const TextStyle(
@@ -259,20 +260,20 @@ class _LibraryContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 8),
+      padding: const EdgeInsets.only(left: AppSpacing.sm, right: AppSpacing.sm, top: AppSpacing.xs, bottom: AppSpacing.xs),
       child: Container(
         decoration: BoxDecoration(
           color: _libBg,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: _libBorder),
         ),
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, AppSpacing.sm),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             header,
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             child,
           ],
         ),
@@ -297,7 +298,7 @@ class _LibraryHeader extends StatelessWidget {
         Row(
           children: [
             const Text('📚', style: TextStyle(fontSize: 18)),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.xs),
             Text(
               uiString(lang, 'my_library'),
               style: const TextStyle(
@@ -311,7 +312,7 @@ class _LibraryHeader extends StatelessWidget {
         TextButton(
           onPressed: onViewAll,
           style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             foregroundColor: _libGold,
@@ -327,7 +328,7 @@ class _LibraryHeader extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 2),
+              const SizedBox(width: AppSpacing.xs),
               const Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 10,
@@ -364,15 +365,15 @@ class _ReadingProgress extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: _libShelf,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
         border: Border.all(color: _libBorder),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _Bookmark(percent: progress),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -398,9 +399,9 @@ class _ReadingProgress extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final width =
@@ -408,13 +409,13 @@ class _ReadingProgress extends StatelessWidget {
                       return Stack(
                         children: [
                           Container(
-                            height: 5,
+                            height: 8,
                             decoration: BoxDecoration(
                               color: _libGold.withValues(alpha: 0.1),
                             ),
                           ),
                           Container(
-                            height: 5,
+                            height: 8,
                             width: width,
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
@@ -433,7 +434,7 @@ class _ReadingProgress extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
                     Text(
@@ -443,7 +444,7 @@ class _ReadingProgress extends StatelessWidget {
                         fontSize: 9,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
                     Text(
                       '$unreadCount${uiString(lang, 'library_unread_suffix')}',
                       style: const TextStyle(
@@ -470,17 +471,17 @@ class _Bookmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 28,
-      height: 36,
+      width: 24,
+      height: 32,
       child: Stack(
         alignment: Alignment.center,
         children: [
           CustomPaint(
-            size: const Size(28, 36),
+            size: const Size(24, 32),
             painter: _BookmarkPainter(),
           ),
           Positioned(
-            top: 9,
+            top: 8,
             child: Text(
               '$percent%',
               style: const TextStyle(
@@ -543,16 +544,16 @@ class _BookshelfRow extends StatelessWidget {
                     onTap: () => onTapBook(books[i]),
                   ),
                 ),
-                if (i != books.length - 1) const SizedBox(width: 6),
+                if (i != books.length - 1) const SizedBox(width: AppSpacing.xs),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.xs),
         Container(
-          height: 6,
+          height: 8,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -564,8 +565,8 @@ class _BookshelfRow extends StatelessWidget {
             boxShadow: const [
               BoxShadow(
                 color: Colors.black54,
-                blurRadius: 6,
-                offset: Offset(0, 3),
+                blurRadius: 8,
+                offset: Offset(0, 8),
               ),
             ],
           ),
@@ -588,7 +589,7 @@ class _BookSpine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = 50.0 + (book.progressPercent.clamp(0, 100) * 0.5);
+    final height = 48.0 + (book.progressPercent.clamp(0, 100) * 0.5);
     final progressRatio = (book.progressPercent.clamp(0, 100) / 100.0)
         .clamp(0.0, 1.0);
 
@@ -604,7 +605,7 @@ class _BookSpine extends StatelessWidget {
               decoration: BoxDecoration(
                 color: spineColor,
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(3)),
+                    const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXs)),
               ),
               child: Stack(
                 children: [
@@ -627,18 +628,18 @@ class _BookSpine extends StatelessWidget {
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppSpacing.xs),
                       Container(
                         width: 24,
                         height: 1,
                         color: _libGold.withValues(alpha: 0.5),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         book.emoji,
                         style: const TextStyle(fontSize: 16),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Container(
                         width: 24,
                         height: 1,
@@ -650,7 +651,7 @@ class _BookSpine extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             book.displayTitle,
             maxLines: 1,
@@ -662,7 +663,7 @@ class _BookSpine extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             '${book.progressPercent}%',
             style: TextStyle(
@@ -709,15 +710,15 @@ class _EmptyState extends StatelessWidget {
     final lang = ProviderScope.containerOf(context, listen: false)
         .read(appLanguageProvider);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 72,
+            height: AppSpacing.navItemHeight,
             decoration: BoxDecoration(
               color: _libShelf.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
               border: Border.all(color: _libBorder),
             ),
             child: Center(

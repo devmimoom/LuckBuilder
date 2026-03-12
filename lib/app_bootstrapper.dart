@@ -238,7 +238,7 @@ class _BrandedPreloadScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SizedBox(height: 12),
+                  SizedBox(height: 16),
                   Text(
                     'Your mental snack',
                     style: TextStyle(

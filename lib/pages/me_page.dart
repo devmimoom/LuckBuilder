@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../app_scaffold.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../theme/layout_constants.dart';
 import '../theme/theme_controller.dart';
@@ -19,7 +20,7 @@ import '../localization/app_strings.dart';
 import 'ios_notification_guide_page.dart';
 import 'wallet_page.dart';
 import 'auth/login_page.dart';
-import '../widgets/me_library_bookshelf.dart';
+import '../bubble_library/ui/bubble_library_page.dart';
 
 // ══════════════════════════════════════════════════════════
 // Settings 靜態資料（僅標題與行為類型，顏色用 tokens）
@@ -79,16 +80,13 @@ class MePage extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             _AccountWithUnlockCard(lang: lang),
-            const SizedBox(height: 14),
-            const MeLibraryBookshelfSection(),
-            const SizedBox(height: 10),
-            _QuickLinks(tokens: tokens, lang: lang),
+            const SizedBox(height: AppSpacing.sm),
             _sectionLabel(context, tokens, uiString(lang, 'interest_tags'), action: uiString(lang, 'edit')),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: kPageHorizontalPadding),
               child: MeInterestTagsSection(),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSpacing.sm),
             if (showAccountAndDelete)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: kPageHorizontalPadding),
@@ -115,14 +113,14 @@ class MePage extends ConsumerWidget {
 
   static Widget _sectionLabel(BuildContext context, AppTokens tokens, String title, {String? action}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 20, kPageHorizontalPadding, 10),
+      padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, AppSpacing.md, kPageHorizontalPadding, AppSpacing.xs),
       child: Row(
         children: [
           Container(
-            width: 3,
-            height: 16,
+            width: 8,
+            height: AppSpacing.sm,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
               gradient: LinearGradient(
                 colors: [tokens.primary, tokens.primary.withValues(alpha: 0.7)],
                 begin: Alignment.topCenter,
@@ -184,14 +182,14 @@ class MePage extends ConsumerWidget {
       builder: (context) => Center(
         child: Card(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: ValueListenableBuilder<String>(
               valueListenable: progressNotifier,
               builder: (context, progress, _) => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(progress),
                 ],
               ),
@@ -289,14 +287,14 @@ class MePage extends ConsumerWidget {
       builder: (context) => Center(
         child: Card(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: ValueListenableBuilder<String>(
               valueListenable: progressNotifier,
               builder: (context, progress, _) => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(progress),
                 ],
               ),
@@ -431,7 +429,7 @@ class _MeSettingsPage extends ConsumerWidget {
       context: context,
       backgroundColor: tokens.cardBg,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -450,7 +448,7 @@ class _MeSettingsPage extends ConsumerWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 ListTile(
                   title: Text(uiString(lang, 'english')),
                   onTap: () {
@@ -512,7 +510,7 @@ class _MeSettingsPage extends ConsumerWidget {
                 onAbout: () => MePage._showAboutDialog(context, lang),
               ),
               if (Theme.of(context).platform == TargetPlatform.iOS) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSpacing.sm),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: kPageHorizontalPadding),
                   child: _SettingRow(
@@ -595,12 +593,12 @@ class _HeroSectionContent extends ConsumerWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned(
-          right: -20,
-          top: -30,
+          right: -24,
+          top: -32,
           child: _GlowBlob(color: tokens.primary, size: 160, opacity: 0.3),
         ),
         Positioned(
-          left: -20,
+          left: -24,
           top: 40,
           child: _GlowBlob(color: tokens.primary, size: 120, opacity: 0.15),
         ),
@@ -609,8 +607,8 @@ class _HeroSectionContent extends ConsumerWidget {
             Row(
               children: [
                 Container(
-                  width: 66,
-                  height: 66,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
@@ -619,7 +617,7 @@ class _HeroSectionContent extends ConsumerWidget {
                       end: Alignment.bottomRight,
                     ),
                   ),
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(AppSpacing.xs),
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
@@ -672,10 +670,10 @@ class _HeroSectionContent extends ConsumerWidget {
                         ),
                         if (isGuest)
                           Positioned(
-                            bottom: 4,
-                            right: 4,
+                            bottom: AppSpacing.xs,
+                            right: AppSpacing.xs,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
                               decoration: BoxDecoration(
                                 color: tokens.bg.withValues(alpha: 0.9),
                                 borderRadius: BorderRadius.circular(999),
@@ -685,7 +683,7 @@ class _HeroSectionContent extends ConsumerWidget {
                                 uiString(lang, 'guest'),
                                 style: TextStyle(
                                   color: tokens.textSecondary,
-                                  fontSize: 9,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -709,7 +707,7 @@ class _HeroSectionContent extends ConsumerWidget {
                           letterSpacing: -0.3,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         subtitle,
                         style: TextStyle(color: tokens.textSecondary, fontSize: 13),
@@ -727,7 +725,7 @@ class _HeroSectionContent extends ConsumerWidget {
                   value: '$cardsRead',
                   label: uiString(lang, 'cards_read'),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.xs),
                 _StatBox(
                   tokens: tokens,
                   value: '$streak',
@@ -736,7 +734,7 @@ class _HeroSectionContent extends ConsumerWidget {
                   icon: Icons.local_fire_department,
                   highlight: streak > 0,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.xs),
                 _StatBox(
                   tokens: tokens,
                   value: '$topicsCount',
@@ -772,10 +770,10 @@ class _StatBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: highlight ? tokens.primary.withValues(alpha: 0.12) : tokens.cardBg,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
             color: highlight ? tokens.primary.withValues(alpha: 0.6) : tokens.cardBorder,
           ),
@@ -788,7 +786,7 @@ class _StatBox extends StatelessWidget {
                 size: 18,
                 color: accent ?? tokens.primary,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: AppSpacing.xs),
             ],
             Text(
               value,
@@ -798,7 +796,7 @@ class _StatBox extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               label,
               style: TextStyle(
@@ -853,7 +851,7 @@ class _UnlockRow extends StatelessWidget {
       child: Row(
         children: [
           const Text('⚡', style: TextStyle(fontSize: 24)),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -866,7 +864,7 @@ class _UnlockRow extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   uiString(lang, 'upgrade_for_full_library'),
                   style: TextStyle(color: tokens.textSecondary, fontSize: 11),
@@ -874,12 +872,12 @@ class _UnlockRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: tokens.primary.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               border: Border.all(color: tokens.primary.withValues(alpha: 0.5)),
             ),
             child: Text(
@@ -892,6 +890,80 @@ class _UnlockRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// 並排入口卡（我的圖書館、我的錢包）
+// ══════════════════════════════════════════════════════════
+class _MeEntryCard extends StatelessWidget {
+  const _MeEntryCard({
+    required this.tokens,
+    required this.lang,
+    required this.titleKey,
+    required this.subtitleKey,
+    required this.emoji,
+    required this.onTap,
+  });
+
+  final AppTokens tokens;
+  final AppLanguage lang;
+  final String titleKey;
+  final String subtitleKey;
+  final String emoji;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: tokens.cardBg,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        child: SizedBox(
+          height: 110,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              border: Border.all(color: tokens.cardBorder),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 22)),
+                const SizedBox(height: 8),
+                Text(
+                  uiString(lang, titleKey),
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  uiString(lang, subtitleKey),
+                  style: TextStyle(
+                    color: tokens.textSecondary,
+                    fontSize: 11,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Spacer(),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Icon(Icons.arrow_forward_ios_rounded, size: 12, color: tokens.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -912,7 +984,7 @@ class _AccountWithUnlockCard extends ConsumerWidget {
       child: Container(
         decoration: BoxDecoration(
           color: tokens.cardBg,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: tokens.cardBorder),
         ),
         child: Column(
@@ -920,7 +992,7 @@ class _AccountWithUnlockCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 20, kPageHorizontalPadding, 16),
+              padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, AppSpacing.md, kPageHorizontalPadding, AppSpacing.sm),
               child: _HeroSectionContent(lang: lang),
             ),
             Divider(
@@ -930,47 +1002,46 @@ class _AccountWithUnlockCard extends ConsumerWidget {
               endIndent: 16,
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: _UnlockRow(tokens: tokens, lang: lang),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-// Quick Links（My Library、My Wallet）
-// ══════════════════════════════════════════════════════════
-class _QuickLinks extends StatelessWidget {
-  const _QuickLinks({required this.tokens, required this.lang});
-  final AppTokens tokens;
-  final AppLanguage lang;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: kPageHorizontalPadding),
-      child: Container(
-        decoration: BoxDecoration(
-          color: tokens.cardBg,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: tokens.cardBorder),
-        ),
-        child: Column(
-          children: [
-            _SettingRow(
-              tokens: tokens,
-              emoji: '💳',
-              iconColor: tokens.primary,
-              title: uiString(lang, 'my_wallet'),
-              subtitle: uiString(lang, 'my_wallet_subtitle'),
-              action: _SettingAction.chevron,
-              isLast: true,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WalletPage()),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, AppSpacing.sm),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _MeEntryCard(
+                      tokens: tokens,
+                      lang: lang,
+                      titleKey: 'my_library',
+                      subtitleKey: 'my_library_subtitle',
+                      emoji: '📚',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const BubbleLibraryPage()),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: _MeEntryCard(
+                      tokens: tokens,
+                      lang: lang,
+                      titleKey: 'my_wallet',
+                      subtitleKey: 'my_wallet_subtitle',
+                      emoji: '💳',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const WalletPage()),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
+            Divider(
+              height: 1,
+              color: tokens.cardBorder.withValues(alpha: 0.5),
+              indent: 16,
+              endIndent: 16,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: _UnlockRow(tokens: tokens, lang: lang),
             ),
           ],
         ),
@@ -1030,7 +1101,7 @@ class _SettingsCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: tokens.cardBg,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: tokens.cardBorder),
         ),
         child: Column(
@@ -1091,7 +1162,7 @@ class _SettingRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap ?? (action == _SettingAction.toggle ? onToggle : null),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           border: isLast
               ? null
@@ -1100,16 +1171,16 @@ class _SettingRow extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
                 border: Border.all(color: iconColor.withValues(alpha: 0.25)),
               ),
               child: Center(child: Text(emoji, style: const TextStyle(fontSize: 16))),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1123,7 +1194,7 @@ class _SettingRow extends StatelessWidget {
                     ),
                   ),
                   if (subtitle != null) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(subtitle!, style: TextStyle(color: tokens.textSecondary, fontSize: 11)),
                   ],
                 ],
@@ -1139,7 +1210,7 @@ class _SettingRow extends StatelessWidget {
   Widget _buildRight(BuildContext context) {
     switch (action) {
       case _SettingAction.chevron:
-        return Icon(Icons.chevron_right, color: tokens.textSecondary, size: 20);
+        return Icon(Icons.chevron_right, color: tokens.textSecondary, size: 24);
       case _SettingAction.external:
         return Icon(Icons.open_in_new, color: tokens.textSecondary, size: 16);
       case _SettingAction.toggle:
@@ -1147,19 +1218,19 @@ class _SettingRow extends StatelessWidget {
           onTap: () => onToggle?.call(),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: 44,
-            height: 26,
+            width: 48,
+            height: 24,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(13),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               color: (darkMode ?? false) ? tokens.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 200),
               alignment: (darkMode ?? false) ? Alignment.centerRight : Alignment.centerLeft,
               child: Container(
-                margin: const EdgeInsets.all(3),
-                width: 20,
-                height: 20,
+                margin: const EdgeInsets.all(AppSpacing.xs),
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white,
@@ -1240,7 +1311,7 @@ class _AccountSectionInnerState extends ConsumerState<_AccountSectionInner> {
     return Container(
       decoration: BoxDecoration(
         color: tokens.cardBg,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
         border: Border.all(color: tokens.cardBorder),
       ),
       child: ListTile(
@@ -1256,8 +1327,8 @@ class _AccountSectionInnerState extends ConsumerState<_AccountSectionInner> {
                 onPressed: _isSigningOut ? null : _handleSignOut,
                 child: _isSigningOut
                     ? SizedBox(
-                        width: 20,
-                        height: 20,
+                        width: 24,
+                        height: 24,
                         child: CircularProgressIndicator(strokeWidth: 2, color: tokens.primary),
                       )
                     : Text(uiString(widget.lang, 'sign_out'), style: TextStyle(color: tokens.primary)),
@@ -1305,7 +1376,7 @@ class _AccountAndWalletCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final balance = ref.watch(creditsBalanceProvider).valueOrNull ?? 0;
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       child: Column(
         children: [
           ListTile(
@@ -1386,8 +1457,8 @@ class _AccountSectionLegacyState extends ConsumerState<_AccountSectionLegacy> {
               onPressed: _isSigningOut ? null : _handleSignOut,
               child: _isSigningOut
                   ? SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 24,
+                      height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: tokens.primary,

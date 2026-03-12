@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/v2_providers.dart';
 import '../widgets/app_card.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../theme/layout_constants.dart';
 import '../localization/app_language_provider.dart';
@@ -69,7 +70,7 @@ class ProductListPage extends ConsumerWidget {
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16)),
                           if (!_byIds) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSpacing.sm),
                             Text('${uiString(lang, 'topic_id_label')}$topicId',
                                 style: TextStyle(
                                     color: tokens.textSecondary, fontSize: 14)),
@@ -79,7 +80,7 @@ class ProductListPage extends ConsumerWidget {
                                     color: tokens.textPrimary,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 12)),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: AppSpacing.xs),
                             Text('  • published = true',
                                 style: TextStyle(
                                     color: tokens.textSecondary, fontSize: 12)),
@@ -89,7 +90,7 @@ class ProductListPage extends ConsumerWidget {
                             Text('  • orderBy(order)',
                                 style: TextStyle(
                                     color: tokens.textSecondary, fontSize: 12)),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSpacing.sm),
                             Text(
                                 'Check that Firestore products have topicId set to "$topicId".',
                                 style: TextStyle(
@@ -105,7 +106,7 @@ class ProductListPage extends ConsumerWidget {
                 builder: (context, constraints) {
                   final screenWidth = constraints.maxWidth;
                   final crossAxisCount = screenWidth > 500 ? 3 : 2;
-                  const spacing = 12.0;
+                  const spacing = 16.0;
                   const gridPadding = 32.0; // EdgeInsets.all(16) 左右共 32
                   final cellWidth =
                       (screenWidth - gridPadding - (crossAxisCount - 1) * spacing) /
@@ -119,8 +120,8 @@ class ProductListPage extends ConsumerWidget {
                     padding: const EdgeInsets.all(16),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
                       childAspectRatio: childAspectRatio,
                     ),
                     itemCount: ps.length,
@@ -140,7 +141,7 @@ class ProductListPage extends ConsumerWidget {
                                 p.coverImageUrl!.isNotEmpty)
                               ClipRRect(
                                 borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(20)),
+                                    top: Radius.circular(AppSpacing.radiusMd)),
                                 child: AspectRatio(
                                   aspectRatio: kCoverAspectRatio,
                                   child: CachedNetworkImage(
@@ -162,7 +163,7 @@ class ProductListPage extends ConsumerWidget {
                               ),
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.all(10),
+                                padding: const EdgeInsets.all(AppSpacing.xs),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
@@ -174,7 +175,7 @@ class ProductListPage extends ConsumerWidget {
                                             fontWeight: FontWeight.w800,
                                             fontSize: 13,
                                             color: tokens.textPrimary)),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: AppSpacing.xs),
                                     Text('${p.topicId} · ${p.level}',
                                         style: TextStyle(
                                             fontSize: 11,
@@ -206,7 +207,7 @@ class ProductListPage extends ConsumerWidget {
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 16)),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     if (!_byIds)
                       Text('${uiString(lang, 'topic_id_label')}$topicId',
                           style: TextStyle(
@@ -217,7 +218,7 @@ class ProductListPage extends ConsumerWidget {
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.w600,
                             fontSize: 12)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '$err',
                       style:
@@ -232,7 +233,7 @@ class ProductListPage extends ConsumerWidget {
                               color: tokens.textPrimary,
                               fontWeight: FontWeight.w600,
                               fontSize: 12)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text('  • collection: products',
                           style: TextStyle(
                               color: tokens.textSecondary, fontSize: 12)),
@@ -251,7 +252,7 @@ class ProductListPage extends ConsumerWidget {
                               color: tokens.textPrimary,
                               fontWeight: FontWeight.w600,
                               fontSize: 12)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text('  • Missing Firestore index',
                           style: TextStyle(
                               color: tokens.textSecondary, fontSize: 12)),

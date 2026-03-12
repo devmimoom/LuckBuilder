@@ -6,6 +6,7 @@ import '../../providers/providers.dart';
 import '../../notifications/push_orchestrator.dart';
 import '../../models/push_config.dart';
 import 'bubble_card.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../localization/app_language_provider.dart';
 import '../../../localization/app_strings.dart';
@@ -111,7 +112,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
     
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 10),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -129,7 +130,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
       children: [
         Text(uiString(lang, 'push_timeline_header'),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.xs),
         BubbleCard(
           child: _upcoming.isEmpty
               ? Text(uiString(lang, 'push_timeline_empty'),
@@ -139,7 +140,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
                   children: [
                     for (final day in keys) ...[
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 6, top: 4),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.xs, top: AppSpacing.xs),
                         child: Text(
                           day,
                           style: TextStyle(
@@ -210,15 +211,15 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
                                 },
                         );
                       }),
-                      const Divider(height: 18),
+                      const Divider(height: 16),
                     ],
                   ],
                 ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         Text(uiString(lang, 'quiet_hours_title'),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.xs),
         // ✅ 從 Firestore 讀取勿擾時段
         ref.watch(globalPushSettingsProvider).when(
           data: (g) {
@@ -226,7 +227,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
               child: Row(
                 children: [
                   const Icon(Icons.bedtime),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(formatTimeRange(g.quietHours),
                         style: const TextStyle(
@@ -273,7 +274,7 @@ class PushTimelineSectionState extends ConsumerState<PushTimelineSection> {
               icon: const Icon(Icons.refresh),
               label: Text(uiString(lang, 'refresh_schedule')),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.xs),
             Text(
               uiString(lang, 'source_local_cache'),
               style: TextStyle(

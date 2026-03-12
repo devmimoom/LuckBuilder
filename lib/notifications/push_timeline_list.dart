@@ -16,6 +16,7 @@ import '../localization/app_strings.dart';
 import 'timeline_meta_mode.dart';
 import 'widgets/timeline_widgets.dart';
 import 'widgets/push_hint.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 
 class PushTimelineList extends ConsumerWidget {
@@ -55,111 +56,72 @@ class PushTimelineList extends ConsumerWidget {
 
     Widget topBar() {
       if (!showTopBar) return const SizedBox.shrink();
-            return Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-        child: Row(
-          children: [
-            Flexible(
-              child: Text(uiString(lang, 'push_timeline_header'),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SegmentedButton<TimelineMetaMode>(
-                  segments: [
-                    ButtonSegment(
-                      value: TimelineMetaMode.push,
-                      label: Text(uiString(lang, 'notifications'),
-                          style: const TextStyle(fontSize: 11)),
-                    ),
-                    const ButtonSegment(
-                      value: TimelineMetaMode.nth,
-                      label: Text('#N', style: TextStyle(fontSize: 11)),
-                    ),
-                  ],
-                  selected: {metaMode},
-                  onSelectionChanged: (s) =>
-                      ref.read(timelineMetaModeProvider.notifier).state = s.first,
-                  showSelectedIcon: false,
-                ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.xs, 0, AppSpacing.xs),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              uiString(lang, 'push_timeline_header'),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
-            const SizedBox(width: 4),
-            IconButton(
-              iconSize: 20,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: uiString(lang, 'push_timeline_tooltip'),
-              icon: const Icon(Icons.refresh),
-              onPressed: () async {
-                // 透過單一入口重排，內部會自動刷新 scheduledCacheProvider
-                await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(uiString(lang, 'rescheduled_next_3_days')),
-                    ),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-      );
+          ),
+          IconButton(
+            iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: uiString(lang, 'push_timeline_tooltip'),
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              // 透過單一入口重排，內部會自動刷新 scheduledCacheProvider
+              await PushOrchestrator.rescheduleNextDays(ref: ref, days: 3);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(uiString(lang, 'rescheduled_next_3_days')),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
     }
 
     Widget sheetHeader() {
       if (showTopBar) return const SizedBox.shrink();
       return Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.xs, 0, AppSpacing.xs),
         child: Column(
           children: [
             Container(
-              width: 44,
-              height: 5,
+              width: 48,
+              height: 8,
               decoration: BoxDecoration(
                 color: tokens.cardBorder,
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             Row(
               children: [
-                Flexible(
-                  child: Text(uiString(lang, 'push_timeline_header'),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1),
-                ),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                  child: SegmentedButton<TimelineMetaMode>(
-                    segments: [
-                      ButtonSegment(
-                          value: TimelineMetaMode.push,
-                          label: Text(uiString(lang, 'notifications'),
-                              style: const TextStyle(fontSize: 11)),
-                        ),
-                      const ButtonSegment(
-                        value: TimelineMetaMode.nth,
-                        label: Text('#N', style: TextStyle(fontSize: 11)),
-                        ),
-                      ],
-                      selected: {metaMode},
-                      onSelectionChanged: (s) => ref
-                          .read(timelineMetaModeProvider.notifier)
-                          .state = s.first,
-                      showSelectedIcon: false,
+                  child: Text(
+                    uiString(lang, 'push_timeline_header'),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
-                const SizedBox(width: 4),
                 IconButton(
                   iconSize: 20,
                   padding: EdgeInsets.zero,
@@ -318,14 +280,14 @@ class PushTimelineList extends ConsumerWidget {
                         if (showTopBar) topBar() else sheetHeader(),
                         Expanded(
                           child: ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
                             itemCount: rows.length,
                             itemBuilder: (context, i) {
                               final r = rows[i];
                               if (r.isHeader) {
                                 if (dense) {
                                   return Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+                                    padding: const EdgeInsets.fromLTRB(0, AppSpacing.xs, 0, AppSpacing.xs),
                                     child: Text(
                                       r.dayKey ?? '',
                                       style: TextStyle(
@@ -337,7 +299,7 @@ class PushTimelineList extends ConsumerWidget {
                                   );
                                 } else {
                                   return Padding(
-                                    padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
+                                    padding: const EdgeInsets.fromLTRB(0, AppSpacing.sm, 0, AppSpacing.xs),
                                     child: Text(
                                       r.dayKey ?? '',
                                       style: TextStyle(
@@ -383,9 +345,7 @@ class PushTimelineList extends ConsumerWidget {
                                   case TimelineMetaMode.push:
                                     return lp != null ? pushHintFor(lp, lang) : '';
                                   case TimelineMetaMode.nth:
-                                    return r.seqInDayForProduct != null
-                                        ? '#${r.seqInDayForProduct}'
-                                        : '';
+                                    return '';
                                 }
                               }
 
@@ -404,7 +364,7 @@ class PushTimelineList extends ConsumerWidget {
                                 metaText: metaText(),
                                 dayN: null, // 第一行不顯示 Day N，只顯示 product title
                                 saved: saved,
-                                seqInDay: r.seqInDayForProduct,
+                                seqInDay: null,
                                 isFirst: prevIsHeader,
                                 isLast: nextIsHeader,
                                 doneLabel: uiString(lang, 'done'),
@@ -431,8 +391,8 @@ class PushTimelineList extends ConsumerWidget {
                                             label: Text(uiString(lang, 'view')),
                                             style: OutlinedButton.styleFrom(
                                               padding: const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
+                                                horizontal: AppSpacing.sm,
+                                                vertical: AppSpacing.xs,
                                               ),
                                             ),
                                             onPressed: () async {
@@ -456,8 +416,8 @@ class PushTimelineList extends ConsumerWidget {
                                             label: Text(uiString(lang, 'skip')),
                                             style: ElevatedButton.styleFrom(
                                               padding: const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
+                                                horizontal: AppSpacing.sm,
+                                                vertical: AppSpacing.xs,
                                               ),
                                             ),
                                             onPressed: () async {

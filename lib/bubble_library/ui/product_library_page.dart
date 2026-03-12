@@ -10,6 +10,7 @@ import '../../localization/app_language_provider.dart';
 import '../../localization/app_strings.dart';
 import 'detail_page.dart';
 import 'widgets/bubble_card.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../notifications/scheduled_push_cache.dart';
 
@@ -125,7 +126,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                   final percent = (progress * 100).round();
 
                   return ListView(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     children: [
                       BubbleCard(
                         child: Column(
@@ -135,7 +136,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                               children: [
                                 const Icon(Icons.bubble_chart_outlined,
                                     size: 28),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -145,7 +146,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                           style: const TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.w900)),
-                                      const SizedBox(height: 6),
+                                      const SizedBox(height: AppSpacing.xs),
                                       Wrap(
                                         spacing: 8,
                                         children: [
@@ -164,9 +165,9 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSpacing.sm),
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(AppSpacing.sm),
                               decoration: BoxDecoration(
                                 borderRadius:
                                     BorderRadius.circular(tokens.cardRadius),
@@ -200,7 +201,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                               color: tokens.textPrimary)),
                                     ],
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: AppSpacing.xs),
                                   ClipRRect(
                                     borderRadius:
                                         BorderRadius.circular(999),
@@ -214,7 +215,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                               tokens.primary),
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: AppSpacing.xs),
                                   Text(
                                       uiString(lang, 'completed_cards')
                                           .replaceFirst('{done}', '$completed')
@@ -228,7 +229,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.sm),
                       ...showItems.map((it) {
                         final saved = savedMap[it.id];
 
@@ -245,7 +246,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
 
                         // 原本的卡片 widget
                         final original = Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                           child: BubbleCard(
                             onTap: () async {
                               // ✅ 導航到 detail 頁面，並在返回時刷新數據
@@ -272,7 +273,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                     final tokens = context.tokens;
                                     return AnimatedContainer(
                                       duration: const Duration(milliseconds: 250),
-                                      padding: const EdgeInsets.symmetric(vertical: 2),
+                                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(tokens.cardRadius),
                                         border: showRed
@@ -292,7 +293,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                   },
                                   loading: () => AnimatedContainer(
                                     duration: const Duration(milliseconds: 250),
-                                    padding: const EdgeInsets.symmetric(vertical: 2),
+                                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
                                       border: isTarget
@@ -306,7 +307,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                   ),
                                   error: (_, __) => AnimatedContainer(
                                     duration: const Duration(milliseconds: 250),
-                                    padding: const EdgeInsets.symmetric(vertical: 2),
+                                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
                                       border: isTarget
@@ -321,7 +322,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
                                 )
                               : AnimatedContainer(
                                   duration: const Duration(milliseconds: 250),
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(16),
                                     border: isTarget
@@ -402,7 +403,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.xs),
         // 操作按鈕：只顯示狀態，不可點擊
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -432,7 +433,7 @@ class _ProductLibraryPageState extends ConsumerState<ProductLibraryPage> with Wi
         builder: (context) {
           final tokens = context.tokens;
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               gradient: tokens.chipGradient,
               color: tokens.chipGradient == null ? tokens.chipBg : null,

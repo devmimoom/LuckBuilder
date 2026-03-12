@@ -14,6 +14,7 @@ import '../../notifications/push_exclusion_store.dart';
 import '../../widgets/rich_sections/user_learning_store.dart';
 import 'widgets/bubble_card.dart';
 import '../../providers/analytics_provider.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 import '../../localization/app_language.dart';
 import '../../localization/app_strings.dart';
@@ -61,7 +62,7 @@ class PushProductConfigPage extends ConsumerWidget {
                   .fold<int>(0, (sum, e) => sum + e.pushConfig.freqPerDay);
 
               return ListView(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               children: [
                 BubbleCard(
                   child: Column(
@@ -75,17 +76,17 @@ class PushProductConfigPage extends ConsumerWidget {
                       // 顯示完成狀態
                       if (lp.completedAt != null) ...[
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(AppSpacing.sm),
                           decoration: BoxDecoration(
                             color: context.tokens.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                             border: Border.all(color: context.tokens.primary),
                           ),
                           child: Row(
                             children: [
                               Icon(Icons.emoji_events, 
                                 color: context.tokens.primary, size: 20),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +114,7 @@ class PushProductConfigPage extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.sm),
                         
                         // 重新開始按鈕
                         SizedBox(
@@ -124,11 +125,11 @@ class PushProductConfigPage extends ConsumerWidget {
                             icon: const Icon(Icons.restart_alt),
                             label: Text(uiString(lang, 'start_over')),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.sm),
                       ],
                       
                       SwitchListTile.adaptive(
@@ -166,14 +167,14 @@ class PushProductConfigPage extends ConsumerWidget {
                           icon: const Icon(Icons.campaign, size: 18),
                           label: Text(uiString(lang, 'send_test_notification')),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 BubbleCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,7 +203,7 @@ class PushProductConfigPage extends ConsumerWidget {
                         Text(uiString(lang, 'frequency_label'),
                             style:
                                 const TextStyle(fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.xs),
                         DropdownButton<int>(
                           value: cfg.freqPerDay,
                           dropdownColor: context.tokens.cardBg,
@@ -225,9 +226,9 @@ class PushProductConfigPage extends ConsumerWidget {
                           },
                         ),
                         if (totalFreq > global.dailyTotalCap) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.sm),
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(AppSpacing.sm),
                             decoration: BoxDecoration(
                               color: Colors.amber.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
@@ -257,7 +258,7 @@ class PushProductConfigPage extends ConsumerWidget {
                                           fontSize: 13,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: AppSpacing.xs),
                                       Text(
                                         uiString(lang, 'total_freq_exceeds_cap_detail')
                                             .replaceFirst('{total}', '$totalFreq')

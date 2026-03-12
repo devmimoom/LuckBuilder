@@ -9,6 +9,7 @@ import '../models/user_library.dart';
 import '../models/product.dart';
 import '../models/content_item.dart';
 import 'widgets/bubble_card.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../providers/analytics_provider.dart';
 import '../../../localization/app_language_provider.dart';
@@ -95,7 +96,7 @@ class DetailPage extends ConsumerWidget {
               final repo = ref.read(libraryRepoProvider);
 
               return ListView(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 children: [
                   // 0) Header：主標=product.title，副標=anchor + anchorGroup
                   BubbleCard(
@@ -105,13 +106,13 @@ class DetailPage extends ConsumerWidget {
                         Text(headerTitle,
                             style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(headerSubtitle,
                             style: TextStyle(color: tokens.textSecondary)),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.xs),
                         Wrap(
                           spacing: 8,
-                          runSpacing: 6,
+                          runSpacing: 8,
                           children: [
                             _chip('intent：${item.displayIntent(lang)}'),
                             _chip('◆${item.difficulty}'),
@@ -120,7 +121,7 @@ class DetailPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
 
                   // 1) 今日一句（移除「精華速讀」標題，直接顯示內容）
                   BubbleCard(
@@ -132,7 +133,7 @@ class DetailPage extends ConsumerWidget {
                                 fontSize: 18,
                                 height: 1.35,
                                 fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.xs),
                         Row(
                           children: [
                             TextButton.icon(
@@ -240,7 +241,7 @@ class DetailPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
 
                   SizedBox(
                     width: double.infinity,
@@ -303,7 +304,7 @@ class DetailPage extends ConsumerWidget {
                       label: Text(uiString(lang, 'done')),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
 
                   // 2) 深度解析（Excel deepAnalysis 欄位）
                   BubbleCard(
@@ -317,7 +318,7 @@ class DetailPage extends ConsumerWidget {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.xs),
                         if (item.displayDeepAnalysis(lang).isEmpty)
                           Text(
                             uiString(lang, 'no_content'),
@@ -331,7 +332,7 @@ class DetailPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
 
                   // 3) 延伸閱讀
                   BubbleCard(
@@ -345,7 +346,7 @@ class DetailPage extends ConsumerWidget {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.xs),
                         if (urls.isEmpty)
                           Text(
                             uiString(lang, 'no_links'),
@@ -403,7 +404,7 @@ class DetailPage extends ConsumerWidget {
         builder: (context) {
           final tokens = context.tokens;
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               gradient: tokens.chipGradient,
               color: tokens.chipGradient == null ? tokens.chipBg : null,

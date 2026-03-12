@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../app_card.dart';
 
@@ -84,7 +85,7 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           if (_loading)
             const Center(child: CircularProgressIndicator())
           else
@@ -220,12 +221,12 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
     final p = (a.current.clamp(0, target)) / target;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: context.tokens.cardBg.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: context.tokens.cardBorder),
         ),
         child: Row(
@@ -235,11 +236,11 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
               height: 40,
               decoration: BoxDecoration(
                 color: tokens.primary.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Icon(a.icon, color: tokens.primary),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +260,7 @@ class _MeAchievementsSectionState extends ConsumerState<MeAchievementsSection> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(a.desc,
                       style:
                           TextStyle(color: tokens.textSecondary, fontSize: 12)),

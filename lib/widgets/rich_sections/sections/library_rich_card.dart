@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../app_card.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/layout_constants.dart';
 import '../../../localization/app_language.dart';
@@ -69,7 +70,7 @@ class LibraryRichCard extends StatelessWidget {
                     .clamp(120.0, 260.0);
                 return ClipRRect(
                   borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
+                      const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
                   child: CachedNetworkImage(
                     imageUrl: coverImageUrl!,
                     height: h,
@@ -94,7 +95,7 @@ class LibraryRichCard extends StatelessWidget {
             ),
 
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -115,7 +116,7 @@ class LibraryRichCard extends StatelessWidget {
                                 color: tokens.textPrimary),
                           ),
                           if (totalItems != null) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: AppSpacing.xs),
                             Text(
                               lang != null
                                   ? (level != null && level!.isNotEmpty
@@ -141,11 +142,11 @@ class LibraryRichCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.xs),
 
                 // 兩個資訊（推播排程 / 下一則內容）
                 _InfoRow(icon: Icons.schedule, text: nextPushText),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 _InfoRow(icon: Icons.notes, text: latestTitle),
 
               ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../theme/app_spacing.dart';
 import '../../localization/app_language.dart';
 import '../../localization/app_language_provider.dart';
 import '../../localization/app_strings.dart';
@@ -90,6 +91,7 @@ class _CenterContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isZh = lang == AppLanguage.zhTw;
     return SafeArea(
       child: Center(
         child: Padding(
@@ -115,12 +117,12 @@ class _CenterContent extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
 
               Text(
                 uiString(lang, 'your_mental_snack'),
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: isZh ? 16 : 17,
                   fontWeight: FontWeight.w400,
                   color: Colors.white.withValues(alpha: 0.65),
                   letterSpacing: 2,

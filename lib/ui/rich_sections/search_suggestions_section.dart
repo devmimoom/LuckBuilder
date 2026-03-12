@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/v2_providers.dart';
 import '../../data/search_suggestions_data.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 import '../../localization/app_language_provider.dart';
 import '../../localization/app_language.dart';
@@ -85,7 +86,7 @@ class SearchSuggestionsSection extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => onTap(e),
             )),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.xs),
         Text(uiString(lang, 'search_trending_title'),
             style: TextStyle(
                 fontWeight: FontWeight.w800,

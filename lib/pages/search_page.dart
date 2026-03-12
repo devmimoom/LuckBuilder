@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/v2_providers.dart';
 import '../widgets/app_card.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../theme/layout_constants.dart';
 import '../data/models.dart';
@@ -313,7 +314,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       isScrollControlled: true,
       builder: (_) {
         return Container(
-          padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 12, kPageHorizontalPadding, 16),
+          padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, AppSpacing.sm, kPageHorizontalPadding, AppSpacing.sm),
           decoration: BoxDecoration(
             color: tokens.cardBg,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -383,7 +384,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppSpacing.xs),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
                       value: draft.onlyPurchased,
@@ -405,7 +406,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           uiString(lang, 'notifications_on_only_sub'),
                           style: TextStyle(color: tokens.textSecondary)),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(uiString(lang, 'category_label'),
                         style: TextStyle(
                             fontWeight: FontWeight.w900,
@@ -420,7 +421,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         draftNotifier.value = draft.copyWith(topicIds: next);
                       },
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(uiString(lang, 'level_label_filters'),
                         style: TextStyle(
                             fontWeight: FontWeight.w900,
@@ -488,7 +489,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     hintStyle: TextStyle(color: tokens.textSecondary),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                        horizontal: 16, vertical: AppSpacing.sm),
                     icon: Padding(
                       padding: const EdgeInsets.only(left: 16),
                       child: Icon(Icons.search, color: tokens.textSecondary),
@@ -545,11 +546,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   return ListView(
                     children: [
                       const Padding(
-                        padding: EdgeInsets.fromLTRB(kPageHorizontalPadding, 4, kPageHorizontalPadding, 12),
+                        padding: EdgeInsets.fromLTRB(kPageHorizontalPadding, AppSpacing.xs, kPageHorizontalPadding, AppSpacing.sm),
                         child: _SearchExploreCard(),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 4, kPageHorizontalPadding, 12),
+                        padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, AppSpacing.xs, kPageHorizontalPadding, AppSpacing.sm),
                         child: AppCard(
                           child: SearchHistorySection(
                             key: _historyKey,
@@ -563,7 +564,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         onTap: (q) => _submitSearch(q),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 4, kPageHorizontalPadding, 12),
+                        padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, AppSpacing.xs, kPageHorizontalPadding, AppSpacing.sm),
                         child: AppCard(
                           child: SearchSuggestionsSection(
                             onTap: (q) => _submitSearch(q),
@@ -689,10 +690,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       !filter.isEmpty || sort != SearchSort.relevant;
 
                   return Padding(
-                    padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 0, kPageHorizontalPadding, 12),
+                    padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 0, kPageHorizontalPadding, AppSpacing.sm),
                     child: AppCard(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                       child: Row(
                         children: [
                           Flexible(
@@ -708,7 +709,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: AppSpacing.xs),
                           Expanded(
                             child: Align(
                               alignment: Alignment.centerRight,
@@ -766,9 +767,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   return Column(
                     children: [
                       filterBar(),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       filtersBar(),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSpacing.xs),
                       Expanded(
                         child: Center(
                           child: Text(uiString(lang, 'filters_no_match'),
@@ -783,14 +784,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 return Column(
                   children: [
                     filterBar(),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     filtersBar(),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppSpacing.xs),
                     Expanded(
                       child: ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: kPageHorizontalPadding),
                         itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
                         itemBuilder: (_, index) {
                           final product = filtered[index] as Product;
                           final pid = product.id;
@@ -824,7 +825,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                               .withValues(alpha: 0.16),
                                           tokens.primary),
                                     if (isPushing) ...[
-                                      const SizedBox(width: 6),
+                                      const SizedBox(width: AppSpacing.xs),
                                       _pill(
                                           uiString(lang, 'notifications_on'),
                                           tokens.primary
@@ -861,7 +862,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             style: TextStyle(
                                 color: tokens.textPrimary,
                                 fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           '$error',
                           style: TextStyle(
@@ -897,7 +898,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   Widget _pill(String text, Color bg, Color fg) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
@@ -928,7 +929,7 @@ class SearchForYouSection extends ConsumerWidget {
     final lang = ref.watch(appLanguageProvider);
     if (keywords.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 4, kPageHorizontalPadding, 12),
+      padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, AppSpacing.xs, kPageHorizontalPadding, AppSpacing.sm),
       child: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -949,7 +950,7 @@ class SearchForYouSection extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1029,8 +1030,8 @@ class _SearchExploreCard extends ConsumerWidget {
                             style: TextStyle(color: tokens.textSecondary))
                       else
                         Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
+                          spacing: AppSpacing.xs,
+                          runSpacing: AppSpacing.xs,
                           children: recentTopics
                               .map((t) => _chip(context, t, onTap: () {
                                     Navigator.of(context).push(MaterialPageRoute(
@@ -1039,7 +1040,7 @@ class _SearchExploreCard extends ConsumerWidget {
                                   }))
                               .toList(),
                         ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(uiString(lang, 'you_might_like'),
                           style: TextStyle(
                               color: tokens.textSecondary,
@@ -1051,8 +1052,8 @@ class _SearchExploreCard extends ConsumerWidget {
                             style: TextStyle(color: tokens.textSecondary))
                       else
                         Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
+                          spacing: AppSpacing.xs,
+                          runSpacing: AppSpacing.xs,
                           children: maybeTry
                               .map((t) => _chip(context, t, onTap: () {
                                     Navigator.of(context).push(MaterialPageRoute(
@@ -1065,7 +1066,7 @@ class _SearchExploreCard extends ConsumerWidget {
                   );
                 },
                 loading: () => const SizedBox(
-                    height: 60,
+                    height: 64,
                     child: Center(child: CircularProgressIndicator())),
                 error: (e, _) => Text('${uiString(lang, 'wishlist_error')}$e',
                     style: TextStyle(color: tokens.textSecondary)),
@@ -1079,7 +1080,7 @@ class _SearchExploreCard extends ConsumerWidget {
           );
         },
         loading: () => const SizedBox(
-            height: 60, child: Center(child: CircularProgressIndicator())),
+            height: 64, child: Center(child: CircularProgressIndicator())),
         error: (e, _) => Text(
           uiString(lang, 'suggestions_load_error'),
           style: TextStyle(color: tokens.textSecondary),
@@ -1094,7 +1095,7 @@ class _SearchExploreCard extends ConsumerWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: tokens.chipBg,
           borderRadius: BorderRadius.circular(999),

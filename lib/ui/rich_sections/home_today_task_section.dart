@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/app_card.dart';
 
@@ -177,7 +178,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: tokens.textPrimary)),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           globalAsync.when(
             data: (g) {
               return todayStatsAsync.when(
@@ -222,7 +223,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                           if (isCompleted)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
+                                  horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(999),
                                 color: Colors.green.withValues(alpha: 0.25),
@@ -246,12 +247,12 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                         borderRadius: BorderRadius.circular(999),
                         child: LinearProgressIndicator(
                           value: progress,
-                          minHeight: 10,
+                          minHeight: 8,
                           backgroundColor: tokens.cardBorder.withValues(alpha: 0.3),
                           valueColor: AlwaysStoppedAnimation<Color>(tokens.primary),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.sm),
 
                       // 下一則 + 倒數
                       Text(
@@ -261,7 +262,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                         style: TextStyle(color: tokens.textSecondary),
                       ),
                       if (countdownText.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           countdownText,
                           style: TextStyle(
@@ -271,7 +272,7 @@ class _HomeTodayTaskSectionState extends ConsumerState<HomeTodayTaskSection> {
                         ),
                       ],
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.sm),
 
                       // 立即學 1 則按鈕靠右對齊
                       Align(

@@ -6,6 +6,7 @@ import '../data/models.dart';
 import '../providers/v2_providers.dart';
 import '../bubble_library/providers/providers.dart';
 import '../ui/glass.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../theme/layout_constants.dart';
 import '../notifications/coming_soon_remind_store.dart';
@@ -117,14 +118,14 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                     // 封面圖片（3:2，與全站封面一致，加框與對稱留白）
                     if (p.coverImageUrl != null && p.coverImageUrl!.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(6, 6, 6, 4),
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.xs, AppSpacing.xs, AppSpacing.xs, AppSpacing.xs),
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(26),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                             border: Border.all(color: tokens.cardBorder),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(26),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                             child: AspectRatio(
                               aspectRatio: kCoverAspectRatio,
                               child: CachedNetworkImage(
@@ -158,14 +159,14 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                                   fontSize: 20,
                                   fontWeight: FontWeight.w900,
                                   color: tokens.textPrimary)),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: AppSpacing.xs),
                           Text('${p.topicId} · ${p.level}',
                               style: TextStyle(color: tokens.textSecondary)),
                           if (isComingSoon) ...[
-                            const SizedBox(height: 10),
+                            const SizedBox(height: AppSpacing.xs),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
+                                  horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(999),
                                 color: tokens.cardBorder.withValues(alpha: 0.3),
@@ -188,11 +189,11 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                               ),
                             ),
                           ],
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.sm),
                           if ((p.levelGoal ?? '').isNotEmpty)
                             Text(productLevelGoal(p, lang),
                                 style: TextStyle(color: tokens.textPrimary)),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: AppSpacing.xs),
                           if ((p.levelBenefit ?? '').isNotEmpty)
                             Text(productLevelBenefit(p, lang),
                                 style: TextStyle(color: tokens.textSecondary)),
@@ -202,20 +203,20 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
                 children: specs
                     .map((s) => GlassCard(
                           radius: 999,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                              horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                           child: Text(s),
                         ))
                     .toList(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 '│ ${uiString(lang, 'plus_guide_preview_items')}',
                 style: TextStyle(
@@ -224,7 +225,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                   color: tokens.textPrimary,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.xs),
               previews.when(
                 data: (items) => SizedBox(
                   height: 230,
@@ -236,7 +237,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                         scrollDirection: Axis.horizontal,
                         itemCount: items.length,
                         separatorBuilder: (_, __) =>
-                            const SizedBox(width: 12),
+                            const SizedBox(width: AppSpacing.sm),
                         itemBuilder: (_, i) {
                           final it = items[i];
                           return SizedBox(
@@ -251,7 +252,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                                       style: TextStyle(
                                           fontWeight: FontWeight.w900,
                                           color: tokens.textPrimary)),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: AppSpacing.xs),
                                   Expanded(
                                   child: Text(contentItemText(it, lang),
                                         maxLines: 5,
@@ -259,11 +260,11 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                                         style: TextStyle(
                                             color: tokens.textSecondary)),
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: AppSpacing.xs),
                                   GlassCard(
                                     radius: 999,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
+                                        horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
                                     child: Text(
                                         '${it.displayIntent(lang)} · d${it.difficulty}'),
                                   ),
@@ -279,10 +280,10 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                 loading: () => const SizedBox(
                     height: 230,
                     child: Center(child: CircularProgressIndicator())),
-                error: (_, __) => const SizedBox(height: 230),
+                error: (_, __) => const SizedBox(height: 232),
               ),
               if ((p.contentArchitecture ?? '').isNotEmpty) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   '│ ${uiString(lang, 'plus_guide_content_arch')}',
                   style: TextStyle(
@@ -291,7 +292,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                     color: tokens.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.xs),
                 GlassCard(
                   radius: 26,
                   padding: EdgeInsets.zero,
@@ -308,9 +309,9 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                   ),
                 ),
               ],
-              const SizedBox(height: 22),
+              const SizedBox(height: 24),
               Padding(
-                padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
+                padding: const EdgeInsets.fromLTRB(0, AppSpacing.sm, 0, AppSpacing.md),
                 child: isComingSoon
                     ? const _ComingSoonBar()
                     : (p.creditsRequired == 0 || isFullAccessUser)
@@ -328,7 +329,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                           ),
               ),
               if (isComingSoon) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 localWishAsync.when(
                   data: (wish) {
                     String? uid;
@@ -378,12 +379,12 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                     );
                   },
                   loading: () => const SizedBox(
-                    height: 44,
+                    height: 48,
                     child: Center(child: CircularProgressIndicator()),
                   ),
                   error: (e, _) => Text('${uiString(lang, 'wishlist_error')}$e'),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.xs),
 
                 // ✅ 上架提醒
                 FutureBuilder<Map<String, int>>(
@@ -510,7 +511,7 @@ class _ProductPageState extends ConsumerState<ProductPage> {
                       style: TextStyle(
                           color: tokens.textPrimary,
                           fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     '$err',
                     style: TextStyle(color: tokens.textSecondary, fontSize: 12),
@@ -634,7 +635,7 @@ class _ComingSoonBar extends StatelessWidget {
     return GlassCard(
       radius: 22,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -652,7 +653,7 @@ class _ComingSoonBar extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'This product is not yet available. Bookmark it or set a reminder below.',
               style: TextStyle(
@@ -692,7 +693,7 @@ class _FreeProductBar extends ConsumerWidget {
     return GlassCard(
       radius: 22,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         child: Row(
           children: [
             Expanded(
@@ -710,7 +711,7 @@ class _FreeProductBar extends ConsumerWidget {
                       color: tokens.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     inLibrary
                         ? uiString(lang, 'open_and_start')
@@ -724,7 +725,7 @@ class _FreeProductBar extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             FilledButton(
               onPressed: () async {
                 if (inLibrary) {
@@ -773,7 +774,7 @@ class _CreditsProductBar extends ConsumerWidget {
     return GlassCard(
       radius: 22,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         child: Row(
           children: [
             Expanded(
@@ -803,7 +804,7 @@ class _CreditsProductBar extends ConsumerWidget {
                       color: tokens.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     inLibrary
                         ? uiString(lang, 'open_and_start')
@@ -819,7 +820,7 @@ class _CreditsProductBar extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             inLibrary
                 ? FilledButton(
                     onPressed: () => Navigator.of(context).push(

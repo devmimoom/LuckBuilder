@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/app_card.dart';
 import '../../localization/app_language_provider.dart';
@@ -48,7 +49,7 @@ class HomeContinueSection extends ConsumerWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: tokens.textPrimary)),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           productsAsync.when(
             data: (productsMap) {
               return libAsync.when(
@@ -93,7 +94,7 @@ class HomeContinueSection extends ConsumerWidget {
                           onTap: () =>
                               onContinue(lp.productId, lp.progress.nextSeq),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.xs),
                       ],
                     ],
                   );
@@ -213,7 +214,7 @@ class _ContinueCard extends StatelessWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
                           color: tokens.textPrimary)),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                       '${uiString(lang, 'day_label').replaceFirst('{n}', '$day')}/365',
                       maxLines: 1,
@@ -229,9 +230,9 @@ class _ContinueCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.xs),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
               decoration: BoxDecoration(
                 gradient: tokens.buttonGradient,
                 borderRadius: BorderRadius.circular(999),

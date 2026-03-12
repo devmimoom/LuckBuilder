@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 import '../../bubble_library/providers/providers.dart';
 import '../../services/auth_service.dart';
@@ -110,7 +111,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     labelText: uiString(lang, 'email_label'),
                     hintText: uiString(lang, 'email_hint'),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                     filled: true,
                     fillColor: tokens.cardBg,
@@ -128,7 +129,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     onPressed: _loading || _sent ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                       ),
                     ),
                     child: _loading

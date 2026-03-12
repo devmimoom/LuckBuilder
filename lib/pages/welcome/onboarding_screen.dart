@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
 import '../../bubble_library/notifications/notification_service.dart';
+import '../../theme/app_spacing.dart';
 import '../../localization/app_language_provider.dart';
 import '../../localization/app_strings.dart';
 import '../ios_notification_guide_page.dart';
@@ -263,7 +264,7 @@ class _Slide2 extends ConsumerWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 60, 32, 40),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 56, AppSpacing.lg, AppSpacing.xl),
               child: Column(
                 children: [
                   const SizedBox(height: 40),
@@ -278,7 +279,7 @@ class _Slide2 extends ConsumerWidget {
                       height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     uiString(lang, 'onboard_slide2_sub'),
                     textAlign: TextAlign.center,
@@ -322,7 +323,7 @@ class _Slide3 extends ConsumerWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 60, 32, 40),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 56, AppSpacing.lg, AppSpacing.xl),
               child: Column(
                 children: [
                   Text(
@@ -334,7 +335,7 @@ class _Slide3 extends ConsumerWidget {
                       height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     uiString(lang, 'onboard_slide3_sub'),
                     style: const TextStyle(
@@ -395,14 +396,14 @@ class _Slide4 extends ConsumerWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 60, 32, 40),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 56, AppSpacing.lg, AppSpacing.xl),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 64),
                   Container(
-                    width: 100,
-                    height: 100,
+                    width: 96,
+                    height: 96,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
@@ -492,7 +493,7 @@ class _NotificationDemo extends StatelessWidget {
           duration: const Duration(milliseconds: 600),
           builder: (context, value, child) {
             return Transform.translate(
-              offset: Offset(0, -20 * (1 - value)),
+              offset: Offset(0, -24 * (1 - value)),
               child: Opacity(
                 opacity: value,
                 child: child,
@@ -505,7 +506,7 @@ class _NotificationDemo extends StatelessWidget {
             content: uiString(lang, 'onboard_demo_notif1'),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         Opacity(
           opacity: 0.6,
           child: Transform.scale(
@@ -558,7 +559,7 @@ class _NotificationCard extends StatelessWidget {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -614,7 +615,7 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -622,7 +623,7 @@ class _FeatureCard extends StatelessWidget {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -633,7 +634,7 @@ class _FeatureCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -660,7 +661,7 @@ class _FeatureCard extends StatelessWidget {
                     color: Color(0xFF0A0E27),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   description,
                   style: const TextStyle(
@@ -703,7 +704,7 @@ class _BenefitItem extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(
             text,
@@ -747,7 +748,7 @@ class _NavigationWidget extends ConsumerWidget {
       child: Column(
         children: [
           _PageIndicator(currentPage: currentPage, isDarkBg: isDarkBg),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.md),
           if (currentPage == 0)
             Column(
               children: [
@@ -801,7 +802,7 @@ class _NavigationWidget extends ConsumerWidget {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                       ),
                       side: BorderSide(
                         color: isDarkBg
@@ -821,7 +822,7 @@ class _NavigationWidget extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _GradientButton(
                     onPressed: onNext ?? () {},
@@ -853,11 +854,11 @@ class _PageIndicator extends StatelessWidget {
         final isActive = index == currentPage;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
           height: 8,
           width: isActive ? 24 : 8,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
             color: isActive
                 ? (isDarkBg ? Colors.white : const Color(0xFF667EEA))
                 : (isDarkBg
@@ -888,7 +889,7 @@ class _GradientButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           ),
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -901,7 +902,7 @@ class _GradientButton extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           ),
           child: Container(
             alignment: Alignment.center,

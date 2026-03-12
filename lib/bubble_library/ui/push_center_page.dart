@@ -15,6 +15,7 @@ import 'widgets/bubble_card.dart';
 import '../../../pages/push_timeline_page.dart';
 import '../../../notifications/push_timeline_provider.dart';
 import '../../../providers/analytics_provider.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 
 class PushCenterPage extends ConsumerWidget {
@@ -107,7 +108,7 @@ class PushCenterPage extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.sm),
         children: [
           globalAsync.when(
             data: (g) => _globalCard(context, ref, g, lang),
@@ -115,10 +116,10 @@ class PushCenterPage extends ConsumerWidget {
             error: (e, _) => Text('${uiString(lang, 'global_push_error')}$e'),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Text(uiString(lang, 'push_active_title'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           productsAsync.when(
             data: (products) {
               return libAsync.when(
@@ -143,7 +144,7 @@ class PushCenterPage extends ConsumerWidget {
                         final title =
                             products[lp.productId]?.displayTitle(lang) ?? lp.productId;
                         return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                         child: BubbleCard(
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -153,7 +154,7 @@ class PushCenterPage extends ConsumerWidget {
                           child: Row(
                             children: [
                               const Icon(Icons.notifications_active, size: 22),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +163,7 @@ class PushCenterPage extends ConsumerWidget {
                                         style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w900)),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: AppSpacing.xs),
                                     Builder(
                                       builder: (_) {
                                         final cfg = lp.pushConfig;
@@ -214,7 +215,7 @@ class PushCenterPage extends ConsumerWidget {
                                       ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: AppSpacing.sm),
                               ...completed.map((lp) {
                                 final title =
                                     products[lp.productId]?.displayTitle(lang) ?? lp.productId;
@@ -233,13 +234,13 @@ class PushCenterPage extends ConsumerWidget {
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                                       child: Row(
                                         children: [
                                           Icon(Icons.check_circle, 
                                             size: 20, 
                                             color: context.tokens.primary),
-                                          const SizedBox(width: 10),
+                                          const SizedBox(width: AppSpacing.xs),
                                           Expanded(
                                             child: Text(title,
                                               style: const TextStyle(
@@ -495,7 +496,7 @@ class PushCenterPage extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Text(uiString(lang, 'changes_autoreschedule'),
               style:
                   TextStyle(color: context.tokens.textSecondary, fontSize: 12)),

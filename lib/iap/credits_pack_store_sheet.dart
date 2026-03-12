@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../bubble_library/providers/providers.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../ui/glass.dart';
 import 'credits_iap_service.dart';
@@ -25,7 +26,7 @@ void showCreditsPackStoreSheet(BuildContext context, WidgetRef ref) {
       builder: (_, controller) => Container(
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
         ),
         child: _CreditsPackStoreSheet(ref: ref, scrollController: controller),
       ),
@@ -166,7 +167,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.error_outline, size: 48, color: tokens.textSecondary),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 uiString(lang, 'no_credit_packs'),
                 style: TextStyle(fontSize: 16, color: tokens.textSecondary),
@@ -184,12 +185,12 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
     return SafeArea(
       child: ListView(
         controller: widget.scrollController,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           Row(
             children: [
               Icon(Icons.stars_rounded, size: 28, color: tokens.primary),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 uiString(lang, 'credits_title'),
                 style: TextStyle(
@@ -214,7 +215,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
             final isBestValue = credits == 10;
             
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: GlassCard(
                 radius: 16,
                 child: Stack(
@@ -231,7 +232,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                                 height: 48,
                                 decoration: BoxDecoration(
                                   color: tokens.primary.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                                 ),
                                 child: Center(
                                   child: Text(
@@ -244,7 +245,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: AppSpacing.sm),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +259,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                                         color: tokens.textPrimary,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: AppSpacing.xs),
                                     Text(
                                       uiString(lang, 'per_credit_price')
                                           .replaceFirst('{price}', perCreditPrice),
@@ -270,7 +271,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: AppSpacing.sm),
                               loading
                                   ? SizedBox(
                                       width: 24,
@@ -297,7 +298,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
                         top: 8,
                         right: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
                           decoration: BoxDecoration(
                             color: tokens.primary,
                             borderRadius: BorderRadius.circular(8),
@@ -319,7 +320,7 @@ class _CreditsPackStoreSheetState extends ConsumerState<_CreditsPackStoreSheet> 
               ),
             );
           }),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(uiString(lang, 'close')),

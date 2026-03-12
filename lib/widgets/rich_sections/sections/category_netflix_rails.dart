@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/layout_constants.dart';
 import '../../app_card.dart';
@@ -32,7 +33,7 @@ class CategoryNetflixRails extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _title(context, 'Explore'),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.xs),
 
         // 適合你（只有登入才可能有資料）
         hotAsync.when(
@@ -55,7 +56,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                       children: [
                         _railTitle(context, 'For you'),
                         _rail(context, forYou, lang),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: AppSpacing.md),
                       ],
                     );
                   },
@@ -80,7 +81,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                   children: [
                     _railTitle(context, 'New'),
                     _rail(context, newList.take(10).toList(), lang),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AppSpacing.md),
                   ],
                 ),
           loading: () {
@@ -103,7 +104,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                   children: [
                     _railTitle(context, 'Popular'),
                     _rail(context, hot.take(10).toList(), lang),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AppSpacing.md),
                   ],
                 ),
           loading: () {
@@ -152,7 +153,7 @@ class CategoryNetflixRails extends ConsumerWidget {
       );
 
   Widget _railTitle(BuildContext context, String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
         child: Text(t,
             style: TextStyle(
                 fontSize: 16,
@@ -173,7 +174,7 @@ class CategoryNetflixRails extends ConsumerWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: products.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (_, i) => SizedBox(
           width: cardWidth,
           child: AppCard(
@@ -188,7 +189,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                     products[i].coverImageUrl!.isNotEmpty)
                   ClipRRect(
                     borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
+                        const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
                     child: CachedNetworkImage(
                       imageUrl: products[i].coverImageUrl!,
                       height: imageHeight,
@@ -209,7 +210,7 @@ class CategoryNetflixRails extends ConsumerWidget {
                   ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

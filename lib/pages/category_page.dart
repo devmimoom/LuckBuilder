@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/v2_providers.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../data/models.dart';
 import '../widgets/rich_sections/sections/category_netflix_rails_section.dart';
@@ -89,7 +90,7 @@ Widget _buildHeader(
           );
         }
         return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
           child: SizedBox(
             width: double.infinity,
             child: Column(
@@ -106,7 +107,7 @@ Widget _buildHeader(
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   '${ts.length} topics · $totalCards cards',
                   textAlign: TextAlign.left,
@@ -118,7 +119,7 @@ Widget _buildHeader(
         );
       },
       loading: () => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
         child: SizedBox(
           width: double.infinity,
           child: Column(
@@ -134,7 +135,7 @@ Widget _buildHeader(
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 '— topics · — cards',
                 textAlign: TextAlign.left,
@@ -145,7 +146,7 @@ Widget _buildHeader(
         ),
       ),
       error: (_, __) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
         child: SizedBox(
           width: double.infinity,
           child: Text(
@@ -175,10 +176,10 @@ Widget _buildChips(
         if (list.isEmpty) return const SizedBox.shrink();
         final selectedId = selected?.id ?? list.first.id;
         return SizedBox(
-          height: 44,
+          height: 48,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
             itemCount: list.length,
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (_, i) {
@@ -192,12 +193,12 @@ Widget _buildChips(
                     ref.read(selectedSegmentProvider.notifier).state = s,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                   decoration: BoxDecoration(
                     color: active
                         ? tokens.primary.withValues(alpha: 0.12)
                         : tokens.chipBg,
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.circular(48),
                     border: Border.all(
                       color: active
                           ? tokens.primary.withValues(alpha: 0.5)
@@ -208,7 +209,7 @@ Widget _buildChips(
                         ? [
                             BoxShadow(
                               color: tokens.primary.withValues(alpha: 0.2),
-                              blurRadius: 10,
+                              blurRadius: 8,
                             )
                           ]
                         : null,
@@ -229,12 +230,12 @@ Widget _buildChips(
           ),
         );
       },
-      loading: () => const SizedBox(height: 44),
+      loading: () => const SizedBox(height: 48),
       error: (_, __) => const SizedBox.shrink(),
     );
   }
 
-const _kGridPadding = 20.0;
+const _kGridPadding = AppSpacing.md;
 const _kGridGap = 8.0;
 
 Widget _buildGrid(
@@ -248,12 +249,12 @@ Widget _buildGrid(
       data: (ts) {
         if (ts.isEmpty) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: tokens.cardBg,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 border: Border.all(color: tokens.cardBorder),
               ),
               child: Center(
@@ -382,16 +383,16 @@ Widget _buildGrid(
         );
       },
       loading: () => const Padding(
-        padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
+        padding: EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (err, stack) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: tokens.cardBg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(color: tokens.cardBorder),
           ),
           child: Column(
@@ -400,7 +401,7 @@ Widget _buildGrid(
               Text(uiString(ref.read(appLanguageProvider), 'topics_error_title'),
                   style: const TextStyle(
                       color: Colors.red, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text('$err',
                   style: const TextStyle(color: Colors.red, fontSize: 12),
                   maxLines: 3,
@@ -439,8 +440,8 @@ class _CategoryCard extends ConsumerWidget {
     final titleFontSize = isLarge ? 15.0 : 12.0;
     final subtitleFontSize = isLarge ? 10.0 : 9.0;
     final emojiFontSize = isLarge ? 42.0 : 28.0;
-    final bottomPadding = isLarge ? 12.0 : 8.0;
-    final leftPadding = isLarge ? 12.0 : 8.0;
+    final bottomPadding = isLarge ? 16.0 : 8.0;
+    final leftPadding = isLarge ? 16.0 : 8.0;
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
@@ -532,13 +533,13 @@ class _CategoryCard extends ConsumerWidget {
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.2,
                         shadows: const [
-                          Shadow(blurRadius: 6, color: Colors.black54),
+                          Shadow(blurRadius: 8, color: Colors.black54),
                         ],
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: isLarge ? 2 : 1),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '$cardCount cards',
                       style: TextStyle(

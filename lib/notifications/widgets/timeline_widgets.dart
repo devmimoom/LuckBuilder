@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 
 class TLRow {
@@ -36,7 +37,7 @@ String tlTimeOnly(DateTime dt) {
 Widget tlTag(BuildContext context, String text, IconData icon) {
   final tokens = context.tokens;
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
     decoration: BoxDecoration(
       color: tokens.cardBorder.withValues(alpha: 0.3),
       borderRadius: BorderRadius.circular(999),
@@ -46,7 +47,7 @@ Widget tlTag(BuildContext context, String text, IconData icon) {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: tokens.textPrimary),
-        const SizedBox(width: 6),
+        const SizedBox(width: AppSpacing.xs),
         Text(
           text,
           style: TextStyle(
@@ -81,7 +82,7 @@ Widget tlTimelineRow({
   const dotSize = 10.0;
 
   return Padding(
-    padding: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -91,7 +92,7 @@ Widget tlTimelineRow({
           child: Column(
             children: [
               SizedBox(
-                height: 10,
+                height: 8,
                 child: Center(
                   child: Container(
                     width: 2,
@@ -103,7 +104,7 @@ Widget tlTimelineRow({
               ),
               Row(
                 children: [
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.xs),
                   Container(
                     width: dotSize,
                     height: dotSize,
@@ -112,7 +113,7 @@ Widget tlTimelineRow({
                       color: tokens.primary,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
                       '${tlTimeOnly(when)}${seqInDay != null ? ' · #$seqInDay' : ''}',
@@ -126,7 +127,7 @@ Widget tlTimelineRow({
                 ],
               ),
               SizedBox(
-                height: 28,
+                height: 24,
                 child: Center(
                   child: Container(
                     width: 2,
@@ -145,10 +146,10 @@ Widget tlTimelineRow({
         Expanded(
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -170,7 +171,7 @@ Widget tlTimelineRow({
                     // 狀態 chips
                     Wrap(
                       spacing: 8,
-                      runSpacing: 6,
+                      runSpacing: 8,
                       children: [
                         if ((saved?.learned ?? false))
                           tlTag(context, doneLabel ?? 'Done', Icons.check_circle),
@@ -188,7 +189,7 @@ Widget tlTimelineRow({
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       preview,
                       maxLines: 2,
@@ -199,7 +200,7 @@ Widget tlTimelineRow({
                       ),
                     ),
                     if (trailing != null) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSpacing.xs),
                       trailing,
                     ],
                   ],

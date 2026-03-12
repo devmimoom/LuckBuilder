@@ -18,6 +18,7 @@ import 'detail_page.dart';
 import 'widgets/bubble_card.dart';
 import '../../widgets/rich_sections/sections/library_rich_card.dart';
 import '../../widgets/rich_sections/user_learning_store.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../collections/wishlist_provider.dart';
 import '../../pages/product_page.dart';
@@ -161,8 +162,8 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     return Drawer(
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(20),
-          bottomRight: Radius.circular(20),
+          topRight: Radius.circular(AppSpacing.radiusMd),
+          bottomRight: Radius.circular(AppSpacing.radiusMd),
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -173,7 +174,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
             padding: EdgeInsets.zero,
             children: [
               Container(
-                padding: const EdgeInsets.fromLTRB(24, 48, 24, 20),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xxl, AppSpacing.md, AppSpacing.md),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(color: tokens.cardBorder, width: 1),
@@ -189,7 +190,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                 child: Column(
                   children: [
                     _drawerTile(tokens, LibraryView.purchased,
@@ -241,7 +242,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
       selected: selected,
       selectedTileColor: tokens.primary.withValues(alpha: 0.15),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       onTap: () {
@@ -372,13 +373,13 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                       Icon(Icons.filter_list_off,
                           size: 48,
                           color: tokens.textSecondary.withValues(alpha: 0.5)),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
                         uiString(lang, 'no_purchased_match_filters'),
                         style: TextStyle(
                             color: tokens.textPrimary, fontSize: 16),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         uiString(lang, 'try_change_filters'),
                         style: TextStyle(
@@ -388,9 +389,9 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                   ),
                 )
               : ListView.separated(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
                   itemBuilder: (ctx, i) {
                     final lp = filtered[i] as UserLibraryProduct;
         final product = productsMap[lp.productId]!;
@@ -438,7 +439,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 child: Row(
                   children: [
                     Icon(lp.isFavorite ? Icons.star : Icons.star_border),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(lp.isFavorite
                         ? uiString(lang, 'remove_from_favorites')
                         : uiString(lang, 'add_to_favorites')),
@@ -450,7 +451,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 child: Row(
                   children: [
                     const Icon(Icons.notifications_active_outlined),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(uiString(lang, 'notification_settings_title')),
                   ],
                 ),
@@ -523,7 +524,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
         _purchasedSearchQuery.trim().isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       color: tokens.bg,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -551,7 +552,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           // 主題、等級 Chip 多選（橫向捲動）
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -565,11 +566,11 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                     color: tokens.textSecondary,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppSpacing.xs),
                 ...topicList.map((tid) {
                   final selected = _purchasedTopicIds.contains(tid);
                   return Padding(
-                    padding: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.only(right: AppSpacing.xs),
                     child: FilterChip(
                       label: Text(tid),
                       selected: selected,
@@ -592,7 +593,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                     ),
                   );
                 }),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   uiString(lang, 'level_label'),
                   style: TextStyle(
@@ -600,11 +601,11 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                     color: tokens.textSecondary,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppSpacing.xs),
                 ...levelList.map((lv) {
                   final selected = _purchasedLevels.contains(lv);
                   return Padding(
-                    padding: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.only(right: AppSpacing.xs),
                     child: FilterChip(
                       label: Text(lv),
                       selected: selected,
@@ -630,7 +631,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           // 關鍵字
           TextField(
             decoration: InputDecoration(
@@ -640,8 +641,8 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 borderSide: BorderSide(color: tokens.cardBorder),
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
               ),
             ),
             style: TextStyle(color: tokens.textPrimary),
@@ -679,12 +680,12 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
       onTap: () =>
           setState(() => _purchasedPushFilter = value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: selected
               ? tokens.primary.withValues(alpha: 0.2)
               : tokens.chipBg,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
             color: selected ? tokens.primary : tokens.cardBorder,
             width: 1,
@@ -749,9 +750,9 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       itemCount: visibleWish.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
       itemBuilder: (_, i) {
         final w = visibleWish[i];
         final p = productsMap[w.productId]!;
@@ -759,7 +760,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
 
         Widget chip(String label) {
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
               color: tokens.chipBg,
@@ -787,7 +788,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(Icons.lock_outline, size: 26),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -817,7 +818,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.xs),
                     Wrap(
                       spacing: 8,
                       children: [
@@ -825,7 +826,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         chip(uiString(lang, 'preview_available')),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppSpacing.xs),
                     Row(
                       children: [
                         OutlinedButton(
@@ -839,7 +840,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                           },
                           child: Text(uiString(lang, 'preview')),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: AppSpacing.xs),
                         ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).push(MaterialPageRoute(
@@ -903,9 +904,9 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       itemCount: favList.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
       itemBuilder: (ctx, i) {
         final pid = favList[i];
         final title = productsMap[pid]!.displayTitle(lang);
@@ -922,7 +923,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           child: Row(
             children: [
               const Icon(Icons.star, size: 20),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.xs),
               Expanded(
                   child: Text(title,
                       style: const TextStyle(
@@ -1139,7 +1140,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   itemCount: flatItems.length,
                   itemBuilder: (context, index) {
         final item = flatItems[index];
@@ -1186,7 +1187,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           color: isSelected
               ? color.withValues(alpha: 0.2)
               : tokens.cardBg.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
             color: isSelected ? color : tokens.cardBorder,
             width: 1,
@@ -1196,7 +1197,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: isSelected ? color : tokens.textSecondary),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.xs),
             Text(
               label,
               style: TextStyle(
@@ -1223,7 +1224,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
           data: (savedMap) {
             final tokens = context.tokens;
             return Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               color: tokens.bg,
               child: Column(
                 children: [
@@ -1418,16 +1419,16 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
         lang,
       ),
       loading: () => const Padding(
-        padding: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.only(bottom: AppSpacing.xs),
         child: BubbleCard(
           child: SizedBox(
-            height: 60,
+            height: 64,
             child: Center(child: CircularProgressIndicator()),
           ),
         ),
       ),
       error: (e, _) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
         child: BubbleCard(
           child: Text('${uiString(lang, 'load_error')}$e',
               style: TextStyle(color: context.tokens.textSecondary)),
@@ -1449,7 +1450,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
     final tokens = context.tokens;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Container(
         // ✅ 步驟 1：背景色區分狀態
         decoration: BoxDecoration(
@@ -1479,7 +1480,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         size: 16,
                         color: tokens.textPrimary,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           productTitle,
@@ -1507,7 +1508,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                             ? tokens.primary
                             : tokens.textSecondary,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           '#${contentItem.seq} · ${contentItem.displayAnchorGroup(lang)}',
@@ -1595,12 +1596,12 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                 waitDuration: const Duration(milliseconds: 500),
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
                   decoration: BoxDecoration(
                     color: isLearned
                         ? tokens.primary.withValues(alpha: 0.2) // 已學習：主題色
                         : tokens.cardBorder.withValues(alpha: 0.4), // 待學習：淺色
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     border: Border.all(
                       color: isLearned ? tokens.primary : tokens.textSecondary,
                       width: 1,
@@ -1614,7 +1615,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                         size: 12,
                         color: isLearned ? tokens.primary : tokens.textSecondary,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         isLearned ? uiString(lang, 'done') : uiString(lang, 'pending'),
                         style: TextStyle(
@@ -1716,9 +1717,9 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
             }
 
             return ListView.separated(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               itemCount: sentences.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
               itemBuilder: (context, index) {
                 final sentence = sentences[index];
                 final tokens = context.tokens;
@@ -1761,7 +1762,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                                 size: 16,
                                 color: tokens.textPrimary,
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: Text(
                                   sentence.productName,
@@ -1784,7 +1785,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                                 size: 14,
                                 color: tokens.textSecondary,
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: Text(
                                   sentence.anchorGroup,
@@ -1797,7 +1798,7 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: AppSpacing.xs),
                           // anchor（小字）
                           Text(
                             sentence.anchor,
@@ -1806,10 +1807,10 @@ class _BubbleLibraryPageState extends ConsumerState<BubbleLibraryPage> {
                               color: tokens.textSecondary.withValues(alpha: 0.7),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.sm),
                           // content（「今日一句」內容，主要顯示）
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(AppSpacing.sm),
                             decoration: BoxDecoration(
                               color: tokens.cardBg,
                               borderRadius: BorderRadius.circular(8),

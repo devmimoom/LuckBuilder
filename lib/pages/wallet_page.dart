@@ -6,6 +6,7 @@ import '../bubble_library/providers/providers.dart';
 import '../localization/app_language.dart';
 import '../localization/app_language_provider.dart';
 import '../localization/app_strings.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../ui/glass.dart';
 import '../iap/credits_pack_store_sheet.dart';
@@ -97,7 +98,7 @@ class WalletPage extends ConsumerWidget {
                       ),
                     ),
                     loading: () => SizedBox(
-                      height: 44,
+                      height: 48,
                       child: Center(
                         child: SizedBox(
                           width: 24,
@@ -146,7 +147,7 @@ class WalletPage extends ConsumerWidget {
                 color: tokens.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             transactionsAsync.when(
               data: (list) {
                 if (list.isEmpty) {
@@ -232,7 +233,7 @@ class _TransactionTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: GlassCard(
         radius: 16,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -260,7 +261,7 @@ class _TransactionTile extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               dateStr,
               style: TextStyle(
@@ -270,7 +271,7 @@ class _TransactionTile extends StatelessWidget {
             ),
             if (transaction.productId != null &&
                 transaction.productId!.isNotEmpty) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 transaction.productId!,
                 style: TextStyle(
@@ -282,7 +283,7 @@ class _TransactionTile extends StatelessWidget {
               ),
             ],
             if (transaction.balanceAfter != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 '${uiString(lang, 'balance_after')}${transaction.balanceAfter}',
                 style: TextStyle(

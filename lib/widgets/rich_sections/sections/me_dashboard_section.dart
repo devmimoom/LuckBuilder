@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../app_card.dart';
 
@@ -59,7 +60,7 @@ class MeDashboardSection extends ConsumerWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: tokens.textPrimary)),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           productsMapAsync.when(
             data: (productsMap) {
               return globalPushAsync.when(
@@ -180,7 +181,7 @@ class MeDashboardSection extends ConsumerWidget {
                               _Kpi('push', pushingCount),
                             ],
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: AppSpacing.sm),
                           Text(uiString(lang, 'goals'),
                               style: TextStyle(
                                   color: tokens.textSecondary,
@@ -190,11 +191,11 @@ class MeDashboardSection extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(999),
                             child: LinearProgressIndicator(
                               value: progress,
-                              minHeight: 10,
+                              minHeight: 8,
                               backgroundColor: tokens.chipBg,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: AppSpacing.xs),
                           Text(
                               '${uiString(lang, 'saved_unlocked')} $totalOwnedOrSaved / $goal',
                               style: TextStyle(
@@ -221,7 +222,7 @@ class MeDashboardSection extends ConsumerWidget {
                                 ),
                               );
                             }),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: AppSpacing.sm),
                           ],
                           if (top3.isNotEmpty) ...[
                             Text(uiString(lang, 'your_top_categories'),
@@ -230,8 +231,8 @@ class MeDashboardSection extends ConsumerWidget {
                                     fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
+                              spacing: AppSpacing.xs,
+                              runSpacing: AppSpacing.xs,
                               children: top3.map((e) {
                                 return _chip(context, '${e.key} · ${e.value}');
                               }).toList(),
@@ -318,10 +319,10 @@ class MeDashboardSection extends ConsumerWidget {
           flex: flex,
           child: Container(
             margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(AppSpacing.xs),
             decoration: BoxDecoration(
               color: context.tokens.cardBg.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               border: Border.all(color: context.tokens.cardBorder),
             ),
             child: Column(
@@ -332,7 +333,7 @@ class MeDashboardSection extends ConsumerWidget {
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                         color: tokens.textPrimary)),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 Text(uiString(lang, _dashboardLabelKey(e.label)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -363,11 +364,11 @@ class MeDashboardSection extends ConsumerWidget {
               height: 36,
               decoration: BoxDecoration(
                 color: tokens.primary.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Icon(Icons.history, color: tokens.primary),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.xs),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,7 +379,7 @@ class MeDashboardSection extends ConsumerWidget {
                       style: TextStyle(
                           color: tokens.textPrimary,
                           fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -397,7 +398,7 @@ class MeDashboardSection extends ConsumerWidget {
   Widget _chip(BuildContext context, String text) {
     final tokens = context.tokens;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: tokens.chipBg,
         borderRadius: BorderRadius.circular(999),

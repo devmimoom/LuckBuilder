@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/v2_providers.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/layout_constants.dart';
 import '../../app_card.dart';
@@ -50,21 +51,21 @@ class CategoryDynamicRailsSection extends ConsumerWidget {
                 color: tokens.textPrimary,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             _RailBlock(
               title: uiString(lang, 'cat_for_you'),
               async: forYouAsync,
               emptyHint: 'No data (check Firestore featured_lists/$forYouId)',
               lang: lang,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSpacing.sm),
             _RailBlock(
               title: uiString(lang, 'cat_new'),
               async: newAsync,
               emptyHint: 'No data (check Firestore featured_lists/$newId)',
               lang: lang,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSpacing.sm),
             _RailBlock(
               title: uiString(lang, 'cat_popular'),
               async: hotAsync,
@@ -133,13 +134,13 @@ class _RailBlock extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                   color: tokens.textPrimary,
                 )),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             SizedBox(
               height: railHeight,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: ps.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
                 itemBuilder: (_, i) {
                   final p = ps[i];
                   return _MiniProductCard(
@@ -200,7 +201,7 @@ class _MiniProductCard extends StatelessWidget {
                 product.coverImageUrl!.isNotEmpty)
               ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
+                    const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
                 child: CachedNetworkImage(
                   imageUrl: product.coverImageUrl!,
                   width: double.infinity,
@@ -226,14 +227,14 @@ class _MiniProductCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: tokens.chipBg,
                   borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
+                      const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
                 ),
                 child: Icon(Icons.auto_awesome, color: tokens.textSecondary),
               ),
 
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,13 +250,13 @@ class _MiniProductCard extends StatelessWidget {
                           color: tokens.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         '${product.topicId} · ${product.level}',
                         style: TextStyle(color: tokens.textSecondary, fontSize: 12),
                       ),
                       if (productLevelGoal(product, lang).trim().isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           productLevelGoal(product, lang),
                           maxLines: 2,

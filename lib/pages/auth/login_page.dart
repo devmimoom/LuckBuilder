@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 import '../../bubble_library/providers/providers.dart';
 import '../../services/auth_service.dart';
@@ -222,7 +223,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     labelText: uiString(lang, 'email_label'),
                     hintText: uiString(lang, 'email_hint'),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                     filled: true,
                     fillColor: tokens.cardBg,
@@ -242,7 +243,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   decoration: InputDecoration(
                     labelText: uiString(lang, 'password_label'),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                     filled: true,
                     fillColor: tokens.cardBg,
@@ -260,7 +261,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -281,7 +282,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     onPressed: _loading ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                       ),
                     ),
                     child: _loading
@@ -328,7 +329,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     onPressed: _loading ? null : _signInWithGoogle,
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                       ),
                       side: BorderSide(color: tokens.cardBorder),
                     ),
@@ -337,14 +338,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
                 if (Platform.isIOS) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   SizedBox(
                     height: 52,
                     child: OutlinedButton.icon(
                       onPressed: _loading ? null : _signInWithApple,
                       style: OutlinedButton.styleFrom(
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                         side: BorderSide(color: tokens.cardBorder),
                       ),

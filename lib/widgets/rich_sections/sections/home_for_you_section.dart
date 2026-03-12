@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/layout_constants.dart';
 import '../../app_card.dart';
@@ -49,7 +50,7 @@ class HomeForYouSection extends ConsumerWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: tokens.textPrimary)),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           hotAsync.when(
             data: (hotList) {
               return libAsync.when(
@@ -78,7 +79,7 @@ class HomeForYouSection extends ConsumerWidget {
                           scrollDirection: Axis.horizontal,
                           itemCount: picks.length,
                           separatorBuilder: (_, __) =>
-                              const SizedBox(width: 12),
+                              const SizedBox(width: AppSpacing.sm),
                           itemBuilder: (_, i) {
                             final p = picks[i];
                             return _ForYouCard(
@@ -283,7 +284,7 @@ class _ForYouCard extends StatelessWidget {
                 product.coverImageUrl!.isNotEmpty)
               ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
+                    const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusMd)),
                 child: CachedNetworkImage(
                   imageUrl: product.coverImageUrl!,
                   height: imageHeight,
@@ -305,7 +306,7 @@ class _ForYouCard extends StatelessWidget {
               ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(AppSpacing.xs),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -325,13 +326,13 @@ class _ForYouCard extends StatelessWidget {
                               fontWeight: FontWeight.w900,
                               color: tokens.textPrimary)),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text('${product.topicId} · ${product.level}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             color: tokens.textSecondary, fontSize: 11)),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.xs),
                     Align(
                       alignment: Alignment.bottomRight,
                       child: Text(uiString(lang, 'view_chevron'),

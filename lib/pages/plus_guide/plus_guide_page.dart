@@ -13,6 +13,7 @@ import '../../localization/app_strings.dart';
 import '../../localization/bilingual_text.dart';
 import '../../providers/nav_providers.dart';
 import '../../providers/v2_providers.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_tokens.dart';
 import 'plus_guide_state.dart';
 
@@ -84,44 +85,45 @@ class _GuideColors {
   });
 
   factory _GuideColors.of(BuildContext context) {
+    final tokens = context.tokens;
     final dark = Theme.of(context).brightness == Brightness.dark;
     if (dark) {
-      return const _GuideColors._(
-        cardStart: Color(0xFF1E2236),
-        cardEnd: Color(0xFF14182C),
-        cardShadow: Color(0x44000000),
-        surface: Color(0x1AFFFFFF),
-        surfaceSelected: Color(0xFF2E3350),
-        accent: Color(0xFFE8A838),
-        accentDeep: Color(0xFFD49520),
-        titleText: Color(0xFFEDE8DD),
-        bodyText: Color(0xFF9A9484),
-        mutedText: Color(0xFF6B6558),
-        positiveText: Color(0xFF6CC070),
-        positiveBg: Color(0x1A6CC070),
-        warningBg: Color(0x26E8A838),
-        warningText: Color(0xFFE8A838),
-        chipBg: Color(0x14FFFFFF),
-        chipBorder: Color(0xFFE8A838),
+      return _GuideColors._(
+        cardStart: const Color(0xFF1E2236),
+        cardEnd: const Color(0xFF14182C),
+        cardShadow: const Color(0x44000000),
+        surface: const Color(0x1AFFFFFF),
+        surfaceSelected: const Color(0xFF2E3350),
+        accent: tokens.primary,
+        accentDeep: tokens.primaryBright,
+        titleText: const Color(0xFFEDE8DD),
+        bodyText: const Color(0xFF9A9484),
+        mutedText: const Color(0xFF6B6558),
+        positiveText: const Color(0xFF6CC070),
+        positiveBg: const Color(0x1A6CC070),
+        warningBg: tokens.primary.withValues(alpha: 0.15),
+        warningText: tokens.primary,
+        chipBg: const Color(0x14FFFFFF),
+        chipBorder: tokens.primary,
       );
     }
-    return const _GuideColors._(
-      cardStart: Color(0xFFFFF3D0),
-      cardEnd: Color(0xFFFFE8A0),
-      cardShadow: Color(0x33D4A017),
-      surface: Color(0x99FFFFFF),
-      surfaceSelected: Color(0xFFFFD966),
-      accent: Color(0xFFD4A017),
-      accentDeep: Color(0xFFB8860B),
-      titleText: Color(0xFF3A2C00),
-      bodyText: Color(0xFF7A6000),
-      mutedText: Color(0xFF9A7800),
-      positiveText: Color(0xFF4A9A4A),
-      positiveBg: Color(0xFFE8F5E8),
-      warningBg: Color(0xFFFFF0E0),
-      warningText: Color(0xFFB05000),
-      chipBg: Color(0x8CFFFFFF),
-      chipBorder: Color(0xFFD4A017),
+    return _GuideColors._(
+      cardStart: const Color(0xFFFFFBF0),
+      cardEnd: const Color(0xFFFFF5F8),
+      cardShadow: const Color(0x1A000000),
+      surface: const Color(0x99FFFFFF),
+      surfaceSelected: tokens.primaryPale,
+      accent: tokens.primary,
+      accentDeep: tokens.primaryBright,
+      titleText: const Color(0xFF1A1710),
+      bodyText: const Color(0xFF6B6152),
+      mutedText: const Color(0xFF9A9080),
+      positiveText: const Color(0xFF4A9A4A),
+      positiveBg: const Color(0xFFE8F5E8),
+      warningBg: tokens.primaryPale,
+      warningText: tokens.primary,
+      chipBg: const Color(0x8CFFFFFF),
+      chipBorder: tokens.primary,
     );
   }
 }
@@ -256,7 +258,7 @@ class _StepIndicator extends StatelessWidget {
     final showLabels = width >= 360;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(_kCardOuterH, 12, _kCardOuterH, 8),
+      padding: const EdgeInsets.fromLTRB(_kCardOuterH, AppSpacing.sm, _kCardOuterH, AppSpacing.xs),
       child: Row(
         children: List.generate(_stepKeys.length * 2 - 1, (i) {
           if (i.isOdd) {
@@ -265,12 +267,12 @@ class _StepIndicator extends StatelessWidget {
             return Expanded(
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                height: 2,
+                height: 8,
                 decoration: BoxDecoration(
                   color: done
                       ? tokens.primary
                       : tokens.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
                 ),
               ),
             );
@@ -300,7 +302,7 @@ class _StepIndicator extends StatelessWidget {
                           BoxShadow(
                             color: tokens.primary.withValues(alpha: 0.4),
                             blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            offset: const Offset(0, 8),
                           )
                         ]
                       : null,
@@ -324,7 +326,7 @@ class _StepIndicator extends StatelessWidget {
                 ),
               ),
               if (showLabels) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   uiString(lang, _stepKeys[step]),
                   style: TextStyle(
@@ -365,13 +367,13 @@ class _VerticalStepIndicator extends StatelessWidget {
             final step = i ~/ 2;
             final done = step < currentStep;
             return Container(
-              width: 2,
-              height: 28,
+              width: 8,
+              height: 32,
               decoration: BoxDecoration(
                 color: done
                     ? tokens.primary
                     : tokens.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
               ),
             );
           }
@@ -383,8 +385,8 @@ class _VerticalStepIndicator extends StatelessWidget {
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                width: isActive ? 28 : 22,
-                height: isActive ? 28 : 22,
+                width: isActive ? 24 : 24,
+                height: isActive ? 24 : 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isDone
@@ -397,7 +399,7 @@ class _VerticalStepIndicator extends StatelessWidget {
                           BoxShadow(
                             color: tokens.primary.withValues(alpha: 0.4),
                             blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            offset: const Offset(0, 8),
                           )
                         ]
                       : null,
@@ -500,7 +502,7 @@ class _Step0Confirm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           _AnimatedMockNotificationBanner(lang: lang),
           const SizedBox(height: 24),
           Text(
@@ -558,7 +560,7 @@ class _Step1Topic extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SectionLabel(label: uiString(lang, 'plus_guide_segment_title')),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           segmentsAsync.when(
             loading: () =>
                 _LoadingRow(message: uiString(lang, 'plus_guide_loading')),
@@ -570,7 +572,7 @@ class _Step1Topic extends ConsumerWidget {
               }
               return Wrap(
                 spacing: 8,
-                runSpacing: 6,
+                runSpacing: 8,
                 children: visible
                     .map((s) => _ChoiceChip(
                           label: s.displayTitle(lang),
@@ -585,7 +587,7 @@ class _Step1Topic extends ConsumerWidget {
           if (formState.selectedSegment != null) ...[
             const SizedBox(height: _kSectionSpacing),
             _SectionLabel(label: uiString(lang, 'plus_guide_topic_title')),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             topicsAsync.when(
               loading: () =>
                   _LoadingRow(message: uiString(lang, 'plus_guide_loading')),
@@ -597,7 +599,7 @@ class _Step1Topic extends ConsumerWidget {
                 }
                 return Wrap(
                   spacing: 8,
-                  runSpacing: 6,
+                  runSpacing: 8,
                   children: visible
                       .map((t) => _ChoiceChip(
                             label: t.displayTitle(lang),
@@ -613,7 +615,7 @@ class _Step1Topic extends ConsumerWidget {
           if (formState.selectedTopic != null) ...[
             const SizedBox(height: _kSectionSpacing),
             _SectionLabel(label: uiString(lang, 'plus_guide_product_title')),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.xs),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: _kProductListMaxHeight),
               child: SingleChildScrollView(
@@ -726,16 +728,16 @@ class _ProductCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: selected ? c.surfaceSelected : c.surface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
             color: selected ? c.accent : Colors.transparent,
-            width: 2,
+            width: 8,
           ),
           boxShadow: selected
-              ? [BoxShadow(color: c.cardShadow, blurRadius: 8, offset: const Offset(0, 2))]
+              ? [BoxShadow(color: c.cardShadow, blurRadius: 8, offset: const Offset(0, 8))]
               : null,
         ),
         child: Row(
@@ -751,7 +753,7 @@ class _ProductCard extends StatelessWidget {
                       color: c.titleText,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     product.creditsRequired > 0
                         ? uiString(lang, 'plus_guide_credits_label')
@@ -825,12 +827,12 @@ class _ProductPreviewSheet extends ConsumerWidget {
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Row(
                 children: [
                   Expanded(
@@ -854,14 +856,14 @@ class _ProductPreviewSheet extends ConsumerWidget {
             const SizedBox(height: 8),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (product.coverImageUrl != null &&
                         product.coverImageUrl!.isNotEmpty)
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                         child: AspectRatio(
                           aspectRatio: 3 / 2,
                           child: Image.network(
@@ -871,7 +873,7 @@ class _ProductPreviewSheet extends ConsumerWidget {
                         ),
                       ),
                     if ((product.contentArchitecture ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         uiString(lang, 'plus_guide_content_arch'),
                         style: TextStyle(
@@ -887,7 +889,7 @@ class _ProductPreviewSheet extends ConsumerWidget {
                           color: c.surface,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(AppSpacing.sm),
                         child: Text(
                           productContentArchitecture(product, lang),
                           style: TextStyle(
@@ -898,7 +900,7 @@ class _ProductPreviewSheet extends ConsumerWidget {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
                       uiString(lang, 'plus_guide_preview_items'),
                       style: TextStyle(
@@ -935,7 +937,7 @@ class _ProductPreviewSheet extends ConsumerWidget {
                             scrollDirection: Axis.horizontal,
                             itemCount: items.length,
                             separatorBuilder: (_, __) =>
-                                const SizedBox(width: 12),
+                                const SizedBox(width: AppSpacing.sm),
                             itemBuilder: (_, index) {
                               final it = items[index];
                               return SizedBox(
@@ -943,9 +945,9 @@ class _ProductPreviewSheet extends ConsumerWidget {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: c.surface,
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                                   ),
-                                  padding: const EdgeInsets.all(14),
+                                  padding: const EdgeInsets.all(AppSpacing.sm),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -960,7 +962,7 @@ class _ProductPreviewSheet extends ConsumerWidget {
                                           color: c.titleText,
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
+                                      const SizedBox(height: AppSpacing.xs),
                                       Expanded(
                                         child: Text(
                                           contentItemText(it, lang),
@@ -1106,17 +1108,17 @@ class _Step2LearnState extends ConsumerState<_Step2Learn> {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
               color: c.surface,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
             child: Row(
               children: [
                 Icon(Icons.book, color: c.accent, size: 28),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     productTitle,
@@ -1129,7 +1131,7 @@ class _Step2LearnState extends ConsumerState<_Step2Learn> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.md),
 
           if (!isLoggedIn) ...[
             _InfoBox(
@@ -1174,7 +1176,7 @@ class _Step2LearnState extends ConsumerState<_Step2Learn> {
                   .replaceAll('{n}', '$balance'),
               style: tt.bodySmall?.copyWith(color: c.mutedText),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             if (canAfford) ...[
               _PrimaryBtn(
                 label: _adding
@@ -1189,7 +1191,7 @@ class _Step2LearnState extends ConsumerState<_Step2Learn> {
                 message: uiString(lang, 'plus_guide_insufficient')
                     .replaceAll('{n}', '$balance'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               _PrimaryBtn(
                 label: uiString(lang, 'plus_guide_buy_btn'),
                 onTap: () {
@@ -1201,7 +1203,7 @@ class _Step2LearnState extends ConsumerState<_Step2Learn> {
           ],
 
           if (_error != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             _ErrorText(_error!),
           ],
 
@@ -1295,8 +1297,8 @@ class _Step3NotifyState extends ConsumerState<_Step3Notify> {
     final slots = widget.formState.presetSlots;
     final freq = widget.formState.freqPerDay;
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final chipH = screenWidth < 360 ? 10.0 : 14.0;
-    final chipV = screenWidth < 360 ? 6.0 : 8.0;
+    final chipH = screenWidth < 360 ? 8.0 : 16.0;
+    final chipV = 8.0;
     final chipFont = screenWidth < 360 ? 11.0 : 13.0;
 
     return _GuideCard(
@@ -1325,7 +1327,7 @@ class _Step3NotifyState extends ConsumerState<_Step3Notify> {
               color: c.titleText,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1352,7 +1354,7 @@ class _Step3NotifyState extends ConsumerState<_Step3Notify> {
                       width: 1.5,
                     ),
                     boxShadow: sel
-                        ? [BoxShadow(color: c.cardShadow, blurRadius: 6, offset: const Offset(0, 2))]
+                        ? [BoxShadow(color: c.cardShadow, blurRadius: 8, offset: const Offset(0, 8))]
                         : null,
                   ),
                   child: Text(
@@ -1376,7 +1378,7 @@ class _Step3NotifyState extends ConsumerState<_Step3Notify> {
               color: c.titleText,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: c.accent,
@@ -1458,7 +1460,7 @@ class _Step4Done extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.md),
           Center(
             child: TweenAnimationBuilder<double>(
               duration: const Duration(milliseconds: 600),
@@ -1479,7 +1481,7 @@ class _Step4Done extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             uiString(lang, 'plus_guide_done_title'),
             style: tt.titleLarge?.copyWith(
@@ -1488,7 +1490,7 @@ class _Step4Done extends ConsumerWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             uiString(lang, 'plus_guide_done_body'),
             style: tt.bodyMedium?.copyWith(
@@ -1501,10 +1503,10 @@ class _Step4Done extends ConsumerWidget {
             const SizedBox(height: 16),
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                 decoration: BoxDecoration(
                   color: c.surface,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
                 child: Text(
                   '${uiString(lang, "plus_guide_done_product")}$productTitle',
@@ -1575,7 +1577,7 @@ class _AnimatedMockNotificationBannerState
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    final curve = Curves.easeOutCubic;
+    const curve = Curves.easeOutCubic;
     _slide = Tween<Offset>(
       begin: const Offset(0, -1),
       end: Offset.zero,
@@ -1654,7 +1656,7 @@ class _MockNotificationBanner extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           boxShadow: [
             BoxShadow(
               color: c.cardShadow,
@@ -1663,7 +1665,7 @@ class _MockNotificationBanner extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         child: Row(
           children: [
             Container(
@@ -1689,7 +1691,7 @@ class _MockNotificationBanner extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.xs),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1707,7 +1709,7 @@ class _MockNotificationBanner extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         'now',
                         style: tt.bodySmall?.copyWith(
@@ -1717,23 +1719,23 @@ class _MockNotificationBanner extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     uiString(lang, 'plus_guide_notify_title'),
                     style: tt.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: c.titleText,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     uiString(lang, 'plus_guide_notify_body'),
                     style: tt.bodySmall?.copyWith(
                       color: c.bodyText,
                     ),
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -1759,7 +1761,7 @@ class _NotificationExtensionSheet extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: c.cardStart,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
           boxShadow: [
             BoxShadow(
               color: c.cardShadow,
@@ -1775,16 +1777,16 @@ class _NotificationExtensionSheet extends StatelessWidget {
             Center(
               child: Container(
                 width: 40,
-                height: 4,
+                height: 8,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1795,7 +1797,7 @@ class _NotificationExtensionSheet extends StatelessWidget {
                       color: c.mutedText,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     '今日的學習提醒已準備好',
                     style: tt.titleMedium?.copyWith(
@@ -1817,11 +1819,11 @@ class _NotificationExtensionSheet extends StatelessWidget {
             const SizedBox(height: 16),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
                 child: Container(
                   decoration: BoxDecoration(
                     color: c.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -1830,11 +1832,11 @@ class _NotificationExtensionSheet extends StatelessWidget {
                       Row(
                         children: [
                           Container(
-                            width: 34,
-                            height: 34,
+                            width: 32,
+                            height: 32,
                             decoration: BoxDecoration(
                               shape: BoxShape.rectangle,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
                               gradient: LinearGradient(
                                 colors: [c.accent, c.accentDeep],
                                 begin: Alignment.topLeft,
@@ -1852,7 +1854,7 @@ class _NotificationExtensionSheet extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: AppSpacing.xs),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1864,7 +1866,7 @@ class _NotificationExtensionSheet extends StatelessWidget {
                                     color: c.titleText,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: AppSpacing.xs),
                                 Text(
                                   '專注 5 分鐘，完成今天的一小步',
                                   style: tt.bodyMedium?.copyWith(
@@ -1877,14 +1879,14 @@ class _NotificationExtensionSheet extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.sm),
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
                             color: c.surfaceSelected,
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(AppSpacing.sm),
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Text(
@@ -1906,9 +1908,9 @@ class _NotificationExtensionSheet extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: c.accent,
                                 foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(44),
+                                minimumSize: const Size.fromHeight(AppSpacing.buttonMinHeight),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                                 ),
                               ),
                               child: const Text(
@@ -1919,14 +1921,14 @@ class _NotificationExtensionSheet extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => Navigator.of(context).pop(),
                               style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(44),
+                                minimumSize: const Size.fromHeight(AppSpacing.buttonMinHeight),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                                 ),
                                 side: BorderSide(
                                   color: c.accent,
@@ -1995,7 +1997,7 @@ class _ChoiceChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: selected ? c.surfaceSelected : c.chipBg,
           borderRadius: BorderRadius.circular(24),
@@ -2004,7 +2006,7 @@ class _ChoiceChip extends StatelessWidget {
             width: 1.5,
           ),
           boxShadow: selected
-              ? [BoxShadow(color: c.cardShadow, blurRadius: 6, offset: const Offset(0, 2))]
+              ? [BoxShadow(color: c.cardShadow, blurRadius: 8, offset: const Offset(0, 8))]
               : null,
         ),
         child: Text(
@@ -2036,7 +2038,7 @@ class _PrimaryBtn extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         child: Container(
           constraints: const BoxConstraints(minHeight: _kButtonMinHeight),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             gradient: disabled
@@ -2049,8 +2051,8 @@ class _PrimaryBtn extends StatelessWidget {
                 : [
                     BoxShadow(
                       color: c.accent.withValues(alpha: 0.45),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
                   ],
           ),
@@ -2082,9 +2084,9 @@ class _SecondaryBtn extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: c.mutedText,
         side: BorderSide(color: c.accent, width: 1.5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        minimumSize: const Size(64, _kButtonMinHeight),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+        minimumSize: const Size(64, AppSpacing.buttonMinHeight),
       ),
       child: Text(
         label,
@@ -2110,15 +2112,15 @@ class _InfoBox extends StatelessWidget {
     final color = positive ? c.positiveText : c.warningText;
     final bg = positive ? c.positiveBg : c.warningBg;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
       child: Row(
         children: [
           Icon(icon, color: color, size: 20),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
               message,
@@ -2142,15 +2144,15 @@ class _LoadingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = _GuideColors.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
           SizedBox(
-            width: 18,
-            height: 18,
+            width: 16,
+            height: 16,
             child: CircularProgressIndicator(strokeWidth: 2, color: c.accent),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             message ?? '…',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: c.mutedText),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/app_spacing.dart';
 import '../localization/app_language.dart';
 import '../localization/app_language_provider.dart';
 import '../localization/app_strings.dart';
@@ -18,7 +19,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(appLanguageProvider);
     final body = ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.md),
       children: [
         // Header
         Text(
@@ -57,7 +58,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
           isHighlighted: true,
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.md),
 
         // Setting 2: Banner style
         _buildSettingCard(
@@ -74,7 +75,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
           badgeTextKey: 'ios_guide_badge_recommended',
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: AppSpacing.md),
 
         // Setting 3: Show Previews
         _buildSettingCard(
@@ -95,7 +96,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
 
         // Why "Immediately" matters
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: const Color(0xFFFFF3E0),
             borderRadius: BorderRadius.circular(16),
@@ -117,10 +118,10 @@ class IosNotificationGuidePage extends ConsumerWidget {
                     child: const Icon(
                       CupertinoIcons.lightbulb,
                       color: Color(0xFFFF9800),
-                      size: 20,
+                      size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     uiString(lang, 'ios_guide_why_immediately_title'),
                     style: const TextStyle(
@@ -131,7 +132,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 uiString(lang, 'ios_guide_why_immediately_body1'),
                 style: TextStyle(
@@ -157,7 +158,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
 
         // Open Settings button
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -203,7 +204,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
                     vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                   ),
                 ),
               ),
@@ -218,7 +219,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           ),
           child: Row(
             children: [
@@ -227,7 +228,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
                 color: Colors.grey.shade600,
                 size: 20,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   uiString(lang, 'ios_guide_footer_note'),
@@ -253,7 +254,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
               ),
               child: Text(uiString(lang, 'ios_guide_get_started')),
@@ -299,7 +300,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
     final badgeText = uiString(lang, badgeTextKey);
     final steps = stepKeys.map((k) => uiString(lang, k)).toList();
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -314,8 +315,8 @@ class IosNotificationGuidePage extends ConsumerWidget {
             color: isHighlighted
                 ? iconColor.withValues(alpha: 0.1)
                 : Colors.black.withValues(alpha: 0.03),
-            blurRadius: isHighlighted ? 12 : 10,
-            offset: const Offset(0, 2),
+            blurRadius: isHighlighted ? 16 : 8,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -329,11 +330,11 @@ class IosNotificationGuidePage extends ConsumerWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
                 child: Icon(icon, color: iconColor, size: 24),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   title,
@@ -346,8 +347,8 @@ class IosNotificationGuidePage extends ConsumerWidget {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: AppSpacing.xs,
+                  vertical: AppSpacing.xs,
                 ),
                 decoration: BoxDecoration(
                   color: iconColor.withValues(
@@ -366,7 +367,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             description,
             style: TextStyle(
@@ -377,7 +378,7 @@ class IosNotificationGuidePage extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
               color: isHighlighted
                   ? iconColor.withValues(alpha: 0.05)
@@ -388,13 +389,13 @@ class IosNotificationGuidePage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: steps.map((step) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (isHighlighted)
                         Padding(
-                          padding: const EdgeInsets.only(right: 8, top: 2),
+                          padding: const EdgeInsets.only(right: AppSpacing.xs, top: AppSpacing.xs),
                           child: Icon(
                             CupertinoIcons.checkmark_circle_fill,
                             size: 16,

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_tokens.dart';
-import '../../app_card.dart';
 import '../../../bubble_library/providers/providers.dart';
-import '../../../collections/wishlist_provider.dart';
 import '../../../localization/app_language.dart';
 import '../../../localization/app_language_provider.dart';
 import '../../../localization/app_strings.dart';
@@ -63,13 +62,13 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
     final tokens = context.tokens;
     final lang = ref.watch(appLanguageProvider);
 
-    // 建議標籤：從你已擁有/收藏的產品 topicId 推出（不改後端）
-    final productsMapAsync = ref.watch(productsMapProvider);
-    final libAsync = _safeLib();
-    final wishAsync = _safeWish();
-
-    return AppCard(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: tokens.cardBg,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: tokens.cardBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -103,125 +102,13 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
                     color: tokens.textSecondary, fontSize: _chipFontSize))
           else
             Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
               children: _tags.map((t) => _chip(context, lang, t)).toList(),
             ),
-          const SizedBox(height: 14),
-          Text(uiString(lang, 'interest_tags_suggested'),
-              style: TextStyle(
-                  color: tokens.textSecondary, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          productsMapAsync.when(
-            data: (productsMap) {
-              return libAsync.when(
-                data: (lib) {
-                  return wishAsync.when(
-                    data: (wish) {
-                      final suggested = _suggestTags(productsMap, lib, wish)
-                          .where((t) => !_tags.contains(t))
-                          .take(10)
-                          .toList();
-
-                      if (suggested.isEmpty) {
-                        return Text(
-                            uiString(lang, 'interest_tags_few_items'),
-                            style: TextStyle(
-                                color: tokens.textSecondary,
-                                fontSize: _chipFontSize));
-                      }
-
-                      return Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: suggested.map((t) {
-                          return _chipTappable(
-                            context,
-                            lang,
-                            t,
-                            () => _save([..._tags, t]),
-                          );
-                        }).toList(),
-                      );
-                    },
-                    loading: () => const SizedBox(
-                        height: 36,
-                        child: Center(child: CircularProgressIndicator())),
-                    error: (e, _) => Text('$e',
-                        style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: _chipFontSize)),
-                  );
-                },
-                loading: () => const SizedBox(
-                    height: 36,
-                    child: Center(child: CircularProgressIndicator())),
-                error: (e, _) => Text('$e',
-                    style: TextStyle(
-                        color: tokens.textSecondary,
-                        fontSize: _chipFontSize)),
-              );
-            },
-            loading: () => const SizedBox(
-                height: 36, child: Center(child: CircularProgressIndicator())),
-            error: (e, _) => Text('$e',
-                style: TextStyle(
-                    color: tokens.textSecondary,
-                    fontSize: _chipFontSize)),
-          ),
         ],
       ),
     );
-  }
-
-  AsyncValue<List<dynamic>> _safeLib() {
-    try {
-      ref.read(uidProvider);
-      return ref.watch(libraryProductsProvider);
-    } catch (_) {
-      return const AsyncValue.data(<dynamic>[]);
-    }
-  }
-
-  AsyncValue<List<dynamic>> _safeWish() {
-    try {
-      ref.read(uidProvider);
-      return ref.watch(localWishlistProvider);
-    } catch (_) {
-      return const AsyncValue.data(<dynamic>[]);
-    }
-  }
-
-  List<String> _suggestTags(
-      Map<String, dynamic> productsMap, List<dynamic> lib, List<dynamic> wish) {
-    // 用 title 前綴當作建議 tag（因 bubble_library Product 沒有 topicId）
-    final count = <String, int>{};
-
-    void addPid(String pid) {
-      final p = productsMap[pid];
-      if (p == null) return;
-      try {
-        final tid = (p as dynamic).title.toString().split(' ').first;
-        if (tid.isEmpty) return;
-        count[tid] = (count[tid] ?? 0) + 1;
-      } catch (_) {}
-    }
-
-    for (final lp in lib) {
-      try {
-        if ((lp as dynamic).isHidden == true) continue;
-        addPid((lp as dynamic).productId.toString());
-      } catch (_) {}
-    }
-    for (final w in wish) {
-      try {
-        addPid((w as dynamic).productId.toString());
-      } catch (_) {}
-    }
-
-    final list = count.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return list.map((e) => e.key).toList();
   }
 
   String _displayTag(String raw, AppLanguage lang) {
@@ -272,7 +159,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
     }
   }
 
-  static const _chipPadding = EdgeInsets.symmetric(horizontal: 14, vertical: 8);
+  static const _chipPadding = EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs);
   static const _chipFontSize = 13.0;
 
   Widget _chip(BuildContext context, AppLanguage lang, String text) {
@@ -290,32 +177,6 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
               color: tokens.textPrimary,
               fontSize: _chipFontSize,
               fontWeight: FontWeight.w500)),
-    );
-  }
-
-  Widget _chipTappable(
-      BuildContext context, AppLanguage lang, String text, VoidCallback onTap) {
-    final tokens = context.tokens;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: _chipPadding,
-          decoration: BoxDecoration(
-            gradient: tokens.chipGradient,
-            color: tokens.chipGradient == null ? tokens.chipBg : null,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: tokens.cardBorder),
-          ),
-          child: Text(_displayTag(text, lang),
-              style: TextStyle(
-                  color: tokens.textPrimary,
-                  fontSize: _chipFontSize,
-                  fontWeight: FontWeight.w500)),
-        ),
-      ),
     );
   }
 
@@ -373,11 +234,11 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
             }
 
             return Container(
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
                 color: tokens.cardBg,
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 border: Border.all(color: tokens.cardBorder),
               ),
               child: SafeArea(
@@ -391,12 +252,12 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.w900,
                             fontSize: 16)),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppSpacing.xs),
                     Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
                         children: all.map(selectableChip).toList()),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(uiString(lang, 'interest_tags_add_custom'),
                         style: TextStyle(
                             color: tokens.textSecondary,
@@ -416,14 +277,14 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
                               filled: true,
                               fillColor: tokens.chipBg,
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                                 borderSide:
                                     BorderSide(color: tokens.cardBorder),
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: AppSpacing.xs),
                         _appPrimaryButton(
                           tokens: tokens,
                           label: uiString(lang, 'interest_tags_add_btn'),
@@ -456,7 +317,7 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
                                 setModal(() => selected.clear()),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: AppSpacing.xs),
                         Expanded(
                           child: _appPrimaryButton(
                             tokens: tokens,
@@ -517,12 +378,12 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
   }) {
     return Material(
       color: tokens.primary,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
           child: Center(
             child: Text(label,
                 style: TextStyle(
@@ -544,11 +405,11 @@ class _MeInterestTagsSectionState extends ConsumerState<MeInterestTagsSection> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
             border: Border.all(color: tokens.cardBorder),
           ),
           child: Center(

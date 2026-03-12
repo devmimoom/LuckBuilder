@@ -8,6 +8,7 @@ import '../providers/v2_providers.dart';
 import '../providers/home_sections_provider.dart';
 import '../widgets/app_card.dart';
 import '../widgets/product_rail.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../theme/layout_constants.dart';
 import '../data/models.dart';
@@ -91,7 +92,7 @@ class HomePage extends ConsumerWidget {
                           style: TextStyle(
                               color: tokens.textPrimary,
                               fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text('$err',
                           style: TextStyle(
                               color: tokens.textSecondary, fontSize: 12),
@@ -103,7 +104,7 @@ class HomePage extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
 
           // ── Top Picks ─────────────────────────────────
           _Section(title: uiString(lang, 'top_picks'), emoji: '🔥'),
@@ -137,7 +138,7 @@ class HomePage extends ConsumerWidget {
                         style: TextStyle(
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '$err',
                       style:
@@ -151,7 +152,7 @@ class HomePage extends ConsumerWidget {
             ),
           ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
 
           // ── New Arrivals ──────────────────────────────
           _Section(title: uiString(lang, 'new_arrivals'), emoji: '✨'),
@@ -186,7 +187,7 @@ class HomePage extends ConsumerWidget {
                         style: TextStyle(
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '$err',
                       style:
@@ -200,7 +201,7 @@ class HomePage extends ConsumerWidget {
             ),
           ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
 
           // ── Coming Soon ───────────────────────────────
           _Section(title: uiString(lang, 'coming_soon'), emoji: '🔮'),
@@ -237,7 +238,7 @@ class HomePage extends ConsumerWidget {
                         style: TextStyle(
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '$err',
                       style:
@@ -251,14 +252,14 @@ class HomePage extends ConsumerWidget {
             ),
           ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
 
           // ── For You ───────────────────────────────────
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: kPageHorizontalPadding),
             child: HomeForYouSection(),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
 
           // ── Featured ──────────────────────────────────
           _Section(title: uiString(lang, 'featured'), emoji: '🌟'),
@@ -292,7 +293,7 @@ class HomePage extends ConsumerWidget {
                         style: TextStyle(
                             color: tokens.textPrimary,
                             fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       '$err',
                       style:
@@ -306,11 +307,11 @@ class HomePage extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
           _Section(title: uiString(lang, 'wishlist_request_title'), emoji: '⭐'),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.xs),
           _WishlistRequestSection(lang: lang),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppSpacing.md),
           _HomeLegalLinks(lang: lang),
         ],
       ),
@@ -491,7 +492,7 @@ class _WishlistRequestSectionState extends State<_WishlistRequestSection> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             TextField(
               controller: _nameController,
               focusNode: _nameFocusNode,
@@ -501,7 +502,7 @@ class _WishlistRequestSectionState extends State<_WishlistRequestSection> {
               ),
               textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               uiString(widget.lang, 'wishlist_request_desc_label'),
               style: TextStyle(
@@ -510,7 +511,7 @@ class _WishlistRequestSectionState extends State<_WishlistRequestSection> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             TextField(
               controller: _descController,
               focusNode: _descFocusNode,
@@ -529,8 +530,8 @@ class _WishlistRequestSectionState extends State<_WishlistRequestSection> {
                   backgroundColor: tokens.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
@@ -597,7 +598,7 @@ class _GreetingHeader extends StatelessWidget {
                   letterSpacing: 0.3,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 uiString(lang, 'what_are_we_learning_today'),
                 style: TextStyle(
@@ -616,7 +617,7 @@ class _GreetingHeader extends StatelessWidget {
             icon: Icon(Icons.search, color: tokens.primary, size: 26),
             style: IconButton.styleFrom(
               backgroundColor: tokens.primary.withValues(alpha: 0.12),
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppSpacing.xs),
             ),
           ),
         ],
@@ -636,14 +637,14 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 0, kPageHorizontalPadding, 10),
+      padding: const EdgeInsets.fromLTRB(kPageHorizontalPadding, 0, kPageHorizontalPadding, AppSpacing.xs),
       child: Row(
         children: [
           Container(
-            width: 4,
-            height: 22,
+            width: AppSpacing.xs,
+            height: 24,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
               gradient: LinearGradient(
                 colors: [
                   tokens.primary,
@@ -654,10 +655,10 @@ class _Section extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.xs),
           if (emoji.isNotEmpty) ...[
             Text(emoji, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.xs),
           ],
           Text(
             title,
@@ -740,16 +741,16 @@ class _BannerCarouselState extends State<_BannerCarousel> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          padding: const EdgeInsets.only(top: AppSpacing.xs, bottom: AppSpacing.xs),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: List.generate(items.length, (i) {
               final isActive = i == _currentPage;
               return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: isActive ? 8 : 6,
-                height: 6,
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                width: isActive ? AppSpacing.xs : AppSpacing.xs,
+                height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isActive
@@ -862,7 +863,7 @@ class _BannerCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     if (subtitle != null && subtitle.isNotEmpty)
                       Text(
                         subtitle,
@@ -871,17 +872,17 @@ class _BannerCard extends StatelessWidget {
                           fontSize: 13,
                         ),
                       ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     Center(
                       child: Material(
                         color: tokens.primary,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                         child: InkWell(
                           onTap: onTap,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
+                                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                             child: Text(
                               uiString(lang, 'open'),
                               style: const TextStyle(

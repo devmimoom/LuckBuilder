@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../theme/app_spacing.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/rich_sections/learning_metrics_providers.dart';
 
@@ -13,7 +15,7 @@ class HomeStatusSection extends ConsumerWidget {
     Widget pill(String title, String value, IconData icon) {
       return Expanded(
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: Theme.of(context)
@@ -54,9 +56,9 @@ class HomeStatusSection extends ConsumerWidget {
     return Row(
       children: [
         pill('Streak', streakText, Icons.local_fire_department),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.xs),
         pill('This week', weeklyText, Icons.insights),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.xs),
         pill('Top category', 'AI', Icons.auto_awesome),
       ],
     );

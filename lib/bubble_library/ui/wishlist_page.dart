@@ -8,6 +8,7 @@ import '../models/user_library.dart';
 import '../../localization/app_language_provider.dart';
 import '../../localization/app_strings.dart';
 import 'product_library_page.dart';
+import '../../theme/app_spacing.dart';
 import '../../pages/product_page.dart';
 
 class WishlistPage extends ConsumerWidget {
@@ -62,9 +63,9 @@ class WishlistPage extends ConsumerWidget {
               }
 
               return ListView.separated(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.sm),
                 itemCount: list.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
                 itemBuilder: (context, i) {
                   final w = list[i]['item'] as WishlistItem;
                   final p = list[i]['product'] as Product;
@@ -74,7 +75,7 @@ class WishlistPage extends ConsumerWidget {
 
                   return Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(AppSpacing.sm),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -97,14 +98,14 @@ class WishlistPage extends ConsumerWidget {
                             ],
                           ),
                           if (subtitle.isNotEmpty) ...[
-                            const SizedBox(height: 6),
+                            const SizedBox(height: AppSpacing.xs),
                             Text(
                               subtitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
-                          const SizedBox(height: 10),
+                          const SizedBox(height: AppSpacing.xs),
                           Row(
                             children: [
                               OutlinedButton.icon(
@@ -121,7 +122,7 @@ class WishlistPage extends ConsumerWidget {
                                   );
                                 },
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: AppSpacing.xs),
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.shopping_bag_outlined),
                                 label: Text(uiString(lang, 'buy')),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 
 class BubbleCircle extends StatefulWidget {
@@ -151,8 +152,8 @@ class _BubbleCircleState extends State<BubbleCircle>
                   boxShadow: [
                     BoxShadow(
                       color: tokens.primary.withValues(alpha: 0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -160,7 +161,7 @@ class _BubbleCircleState extends State<BubbleCircle>
                 child: _buildCardContent(tokens),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.xs),
             SizedBox(
               width: _cardWidth,
               child: Text(

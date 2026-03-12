@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../data/models.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_tokens.dart';
 import '../theme/layout_constants.dart';
 import 'app_card.dart';
@@ -53,8 +54,8 @@ class ProductRail extends StatelessWidget {
     // 文字區高度：需足夠容納 2 行標題 + 副標 + CTA + padding
     final textAreaHeight = switch (size) {
       ProductRailSize.large  => 100.0, // padding 8*2=16, 內容≤84
-      ProductRailSize.medium =>  78.0, // padding 8*2=16, 內容≤62
-      ProductRailSize.small  =>  78.0, // padding 6*2=12, 內容≤66
+      ProductRailSize.medium =>  80.0, // padding 8*2=16, 內容≤64
+      ProductRailSize.small  =>  80.0, // padding 8*2=16, 內容≤64
     };
 
     final height = imageHeight + textAreaHeight;
@@ -76,7 +77,7 @@ class ProductRail extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: products.length + (onTapViewAll != null ? 1 : 0),
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, i) {
           // 最後一個項目是「查看全部」按鈕
           if (onTapViewAll != null && i == products.length) {
@@ -130,7 +131,7 @@ class ProductRail extends StatelessWidget {
                           p.coverImageUrl!.isNotEmpty)
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(20)),
+                              top: Radius.circular(AppSpacing.radiusMd)),
                           child: ColorFiltered(
                             colorFilter: ColorFilter.mode(
                               tokens.primary.withValues(alpha: 0.22),
@@ -166,7 +167,7 @@ class ProductRail extends StatelessWidget {
                         ),
                       Expanded(
                         child: Padding(
-                          padding: EdgeInsets.all(size == ProductRailSize.small ? 6 : 8),
+                          padding: EdgeInsets.all(size == ProductRailSize.small ? AppSpacing.xs : AppSpacing.xs),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
@@ -192,7 +193,7 @@ class ProductRail extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
+                                          horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
                                       decoration: BoxDecoration(
                                         color: tokens.primaryBright,
                                         borderRadius: BorderRadius.circular(999),
@@ -223,7 +224,7 @@ class ProductRail extends StatelessWidget {
                                     )),
                               ),
                               if (dim && showReleaseDate) ...[
-                                const SizedBox(height: 1),
+                                const SizedBox(height: 8),
                                 Text(
                                   dt == null
                                       ? uiString(effectiveLang, 'coming_soon_label')
@@ -238,7 +239,7 @@ class ProductRail extends StatelessWidget {
                                 ),
                               ],
                               if (ctaText != null) ...[
-                                const SizedBox(height: 4),
+                                const SizedBox(height: AppSpacing.xs),
                                 Align(
                                   alignment: Alignment.bottomRight,
                                   child: Text(
@@ -260,11 +261,11 @@ class ProductRail extends StatelessWidget {
                   // Badge 在左上角（small size 或特定樣式）
                   if (badge != null && size == ProductRailSize.small)
                     Positioned(
-                      top: 10,
-                      left: 10,
+                      top: AppSpacing.xs,
+                      left: AppSpacing.xs,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                            horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(999),
                           color: tokens.primaryBright,

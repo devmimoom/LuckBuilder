@@ -6,12 +6,6 @@ import '../../localization/app_strings.dart';
 String pushHintFor(UserLibraryProduct lp, AppLanguage lang) {
   final cfg = lp.pushConfig;
 
-  final freq = cfg.freqPerDay.clamp(1, 5);
-  final perDay = uiString(lang, 'push_hint_per_day').replaceFirst('{n}', '$freq');
-  final mode = cfg.timeMode.name == 'custom'
-      ? uiString(lang, 'time_mode_custom')
-      : uiString(lang, 'time_mode_preset');
-
   String slotLabel(String s) {
     switch (s) {
       case 'morning':
@@ -43,5 +37,5 @@ String pushHintFor(UserLibraryProduct lp, AppLanguage lang) {
     return uiString(lang, 'slot_times_display').replaceFirst('{slots}', shown);
   }
 
-  return '$perDay · $mode · ${timesText()}';
+  return timesText();
 }

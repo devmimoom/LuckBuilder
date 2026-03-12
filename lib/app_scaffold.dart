@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'pages/home_page.dart';
@@ -7,6 +8,7 @@ import 'pages/me_page.dart';
 import 'pages/plus_guide/plus_guide_page.dart';
 import 'widgets/app_background.dart';
 import 'theme/theme_controller.dart';
+import 'theme/app_spacing.dart';
 import 'theme/app_tokens.dart';
 import 'providers/nav_providers.dart';
 import 'providers/analytics_provider.dart';
@@ -86,35 +88,34 @@ class _MainBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color? capsuleColor = tokens.navGradient == null
-        ? Color.lerp(tokens.navBg, tokens.primary, 0.25)!
-        : null;
-
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      minimum: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
       child: SizedBox(
-        height: 72,
+        height: AppSpacing.navItemHeight,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                height: 56,
+                height: AppSpacing.xxl,
                 decoration: BoxDecoration(
-                  gradient: tokens.navGradient,
-                  color: capsuleColor,
-                  borderRadius: BorderRadius.circular(32),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [tokens.primary, tokens.primaryBright],
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      blurRadius: 28,
+                      color: tokens.primary.withValues(alpha: 0.3),
+                      blurRadius: 24,
                       offset: const Offset(0, 16),
                     ),
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -127,7 +128,7 @@ class _MainBottomBar extends StatelessWidget {
                         tokens: tokens,
                         onTap: () => onItemSelected(0),
                       ),
-                      const SizedBox(width: 56),
+                      const SizedBox(width: AppSpacing.xxl),
                       _NavItemButton(
                         index: 2,
                         currentIndex: currentIndex,
@@ -190,22 +191,23 @@ class _NavItemButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = index == currentIndex;
-    final Color iconColor =
-        selected ? tokens.textPrimary : tokens.textMuted;
+    final Color iconColor = selected
+        ? tokens.textOnPrimary
+        : tokens.textOnPrimary.withValues(alpha: 0.65);
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         decoration: BoxDecoration(
           color: selected
-              ? Colors.white.withValues(alpha: 0.12)
+              ? tokens.textOnPrimary.withValues(alpha: 0.12)
               : Colors.transparent,
           border: selected
               ? Border.all(
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: tokens.textOnPrimary.withValues(alpha: 0.16),
                   width: 1,
                 )
               : null,
@@ -216,14 +218,14 @@ class _NavItemButton extends StatelessWidget {
             Icon(
               selected ? selectedIconData : iconData,
               color: iconColor,
-              size: 22,
+              size: 24,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.xs),
             Text(
               label,
               style: TextStyle(
                 color: iconColor,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -247,30 +249,37 @@ class _PlusFloatingButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 無圓形外框：僅加號線條。未選中亦用 textOnPrimary 系以在 primary 條上可讀。
+    final Color plusColor = selected
+        ? tokens.textOnPrimary
+        : tokens.textOnPrimary.withValues(alpha: 0.8);
+
     return GestureDetector(
-      onTap: onTap,
-      child: Transform.translate(
-        offset: Offset.zero,
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: selected
-                ? tokens.primary
-                : tokens.primary.withValues(alpha: 0.2),
-            boxShadow: [
-              BoxShadow(
-                color: tokens.primary.withValues(alpha: 0.5),
-                blurRadius: 22,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.add,
-            size: 28,
-            color: selected ? tokens.textOnPrimary : tokens.primaryBright,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        width: AppSpacing.xxl,
+        height: AppSpacing.xxl,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          boxShadow: [
+            BoxShadow(
+              color: tokens.primary.withValues(alpha: 0.5),
+              blurRadius: 16,
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '+',
+          style: TextStyle(
+            fontSize: 40,
+            fontWeight: FontWeight.w800,
+            color: plusColor,
+            height: 1,
           ),
         ),
       ),
