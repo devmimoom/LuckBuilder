@@ -12,10 +12,9 @@ class AppColors {
 
   // 3. 線條與邊框：極細、若有似無
   static const Color border = Color(0xFFE5E5E5); // 淺灰分隔線
-  
+
   // 4. 功能色：極簡主義通常只用一個強調色
   static const Color accent = Color(0xFF1A1A1A); // 按鈕通常用黑色，顯得高級
   static const Color highlight = Color(0xFF007AFF); // 科技藍，只用於連結或勾選
   static const Color error = Color(0xFFE02E2E); // 錯誤紅
 }
-

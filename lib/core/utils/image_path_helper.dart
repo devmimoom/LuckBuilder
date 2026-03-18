@@ -12,11 +12,11 @@ class ImagePathHelper {
   static Future<Directory> getImagesDirectory() async {
     final documentsDir = await getDocumentsDirectory();
     final imagesDir = Directory(path.join(documentsDir.path, 'mistake_images'));
-    
+
     if (!await imagesDir.exists()) {
       await imagesDir.create(recursive: true);
     }
-    
+
     return imagesDir;
   }
 
@@ -28,10 +28,10 @@ class ImagePathHelper {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final fileName = 'mistake_$timestamp${path.extension(sourceFile.path)}';
     final newPath = path.join(imagesDir.path, fileName);
-    
+
     // 複製檔案到新位置
     await sourceFile.copy(newPath);
-    
+
     return newPath;
   }
 
@@ -110,4 +110,3 @@ class ImagePathHelper {
     return await file.exists();
   }
 }
-

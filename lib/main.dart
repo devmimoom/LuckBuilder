@@ -7,11 +7,11 @@ import 'features/home/presentation/main_tab_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 1. 載入環境變數（使用 try-catch 確保不會阻塞啟動）
   try {
     await dotenv.load(fileName: ".env");
-    
+
     // 檢查 Gemini API Key（現在使用 Gemini 進行 OCR，不再需要 Mathpix）
     final geminiKey = dotenv.get('GEMINI_API_KEY', fallback: '');
     if (geminiKey.isEmpty) {
@@ -24,7 +24,7 @@ void main() async {
     debugPrint("   請確認專案根目錄有 .env 檔案");
     debugPrint("   應用將繼續運行，但 API 功能可能無法使用");
   }
-  
+
   // 2. 初始化 AI 服務（等待初始化完成，但設置超時避免阻塞太久）
   try {
     await GeminiService().init().timeout(
@@ -39,7 +39,7 @@ void main() async {
     debugPrint("❌ GeminiService 初始化失敗: $e");
     debugPrint("   應用將繼續運行，但 AI 功能可能無法使用");
   }
-  
+
   // 3. 啟動應用（確保一定會執行）
   runApp(
     const ProviderScope(
@@ -61,4 +61,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

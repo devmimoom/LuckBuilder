@@ -32,7 +32,8 @@ class PremiumImageViewer extends StatelessWidget {
                   child: CircularProgressIndicator(color: Colors.white),
                 ),
                 errorBuilder: (context, error, stackTrace) => const Center(
-                  child: Icon(Icons.broken_image, color: Colors.white24, size: 64),
+                  child:
+                      Icon(Icons.broken_image, color: Colors.white24, size: 64),
                 ),
               ),
             ),
@@ -48,7 +49,8 @@ class PremiumImageViewer extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.3),
                   shape: const CircleBorder(),
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                    icon:
+                        const Icon(Icons.close, color: Colors.white, size: 28),
                     onPressed: () {
                       AppUX.feedbackClick();
                       Navigator.of(context).pop();
@@ -63,4 +65,3 @@ class PremiumImageViewer extends StatelessWidget {
     );
   }
 }
-

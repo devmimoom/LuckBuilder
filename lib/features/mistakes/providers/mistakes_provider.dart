@@ -8,6 +8,11 @@ import '../../../core/utils/image_path_helper.dart';
 
 part 'mistakes_provider.g.dart';
 
+final allMistakesRawProvider = FutureProvider<List<Mistake>>((ref) async {
+  ref.watch(mistakesProvider);
+  return DatabaseHelper().getAllMistakes();
+});
+
 @riverpod
 class MistakeFilters extends _$MistakeFilters {
   @override
@@ -76,19 +81,20 @@ class Mistakes extends _$Mistakes {
   FutureOr<List<Mistake>> build() async {
     final filters = ref.watch(mistakeFiltersProvider);
     final allMistakes = await _loadAllMistakesWithImageMigration();
-    
+
     return allMistakes.where((m) {
       // 科目篩選
-      final matchesSubject = filters['subject'] == '全部' || m.subject == filters['subject'];
-      
+      final matchesSubject =
+          filters['subject'] == '全部' || m.subject == filters['subject'];
+
       // 搜尋篩選（同時搜尋標題、標籤、科目、分類）
       final searchQuery = filters['searchQuery'].toString();
-      final matchesSearch = searchQuery.isEmpty || 
-          m.title.contains(searchQuery) || 
+      final matchesSearch = searchQuery.isEmpty ||
+          m.title.contains(searchQuery) ||
           m.subject.contains(searchQuery) ||
           m.category.contains(searchQuery) ||
           m.tags.any((t) => t.contains(searchQuery));
-      
+
       // 時間篩選（第一次段考：假設是最近一個月的題目）
       bool matchesTime = true;
       if (filters['timeFilter'] == 'first_exam') {
@@ -96,31 +102,31 @@ class Mistakes extends _$Mistakes {
         final oneMonthAgo = now.subtract(const Duration(days: 30));
         matchesTime = m.createdAt.isAfter(oneMonthAgo);
       }
-      
+
       // 常錯篩選（基於 subject + category 統計近 30 天內錯誤次數）
       bool matchesError = true;
       if (filters['errorFilter'] == 'frequent') {
         // 統計同一 subject + category 在近 30 天內的錯題數量
         final now = DateTime.now();
         final thirtyDaysAgo = now.subtract(const Duration(days: 30));
-        
+
         // 計算相同分類的錯題數量（近 30 天內）
         final sameCategoryCount = allMistakes.where((otherMistake) {
           return otherMistake.subject == m.subject &&
-                 otherMistake.category == m.category &&
-                 otherMistake.createdAt.isAfter(thirtyDaysAgo);
+              otherMistake.category == m.category &&
+              otherMistake.createdAt.isAfter(thirtyDaysAgo);
         }).length;
-        
+
         // 如果同一分類的錯題達到 2 次以上，視為「常錯」
         matchesError = sameCategoryCount >= 2;
       }
-      
+
       // 標籤篩選（固定標籤）
       bool matchesTag = true;
       if (filters['tagFilter'] != null) {
         matchesTag = m.tags.contains(filters['tagFilter'].toString());
       }
-      
+
       // 自訂標籤篩選（支持多個，AND 邏輯）
       bool matchesCustomTags = true;
       final customTags = filters['customTags'] as List<dynamic>? ?? [];
@@ -132,8 +138,13 @@ class Mistakes extends _$Mistakes {
           return m.tags.any((tag) => tag == tagStr || tag.contains(tagStr));
         });
       }
-      
-      return matchesSubject && matchesSearch && matchesTime && matchesError && matchesTag && matchesCustomTags;
+
+      return matchesSubject &&
+          matchesSearch &&
+          matchesTime &&
+          matchesError &&
+          matchesTag &&
+          matchesCustomTags;
     }).toList();
   }
 
@@ -161,6 +172,8 @@ class Mistakes extends _$Mistakes {
         subject: subject,
         category: category,
         errorReason: errorReason,
+        errorType: errorReason,
+        nextReviewAt: DateTime.now(),
         createdAt: DateTime.now(),
       );
       await _dbHelper.insertMistake(mistake);
@@ -172,8 +185,16 @@ class Mistakes extends _$Mistakes {
     final filters = ref.read(mistakeFiltersProvider);
     final allMistakes = await _loadAllMistakesWithImageMigration();
     return allMistakes.where((m) {
-      final matchesSubject = filters['subject'] == '全部' || m.subject == filters['subject'];
-      
+      final matchesSubject =
+          filters['subject'] == '全部' || m.subject == filters['subject'];
+
+      final searchQuery = filters['searchQuery'].toString();
+      final matchesSearch = searchQuery.isEmpty ||
+          m.title.contains(searchQuery) ||
+          m.subject.contains(searchQuery) ||
+          m.category.contains(searchQuery) ||
+          m.tags.any((t) => t.contains(searchQuery));
+
       // 時間篩選
       bool matchesTime = true;
       if (filters['timeFilter'] == 'first_exam') {
@@ -181,31 +202,31 @@ class Mistakes extends _$Mistakes {
         final oneMonthAgo = now.subtract(const Duration(days: 30));
         matchesTime = m.createdAt.isAfter(oneMonthAgo);
       }
-      
+
       // 常錯篩選（基於 subject + category 統計近 30 天內錯誤次數）
       bool matchesError = true;
       if (filters['errorFilter'] == 'frequent') {
         // 統計同一 subject + category 在近 30 天內的錯題數量
         final now = DateTime.now();
         final thirtyDaysAgo = now.subtract(const Duration(days: 30));
-        
+
         // 計算相同分類的錯題數量（近 30 天內）
         final sameCategoryCount = allMistakes.where((otherMistake) {
           return otherMistake.subject == m.subject &&
-                 otherMistake.category == m.category &&
-                 otherMistake.createdAt.isAfter(thirtyDaysAgo);
+              otherMistake.category == m.category &&
+              otherMistake.createdAt.isAfter(thirtyDaysAgo);
         }).length;
-        
+
         // 如果同一分類的錯題達到 2 次以上，視為「常錯」
         matchesError = sameCategoryCount >= 2;
       }
-      
+
       // 標籤篩選（固定標籤）
       bool matchesTag = true;
       if (filters['tagFilter'] != null) {
         matchesTag = m.tags.contains(filters['tagFilter'].toString());
       }
-      
+
       // 自訂標籤篩選
       bool matchesCustomTags = true;
       final customTags = filters['customTags'] as List<dynamic>? ?? [];
@@ -215,8 +236,13 @@ class Mistakes extends _$Mistakes {
           return m.tags.any((tag) => tag == tagStr || tag.contains(tagStr));
         });
       }
-      
-      return matchesSubject && matchesTime && matchesError && matchesTag && matchesCustomTags;
+
+      return matchesSubject &&
+          matchesSearch &&
+          matchesTime &&
+          matchesError &&
+          matchesTag &&
+          matchesCustomTags;
     }).toList();
   }
 
@@ -242,17 +268,7 @@ class Mistakes extends _$Mistakes {
           await ImagePathHelper.ensurePersistentImagePath(resolvedPath);
 
       if (persistentPath != mistake.imagePath) {
-        final updatedMistake = Mistake(
-          id: mistake.id,
-          imagePath: persistentPath,
-          title: mistake.title,
-          tags: mistake.tags,
-          solutions: mistake.solutions,
-          subject: mistake.subject,
-          category: mistake.category,
-          errorReason: mistake.errorReason,
-          createdAt: mistake.createdAt,
-        );
+        final updatedMistake = mistake.copyWith(imagePath: persistentPath);
         await _dbHelper.updateMistake(updatedMistake);
         migratedMistakes.add(updatedMistake);
         hasMigration = true;
@@ -297,17 +313,9 @@ class Mistakes extends _$Mistakes {
       // 先獲取原始錯題
       final originalMistake = await _dbHelper.getMistakeById(id);
       if (originalMistake != null) {
-        // 創建更新的錯題
-        final updatedMistake = Mistake(
-          id: originalMistake.id,
-          imagePath: originalMistake.imagePath,
-          title: originalMistake.title,
-          tags: originalMistake.tags,
-          solutions: originalMistake.solutions,
+        final updatedMistake = originalMistake.copyWith(
           subject: subject,
           category: category,
-          errorReason: originalMistake.errorReason,
-          createdAt: originalMistake.createdAt,
         );
         await _dbHelper.updateMistake(updatedMistake);
       }
@@ -326,7 +334,7 @@ class Mistakes extends _$Mistakes {
     debugPrint("   subject: $subject");
     debugPrint("   category: $category");
     debugPrint("   tags: $tags");
-    
+
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       // 先獲取原始錯題
@@ -335,25 +343,18 @@ class Mistakes extends _$Mistakes {
         debugPrint("   ❌ 找不到錯題，id: $id");
         throw Exception("找不到錯題，id: $id");
       }
-      
+
       debugPrint("   ✅ 找到錯題，開始更新");
-      
-      // 創建更新的錯題（包含新的 tags）
-      final updatedMistake = Mistake(
-        id: originalMistake.id,
-        imagePath: originalMistake.imagePath,
-        title: originalMistake.title,
+
+      final updatedMistake = originalMistake.copyWith(
         tags: tags,
-        solutions: originalMistake.solutions,
         subject: subject,
         category: category,
-        errorReason: originalMistake.errorReason,
-        createdAt: originalMistake.createdAt,
       );
-      
+
       final result = await _dbHelper.updateMistake(updatedMistake);
       debugPrint("   ✅ 資料庫更新完成，影響行數: $result");
-      
+
       return await _fetchFilteredMistakes();
     });
   }
@@ -368,16 +369,33 @@ class Mistakes extends _$Mistakes {
         throw Exception("找不到錯題，id: $id");
       }
 
-      final updatedMistake = Mistake(
-        id: originalMistake.id,
-        imagePath: originalMistake.imagePath,
-        title: title,
-        tags: originalMistake.tags,
-        solutions: originalMistake.solutions,
-        subject: originalMistake.subject,
-        category: originalMistake.category,
-        errorReason: originalMistake.errorReason,
-        createdAt: originalMistake.createdAt,
+      final updatedMistake = originalMistake.copyWith(title: title);
+
+      await _dbHelper.updateMistake(updatedMistake);
+      return await _fetchFilteredMistakes();
+    });
+  }
+
+  Future<void> updateMistakeReviewData({
+    required int id,
+    required int reviewCount,
+    required int masteryLevel,
+    required DateTime lastReviewedAt,
+    required DateTime nextReviewAt,
+    String? errorType,
+  }) async {
+    state = await AsyncValue.guard(() async {
+      final originalMistake = await _dbHelper.getMistakeById(id);
+      if (originalMistake == null) {
+        throw Exception("找不到錯題，id: $id");
+      }
+
+      final updatedMistake = originalMistake.copyWith(
+        reviewCount: reviewCount,
+        masteryLevel: masteryLevel,
+        lastReviewedAt: lastReviewedAt,
+        nextReviewAt: nextReviewAt,
+        errorType: errorType,
       );
 
       await _dbHelper.updateMistake(updatedMistake);

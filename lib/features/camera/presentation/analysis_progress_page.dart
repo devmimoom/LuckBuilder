@@ -13,7 +13,7 @@ class AnalysisProgressPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(analysisQueueProvider);
-    final allCompleted = tasks.isNotEmpty && 
+    final allCompleted = tasks.isNotEmpty &&
         tasks.every((t) => t.status == AnalysisStatus.completed);
 
     return Scaffold(
@@ -57,9 +57,10 @@ class AnalysisProgressPage extends ConsumerWidget {
   }
 
   Widget _buildHeader(List<AnalysisTask> tasks) {
-    final completedCount = tasks.where((t) => t.status == AnalysisStatus.completed).length;
+    final completedCount =
+        tasks.where((t) => t.status == AnalysisStatus.completed).length;
     final total = tasks.length;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
       width: double.infinity,
@@ -76,23 +77,26 @@ class AnalysisProgressPage extends ConsumerWidget {
             child: LinearProgressIndicator(
               value: total == 0 ? 0 : completedCount / total,
               backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.highlight),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.highlight),
               minHeight: 6,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             "請稍候，AI 正在為你生成避坑指南 ($completedCount/$total)",
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 13),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTaskCard(BuildContext context, WidgetRef ref, AnalysisTask task) {
+  Widget _buildTaskCard(
+      BuildContext context, WidgetRef ref, AnalysisTask task) {
     final isFailed = task.status == AnalysisStatus.failed;
-    
+
     return PremiumCard(
       padding: const EdgeInsets.all(16),
       onTap: task.status == AnalysisStatus.completed
@@ -102,8 +106,9 @@ class AnalysisProgressPage extends ConsumerWidget {
               // 傳遞完整的解析結果到 SolverPage（包含 OCR 結果和 Gemini 解析結果）
               final imagePath = task.cropPath ?? task.imagePath;
               final imageFile = imagePath != null ? File(imagePath) : null;
-              
-              Navigator.of(context).push(
+
+              Navigator.of(context)
+                  .push(
                 AppUX.fadeRoute(
                   SolverPage(
                     originalImage: imageFile,
@@ -114,7 +119,8 @@ class AnalysisProgressPage extends ConsumerWidget {
                     solutions: task.solutions, // 解法列表
                   ),
                 ),
-              ).then((_) {
+              )
+                  .then((_) {
                 // SolverPage 返回時，自動回到「解題分析」tab
                 // SolverPage 內部會處理 pop 邏輯
               });
@@ -136,7 +142,8 @@ class AnalysisProgressPage extends ConsumerWidget {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.crop_original, color: AppColors.textTertiary),
+            child:
+                const Icon(Icons.crop_original, color: AppColors.textTertiary),
           ),
           const SizedBox(width: 16),
           // 標題與狀態
@@ -145,13 +152,14 @@ class AnalysisProgressPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  task.title ?? (task.status == AnalysisStatus.completed 
-                      ? "${task.chapter ?? '待建立'} • ${task.gradeLevel ?? ''}"
-                      : "等待解析中..."),
+                  task.title ??
+                      (task.status == AnalysisStatus.completed
+                          ? "${task.chapter ?? '待建立'} • ${task.gradeLevel ?? ''}"
+                          : "等待解析中..."),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: task.status == AnalysisStatus.waiting 
-                        ? AppColors.textTertiary 
+                    color: task.status == AnalysisStatus.waiting
+                        ? AppColors.textTertiary
                         : AppColors.textPrimary,
                   ),
                 ),
@@ -163,7 +171,8 @@ class AnalysisProgressPage extends ConsumerWidget {
                       value: task.progress,
                       minHeight: 2,
                       backgroundColor: AppColors.border,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.highlight),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.highlight),
                     ),
                   )
                 else if (task.status == AnalysisStatus.failed)
@@ -208,12 +217,14 @@ class AnalysisProgressPage extends ConsumerWidget {
   Widget _buildStatusIcon(AnalysisStatus status) {
     switch (status) {
       case AnalysisStatus.waiting:
-        return const Icon(Icons.hourglass_empty, size: 20, color: AppColors.textTertiary);
+        return const Icon(Icons.hourglass_empty,
+            size: 20, color: AppColors.textTertiary);
       case AnalysisStatus.processing:
         return const SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.highlight),
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: AppColors.highlight),
         );
       case AnalysisStatus.completed:
         return const Icon(Icons.check_circle, size: 20, color: Colors.green);
@@ -224,28 +235,36 @@ class AnalysisProgressPage extends ConsumerWidget {
 
   String _getStatusText(AnalysisStatus status) {
     switch (status) {
-      case AnalysisStatus.waiting: return "排隊中";
-      case AnalysisStatus.processing: return "正在計算...";
-      case AnalysisStatus.completed: 
+      case AnalysisStatus.waiting:
+        return "排隊中";
+      case AnalysisStatus.processing:
+        return "正在計算...";
+      case AnalysisStatus.completed:
         return "解析完成（題目+答案+分類），點擊查看詳解";
-      case AnalysisStatus.failed: return "辨識失敗";
+      case AnalysisStatus.failed:
+        return "辨識失敗";
     }
   }
 
   Color _getStatusColor(AnalysisStatus status) {
     switch (status) {
-      case AnalysisStatus.waiting: return AppColors.textTertiary;
-      case AnalysisStatus.processing: return AppColors.highlight;
-      case AnalysisStatus.completed: return Colors.green;
-      case AnalysisStatus.failed: return AppColors.error;
+      case AnalysisStatus.waiting:
+        return AppColors.textTertiary;
+      case AnalysisStatus.processing:
+        return AppColors.highlight;
+      case AnalysisStatus.completed:
+        return Colors.green;
+      case AnalysisStatus.failed:
+        return AppColors.error;
     }
   }
 
   Widget _buildFooter(BuildContext context, WidgetRef ref, bool allCompleted) {
     final tasks = ref.watch(analysisQueueProvider);
-    final completedTasks = tasks.where((t) => t.status == AnalysisStatus.completed).toList();
+    final completedTasks =
+        tasks.where((t) => t.status == AnalysisStatus.completed).toList();
     final hasCompleted = completedTasks.isNotEmpty;
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -272,8 +291,9 @@ class AnalysisProgressPage extends ConsumerWidget {
                     // 收集所有完成的任務數據
                     final problems = completedTasks.map((task) {
                       final imagePath = task.cropPath ?? task.imagePath;
-                      final imageFile = imagePath != null ? File(imagePath) : null;
-                      
+                      final imageFile =
+                          imagePath != null ? File(imagePath) : null;
+
                       return {
                         'image': imageFile,
                         'latex': task.resultLatex,
@@ -285,7 +305,7 @@ class AnalysisProgressPage extends ConsumerWidget {
                         'solutions': task.solutions,
                       };
                     }).toList();
-                    
+
                     // 導航到 SolverPage，傳遞所有題目數據
                     Navigator.of(context).push(
                       AppUX.fadeRoute(
@@ -309,9 +329,13 @@ class AnalysisProgressPage extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: allCompleted ? () => Navigator.of(context).popUntil((route) => route.isFirst) : null,
+                onPressed: allCompleted
+                    ? () =>
+                        Navigator.of(context).popUntil((route) => route.isFirst)
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: allCompleted ? AppColors.textSecondary : AppColors.border,
+                  backgroundColor:
+                      allCompleted ? AppColors.textSecondary : AppColors.border,
                   disabledBackgroundColor: AppColors.border,
                 ),
                 child: Text(allCompleted ? "回到主頁" : "AI 正在努力中..."),
@@ -323,11 +347,12 @@ class AnalysisProgressPage extends ConsumerWidget {
     );
   }
 
-  void _showRetryDialog(BuildContext context, WidgetRef ref, AnalysisTask task) {
+  void _showRetryDialog(
+      BuildContext context, WidgetRef ref, AnalysisTask task) {
     // 找到任務的索引
     final tasks = ref.read(analysisQueueProvider);
     final taskIndex = tasks.indexWhere((t) => t.id == task.id);
-    
+
     if (taskIndex == -1) {
       AppUX.showSnackBar(context, "找不到任務", isError: true);
       return;

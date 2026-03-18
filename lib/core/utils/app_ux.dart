@@ -56,27 +56,28 @@ class AppUX {
   // ==========================================
 
   /// 顯示黑底白字的極簡 SnackBar
-  static void showSnackBar(BuildContext context, String message, {bool isError = false}) {
+  static void showSnackBar(BuildContext context, String message,
+      {bool isError = false}) {
     ScaffoldMessenger.of(context).clearSnackBars(); // 清除舊的
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
           style: const TextStyle(
-            color: Colors.white, 
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5
-          ),
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5),
           textAlign: TextAlign.center,
         ),
-        backgroundColor: isError ? const Color(0xFFE02E2E) : const Color(0xFF1A1A1A), // 黑或紅
+        backgroundColor:
+            isError ? const Color(0xFFE02E2E) : const Color(0xFF1A1A1A), // 黑或紅
         behavior: SnackBarBehavior.floating, // 懸浮式
         elevation: 0, // 扁平化
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)), // 膠囊狀
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50)), // 膠囊狀
         duration: const Duration(seconds: 2),
       ),
     );
   }
 }
-

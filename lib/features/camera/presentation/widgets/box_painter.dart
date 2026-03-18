@@ -5,9 +5,9 @@ import '../../providers/crop_provider.dart';
 class SelectionPainter extends CustomPainter {
   final List<Rect> rects;
   final Rect? current;
-  final Path? erasePath;  // 當前正在塗掉的路徑
-  final List<Path> erasePaths;  // 所有塗掉的路徑
-  final EditMode mode;  // 當前模式
+  final Path? erasePath; // 當前正在塗掉的路徑
+  final List<Path> erasePaths; // 所有塗掉的路徑
+  final EditMode mode; // 當前模式
 
   SelectionPainter({
     required this.rects,
@@ -53,9 +53,9 @@ class SelectionPainter extends CustomPainter {
   // 繪製塗掉的區域（視覺反饋）
   void _paintErase(Canvas canvas, Size size) {
     final erasePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.8)  // 半透明白色覆蓋
+      ..color = Colors.white.withValues(alpha: 0.8) // 半透明白色覆蓋
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 30.0  // 筆刷寬度
+      ..strokeWidth = 30.0 // 筆刷寬度
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
@@ -80,17 +80,18 @@ class SelectionPainter extends CustomPainter {
     final markPaint = Paint()
       ..color = AppColors.highlight
       ..strokeWidth = 3.0;
-    
+
     const length = 10.0;
     // 左上角
     canvas.drawLine(rect.topLeft, rect.topLeft.translate(length, 0), markPaint);
     canvas.drawLine(rect.topLeft, rect.topLeft.translate(0, length), markPaint);
     // 右下角
-    canvas.drawLine(rect.bottomRight, rect.bottomRight.translate(-length, 0), markPaint);
-    canvas.drawLine(rect.bottomRight, rect.bottomRight.translate(0, -length), markPaint);
+    canvas.drawLine(
+        rect.bottomRight, rect.bottomRight.translate(-length, 0), markPaint);
+    canvas.drawLine(
+        rect.bottomRight, rect.bottomRight.translate(0, -length), markPaint);
   }
 
   @override
   bool shouldRepaint(covariant SelectionPainter oldDelegate) => true;
 }
-

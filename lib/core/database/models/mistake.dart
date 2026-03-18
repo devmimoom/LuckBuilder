@@ -6,9 +6,14 @@ class Mistake {
   final String title;
   final List<String> tags;
   final List<String> solutions;
-  final String subject;      // 新增：科目 (數學, 英文...)
-  final String category;     // 新增：分類 (幾何, 文法...)
+  final String subject; // 新增：科目 (數學, 英文...)
+  final String category; // 新增：分類 (幾何, 文法...)
   final String? errorReason; // 新增：錯誤原因 (粗心, 觀念不懂...)
+  final int reviewCount;
+  final DateTime? lastReviewedAt;
+  final DateTime? nextReviewAt;
+  final int masteryLevel;
+  final String? errorType;
   final DateTime createdAt;
 
   Mistake({
@@ -20,6 +25,11 @@ class Mistake {
     required this.subject,
     required this.category,
     this.errorReason,
+    this.reviewCount = 0,
+    this.lastReviewedAt,
+    this.nextReviewAt,
+    this.masteryLevel = 0,
+    this.errorType,
     required this.createdAt,
   });
 
@@ -33,8 +43,53 @@ class Mistake {
       'subject': subject,
       'category': category,
       'error_reason': errorReason,
+      'review_count': reviewCount,
+      'last_reviewed_at': lastReviewedAt?.millisecondsSinceEpoch,
+      'next_review_at': nextReviewAt?.millisecondsSinceEpoch,
+      'mastery_level': masteryLevel,
+      'error_type': errorType,
       'created_at': createdAt.millisecondsSinceEpoch,
     };
+  }
+
+  Mistake copyWith({
+    int? id,
+    String? imagePath,
+    String? title,
+    List<String>? tags,
+    List<String>? solutions,
+    String? subject,
+    String? category,
+    String? errorReason,
+    int? reviewCount,
+    DateTime? lastReviewedAt,
+    DateTime? nextReviewAt,
+    int? masteryLevel,
+    String? errorType,
+    DateTime? createdAt,
+    bool clearLastReviewedAt = false,
+    bool clearNextReviewAt = false,
+    bool clearErrorReason = false,
+    bool clearErrorType = false,
+  }) {
+    return Mistake(
+      id: id ?? this.id,
+      imagePath: imagePath ?? this.imagePath,
+      title: title ?? this.title,
+      tags: tags ?? this.tags,
+      solutions: solutions ?? this.solutions,
+      subject: subject ?? this.subject,
+      category: category ?? this.category,
+      errorReason: clearErrorReason ? null : (errorReason ?? this.errorReason),
+      reviewCount: reviewCount ?? this.reviewCount,
+      lastReviewedAt:
+          clearLastReviewedAt ? null : (lastReviewedAt ?? this.lastReviewedAt),
+      nextReviewAt:
+          clearNextReviewAt ? null : (nextReviewAt ?? this.nextReviewAt),
+      masteryLevel: masteryLevel ?? this.masteryLevel,
+      errorType: clearErrorType ? null : (errorType ?? this.errorType),
+      createdAt: createdAt ?? this.createdAt,
+    );
   }
 
   factory Mistake.fromMap(Map<String, dynamic> map) {
@@ -47,6 +102,15 @@ class Mistake {
       subject: map['subject'] as String? ?? '其他',
       category: map['category'] as String? ?? '一般',
       errorReason: map['error_reason'] as String?,
+      reviewCount: map['review_count'] as int? ?? 0,
+      lastReviewedAt: map['last_reviewed_at'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(map['last_reviewed_at'] as int),
+      nextReviewAt: map['next_review_at'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(map['next_review_at'] as int),
+      masteryLevel: map['mastery_level'] as int? ?? 0,
+      errorType: map['error_type'] as String?,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
     );
   }

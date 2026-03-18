@@ -16,24 +16,24 @@ void debugPrint(String? message, {int? wrapWidth}) {
 
 /// 解題流程的狀態
 enum SolverStatus {
-  idle,       // 等待開始
-  ocr,        // 正在 OCR 辨識
-  thinking,   // 正在 AI 思考
-  completed,  // 完成
-  failed,     // 失敗
+  idle, // 等待開始
+  ocr, // 正在 OCR 辨識
+  thinking, // 正在 AI 思考
+  completed, // 完成
+  failed, // 失敗
 }
 
 /// 解題結果資料模型
 class SolverResult {
   final SolverStatus status;
-  final String? recognizedLatex;     // OCR 辨識的原始文字
-  final String? subject;              // 科目（國、英、數、自然、地理、歷史、公民、其他）
-  final String? gradeLevel;          // 年級
-  final String? category;            // 分類（一般、幾何、代數、文法、閱讀等）
-  final String? chapter;             // 章節
-  final List<String> keyConcepts;    // 核心觀念
+  final String? recognizedLatex; // OCR 辨識的原始文字
+  final String? subject; // 科目（國、英、數、自然、地理、歷史、公民、其他）
+  final String? gradeLevel; // 年級
+  final String? category; // 分類（一般、幾何、代數、文法、閱讀等）
+  final String? chapter; // 章節
+  final List<String> keyConcepts; // 核心觀念
   final List<SolutionItem> solutions; // 解法列表
-  final String? errorMessage;        // 錯誤訊息
+  final String? errorMessage; // 錯誤訊息
 
   const SolverResult({
     this.status = SolverStatus.idle,
@@ -91,36 +91,38 @@ class SolverNotifier extends _$SolverNotifier {
   /// [initialLatex] 如果已經有有效的辨識結果，可以直接傳入（跳過 OCR）
   /// [forceRestart] 是否強制重新開始（即使狀態不是 idle）
   Future<void> startAnalysis({
-    File? imageFile, 
+    File? imageFile,
     String? initialLatex,
     bool forceRestart = false,
   }) async {
     debugPrint("🔄 SolverNotifier.startAnalysis 被呼叫");
     debugPrint("  當前狀態: ${state.status}");
-    debugPrint("  initialLatex: ${initialLatex != null ? '已提供 (${initialLatex.length} 字元)' : 'null'}");
+    debugPrint(
+        "  initialLatex: ${initialLatex != null ? '已提供 (${initialLatex.length} 字元)' : 'null'}");
     debugPrint("  imageFile: ${imageFile != null ? '已提供' : 'null'}");
     debugPrint("  forceRestart: $forceRestart");
 
     // 🛡️ 防重複呼叫檢查（但允許在 completed/failed 狀態下重新開始）
-    if (!forceRestart && 
-        state.status != SolverStatus.idle && 
-        state.status != SolverStatus.completed && 
+    if (!forceRestart &&
+        state.status != SolverStatus.idle &&
+        state.status != SolverStatus.completed &&
         state.status != SolverStatus.failed) {
       debugPrint("⚠️ 分析已在進行中 (${state.status})，忽略重複呼叫");
       debugPrint("   提示: 如果狀態卡住，請使用 forceRestart=true 強制重新開始");
       return;
     }
-    
+
     // 如果狀態是 completed 或 failed，先重置為 idle
-    if (state.status == SolverStatus.completed || state.status == SolverStatus.failed) {
+    if (state.status == SolverStatus.completed ||
+        state.status == SolverStatus.failed) {
       debugPrint("🔄 檢測到已完成或失敗狀態，重置為 idle");
       state = state.copyWith(status: SolverStatus.idle);
     }
 
     // 檢查 initialLatex 是否有效（非空且有內容）
     final hasValidLatex = initialLatex != null &&
-                         initialLatex.trim().isNotEmpty &&
-                         initialLatex != 'null'; // 避免字串 "null"
+        initialLatex.trim().isNotEmpty &&
+        initialLatex != 'null'; // 避免字串 "null"
 
     // 如果已經有有效的 LaTeX，直接跳到 Gemini 思考（OCR 已完成）
     if (hasValidLatex) {
@@ -161,7 +163,8 @@ class SolverNotifier extends _$SolverNotifier {
       return;
     }
 
-    debugPrint("✅ Gemini OCR 完成: ${latex.substring(0, math.min(50, latex.length))}...");
+    debugPrint(
+        "✅ Gemini OCR 完成: ${latex.substring(0, math.min(50, latex.length))}...");
     state = state.copyWith(
       status: SolverStatus.thinking,
       recognizedLatex: latex,
@@ -187,17 +190,18 @@ class SolverNotifier extends _$SolverNotifier {
     if (response == null) {
       // Gemini 失敗，但 OCR 成功，仍然顯示辨識結果
       debugPrint("❌ Gemini API 調用失敗");
-      
+
       // 檢查 GeminiService 是否已初始化
       final geminiService = GeminiService();
       final isReady = geminiService.isReady;
       debugPrint("   GeminiService.isReady: $isReady");
-      
+
       String errorMessage = "AI 解題服務暫時無法使用";
       if (!isReady) {
-        errorMessage = "AI 解題服務未初始化，請確認 GEMINI_API_KEY 已正確設定。當前使用 gemini-pro 模型，如果失敗會嘗試 gemini-1.5-flash";
+        errorMessage =
+            "AI 解題服務未初始化，請確認 GEMINI_API_KEY 已正確設定。當前使用 gemini-pro 模型，如果失敗會嘗試 gemini-1.5-flash";
       }
-      
+
       state = state.copyWith(
         status: SolverStatus.completed,
         solutions: [
@@ -220,22 +224,23 @@ class SolverNotifier extends _$SolverNotifier {
     try {
       debugPrint("📦 開始解析 Gemini 回應...");
       debugPrint("   response keys: ${response.keys.toList()}");
-      
+
       // 🔍 添加：詳細檢查 subject 字段
       if (response.containsKey('subject')) {
         final rawSubject = response['subject'];
-        debugPrint("   🔍 response['subject'] 原始值: $rawSubject (類型: ${rawSubject.runtimeType})");
-        
+        debugPrint(
+            "   🔍 response['subject'] 原始值: $rawSubject (類型: ${rawSubject.runtimeType})");
+
         final subjectString = rawSubject?.toString();
         debugPrint("   🔍 轉換為字符串後: \"$subjectString\"");
       } else {
         debugPrint("   ⚠️ 警告：response 中沒有 'subject' 鍵！");
       }
-      
+
       final solutions = <SolutionItem>[];
       final rawSolutions = response['solutions'] as List<dynamic>? ?? [];
       debugPrint("   solutions 數量: ${rawSolutions.length}");
-      
+
       for (final item in rawSolutions) {
         if (item is Map<String, dynamic>) {
           final title = item['title']?.toString() ?? '解法';
@@ -258,7 +263,7 @@ class SolverNotifier extends _$SolverNotifier {
       final gradeLevel = response['grade_level']?.toString();
       final category = response['category']?.toString() ?? '一般';
       final chapter = response['chapter']?.toString();
-      
+
       // 🔍 添加：詳細檢查最終 subject 值
       debugPrint("   🔍 最終 subject 值: \"$subject\"");
       if (subject == '其他') {
@@ -271,11 +276,12 @@ class SolverNotifier extends _$SolverNotifier {
           if (subjectString.isEmpty) {
             debugPrint("     原因：toString() 返回空字符串");
           } else {
-            debugPrint("     原因：toString() 返回 \"$subjectString\"，但被 ?? 運算符覆蓋為 '其他'");
+            debugPrint(
+                "     原因：toString() 返回 \"$subjectString\"，但被 ?? 運算符覆蓋為 '其他'");
           }
         }
       }
-      
+
       debugPrint("   subject: $subject");
       debugPrint("   gradeLevel: $gradeLevel");
       debugPrint("   category: $category");
@@ -292,7 +298,7 @@ class SolverNotifier extends _$SolverNotifier {
         keyConcepts: keyConcepts,
         solutions: solutions,
       );
-      
+
       debugPrint("✅ 狀態更新完成");
     } catch (e) {
       debugPrint("❌ 解析 Gemini 回應失敗: $e");

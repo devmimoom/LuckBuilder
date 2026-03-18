@@ -161,10 +161,12 @@ class LatexHelper {
     final cleanedText = cleanOcrText(text);
     if (cleanedText.isEmpty) return fallback;
 
-    String result = cleanedText;
+    String result = _normalizeReadableOcrNoise(cleanedText);
 
     result = result.replaceAll(RegExp(r'\\[\(\)]'), '');
     result = result.replaceAll(RegExp(r'\\[\[\]]'), '');
+    result = result.replaceAll(r'\{', '{');
+    result = result.replaceAll(r'\}', '}');
 
     result = result.replaceAll(
       RegExp(
@@ -177,6 +179,7 @@ class LatexHelper {
       ' ',
     );
 
+    result = _convertReadableAccentCommands(result);
     result = _stripReadableWrapperCommands(result);
     result = _convertReadableFractions(result);
     result = _convertReadableRoots(result);
@@ -209,22 +212,43 @@ class LatexHelper {
       r'\sum': '∑',
       r'\int': '∫',
       r'\prod': '∏',
-      r'\to': '→',
       r'\rightarrow': '→',
+      r'\to': '→',
       r'\leftarrow': '←',
+      r'\gets': '←',
       r'\leftrightarrow': '↔',
+      r'\mapsto': '↦',
+      r'\uparrow': '↑',
+      r'\downarrow': '↓',
+      r'\updownarrow': '↕',
       r'\Rightarrow': '⇒',
       r'\Leftarrow': '⇐',
       r'\Leftrightarrow': '⇔',
+      r'\implies': '⇒',
+      r'\impliedby': '⇐',
+      r'\iff': '⇔',
       r'\in': '∈',
       r'\notin': '∉',
       r'\subseteq': '⊆',
       r'\subset': '⊂',
+      r'\subsetneq': '⊊',
       r'\supseteq': '⊇',
       r'\supset': '⊃',
+      r'\supsetneq': '⊋',
+      r'\nsubseteq': '⊈',
+      r'\nsupseteq': '⊉',
       r'\cup': '∪',
       r'\cap': '∩',
       r'\emptyset': '∅',
+      r'\setminus': '∖',
+      r'\land': '∧',
+      r'\lor': '∨',
+      r'\neg': '¬',
+      r'\oplus': '⊕',
+      r'\otimes': '⊗',
+      r'\bullet': '•',
+      r'\ast': '*',
+      r'\star': '⋆',
       r'\forall': '∀',
       r'\exists': '∃',
       r'\therefore': '∴',
@@ -233,6 +257,30 @@ class LatexHelper {
       r'\perp': '⊥',
       r'\angle': '∠',
       r'\triangle': '△',
+      r'\square': '□',
+      r'\Box': '□',
+      r'\Delta': 'Δ',
+      r'\Gamma': 'Γ',
+      r'\Theta': 'Θ',
+      r'\Lambda': 'Λ',
+      r'\Sigma': 'Σ',
+      r'\Phi': 'Φ',
+      r'\Psi': 'Ψ',
+      r'\Omega': 'Ω',
+      r'\lambda': 'λ',
+      r'\mu': 'μ',
+      r'\sigma': 'σ',
+      r'\tau': 'τ',
+      r'\epsilon': 'ε',
+      r'\varepsilon': 'ε',
+      r'\eta': 'η',
+      r'\rho': 'ρ',
+      r'\kappa': 'κ',
+      r'\xi': 'ξ',
+      r'\zeta': 'ζ',
+      r'\chi': 'χ',
+      r'\psi': 'ψ',
+      r'\ell': 'l',
       r'\circ': '°',
       r'\degree': '°',
       r'\ldots': '...',
@@ -266,6 +314,27 @@ class LatexHelper {
     return result.isEmpty ? fallback : result;
   }
 
+  static String _normalizeReadableOcrNoise(String text) {
+    String result = text;
+
+    // 先將雙反斜線還原成單反斜線，避免顯示成 \\overline 這類亂碼
+    result = result.replaceAll(r'\\', r'\');
+    // 移除被轉義的 $，避免出現 \$1AB 這類片段
+    result = result.replaceAll(r'\$', r'$');
+    // OCR 常把角符號識別成 $1 / §1 / S1
+    result = result.replaceAll(RegExp(r'[\$§S]1(?=[A-Za-z0-9])'), '∠');
+    // OCR 常將兩條平行線辨識成 //
+    result =
+        result.replaceAll(RegExp(r'(?<=[A-Za-z0-9])//(?=[A-Za-z0-9])'), '∥');
+    // OCR 常將垂直誤成 _|_ 或 ⊥ 的變形
+    result = result.replaceAll('_|_', '⊥');
+    // 將常見 escaped 百分比與底線還原
+    result = result.replaceAll(r'\%', '%');
+    result = result.replaceAll(r'\_', '_');
+
+    return result;
+  }
+
   static String _stripReadableWrapperCommands(String text) {
     String result = text;
     final wrapperPattern = RegExp(
@@ -277,6 +346,42 @@ class LatexHelper {
         (match) => match.group(1) ?? '',
       );
     }
+    return result;
+  }
+
+  static String _convertReadableAccentCommands(String text) {
+    String result = text;
+
+    final accentPatterns = <RegExp, String Function(Match match)>{
+      RegExp(r'\\overrightarrow\{([^{}]+)\}'): (match) => '${match.group(1)!}→',
+      RegExp(r'\\overleftarrow\{([^{}]+)\}'): (match) => '←${match.group(1)!}',
+      RegExp(r'\\overleftrightarrow\{([^{}]+)\}'): (match) =>
+          '↔${match.group(1)!}',
+      RegExp(r'\\vec\{([^{}]+)\}'): (match) => '${match.group(1)!}⃗',
+      RegExp(r'\\widehat\{([^{}]+)\}'): (match) => '${match.group(1)!}̂',
+      RegExp(r'\\hat\{([^{}]+)\}'): (match) => '${match.group(1)!}̂',
+      RegExp(r'\\widetilde\{([^{}]+)\}'): (match) => '${match.group(1)!}̃',
+      RegExp(r'\\tilde\{([^{}]+)\}'): (match) => '${match.group(1)!}̃',
+      RegExp(r'\\overline\{([^{}]+)\}'): (match) =>
+          _applyCombiningMark(match.group(1)!, '\u0305'),
+      RegExp(r'\\underline\{([^{}]+)\}'): (match) =>
+          _applyCombiningMark(match.group(1)!, '\u0332'),
+      RegExp(r'\\bar\{([^{}]+)\}'): (match) =>
+          _applyCombiningMark(match.group(1)!, '\u0305'),
+      RegExp(r'\\dot\{([^{}]+)\}'): (match) => '${match.group(1)!}̇',
+      RegExp(r'\\ddot\{([^{}]+)\}'): (match) => '${match.group(1)!}̈',
+      RegExp(r'\\boxed\{([^{}]+)\}'): (match) => '[${match.group(1)!}]',
+      RegExp(r'\\cancel\{([^{}]+)\}'): (match) => match.group(1)!,
+      RegExp(r'\\bcancel\{([^{}]+)\}'): (match) => match.group(1)!,
+      RegExp(r'\\xcancel\{([^{}]+)\}'): (match) => match.group(1)!,
+    };
+
+    accentPatterns.forEach((pattern, builder) {
+      while (pattern.hasMatch(result)) {
+        result = result.replaceAllMapped(pattern, builder);
+      }
+    });
+
     return result;
   }
 
@@ -423,6 +528,20 @@ class LatexHelper {
       return mapped.join();
     }
     return '$fallbackPrefix($text)';
+  }
+
+  static String _applyCombiningMark(String text, String combiningMark) {
+    final buffer = StringBuffer();
+    for (final rune in text.runes) {
+      final char = String.fromCharCode(rune);
+      if (char.trim().isEmpty) {
+        buffer.write(char);
+      } else {
+        buffer.write(char);
+        buffer.write(combiningMark);
+      }
+    }
+    return buffer.toString();
   }
 
   // ============================================================
@@ -849,6 +968,11 @@ class LatexHelper {
 /// LaTeX 文字渲染組件（使用 gpt_markdown 渲染）
 /// 原生支援 Markdown + 文字 + LaTeX 混合內容
 /// 自動處理 \( ... \) 和 \[ ... \] 格式的 LaTeX 公式
+///
+/// 渲染策略：
+/// - 純文字行 → GptMarkdown（自動換行）
+/// - 含 LaTeX 公式行 → FittedBox(scaleDown) 自動縮放至螢幕寬度
+///   → 點擊可彈出 BottomSheet 顯示原尺寸可捲動公式
 class LatexText extends StatelessWidget {
   final String text;
   final double? fontSize;
@@ -865,10 +989,8 @@ class LatexText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 執行終極前處理：多階段清洗和轉換（統一使用 LatexHelper）
     final processedText = LatexHelper.ultimatePreprocess(text);
 
-    // 構建文字樣式
     final baseStyle = Theme.of(context).textTheme.bodyLarge;
     final textStyle = AppFonts.resolve(
       (baseStyle ?? const TextStyle()).copyWith(
@@ -878,32 +1000,162 @@ class LatexText extends StatelessWidget {
       ),
     );
 
-    // 使用 LayoutBuilder 取得可用寬度：
-    // - 內層 SizedBox(width: maxWidth) 讓文字照螢幕寬度正常換行（垂直捲動由外層控制）
-    // - 外層 SingleChildScrollView(horizontal)：若 GptMarkdown 產生的內容寬度 > maxWidth 會產生 overflow，
-    //   此時該區塊仍可依平台行為顯示（例如可被外層裁剪）；多數情況為一般換行文字，不會超寬
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth.isFinite
+        final viewportWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: maxWidth,
-            child: SelectionArea(
-              child: DefaultTextStyle(
-                style: textStyle,
-                child: GptMarkdown(
-                  processedText,
-                  style: textStyle,
-                ),
-              ),
-            ),
-          ),
+        final lines = processedText.split('\n');
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int i = 0; i < lines.length; i++) ...[
+              _buildDisplayLine(context, lines[i], textStyle, viewportWidth),
+              if (i < lines.length - 1) const SizedBox(height: 4),
+            ],
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildDisplayLine(
+    BuildContext context,
+    String line,
+    TextStyle textStyle,
+    double viewportWidth,
+  ) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) {
+      return SizedBox(height: (textStyle.fontSize ?? 15) * 0.6);
+    }
+
+    if (_isStandaloneFormula(trimmed)) {
+      return GestureDetector(
+        onTap: () => _showFormulaDetail(context, trimmed, textStyle),
+        child: SizedBox(
+          width: viewportWidth,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: GptMarkdown(trimmed, style: textStyle),
+          ),
+        ),
+      );
+    }
+
+    // 文字為主的行：先將 inline 數學轉成 Unicode 純文字，
+    // 避免 GptMarkdown 觸發 flutter_math_fork 造成 RenderLine overflow
+    final safeText = _flattenInlineMath(trimmed);
+    return GptMarkdown(safeText, style: textStyle);
+  }
+
+  /// 將 inline LaTeX 公式（\(...\) 和 $...$）轉成 Unicode 可讀文字，
+  /// 讓 GptMarkdown 以普通文字渲染而非調用 flutter_math_fork
+  static String _flattenInlineMath(String text) {
+    var result = text.replaceAllMapped(
+      RegExp(r'\\\((.+?)\\\)'),
+      (m) => LatexHelper.toReadableText(m.group(1) ?? '',
+          fallback: m.group(0) ?? ''),
+    );
+    result = result.replaceAllMapped(
+      RegExp(r'(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)'),
+      (m) => LatexHelper.toReadableText(m.group(1) ?? '',
+          fallback: m.group(0) ?? ''),
+    );
+    // display math \[...\] 也轉換
+    result = result.replaceAllMapped(
+      RegExp(r'\\\[(.+?)\\\]'),
+      (m) => LatexHelper.toReadableText(m.group(1) ?? '',
+          fallback: m.group(0) ?? ''),
+    );
+    return result;
+  }
+
+  static final _latexCommandPattern = RegExp(
+    r'\\\(|\\\)|\\\[|\\\]|\\frac|\\sqrt|\\sum|\\int|\\overline|\\vec|'
+    r'\\angle|\\begin|\\end|\\pm|\\times|\\div|\\cdot|\\leq|\\geq|'
+    r'\\neq|\\text\{|\\mathrm\{|\\mathbf\{|\\left|\\right',
+  );
+
+  static final _cjkPattern = RegExp(r'[\u4E00-\u9FFF\u3000-\u303F]');
+
+  bool _isStandaloneFormula(String line) {
+    if (!_latexCommandPattern.hasMatch(line)) return false;
+
+    // 含有大量中日韓文字 → 文字段落（帶 inline 數學），應正常換行
+    final cjkCount = _cjkPattern.allMatches(line).length;
+    if (cjkCount > 6) return false;
+
+    return true;
+  }
+
+  void _showFormulaDetail(
+    BuildContext context,
+    String formula,
+    TextStyle textStyle,
+  ) {
+    final enlargedStyle = textStyle.copyWith(
+      fontSize: (textStyle.fontSize ?? 15) + 4,
+    );
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.functions, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '公式詳情',
+                    style: textStyle.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '← 可左右滑動 →',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: GptMarkdown(formula, style: enlargedStyle),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -20,12 +20,13 @@ class _MistakeCropContent extends ConsumerStatefulWidget {
   const _MistakeCropContent({this.imageFile});
 
   @override
-  ConsumerState<_MistakeCropContent> createState() => _MistakeCropContentState();
+  ConsumerState<_MistakeCropContent> createState() =>
+      _MistakeCropContentState();
 }
 
 class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
   Offset? _startPos;
-  Offset? _lastErasePos;  // 用於塗掉模式的連續繪製
+  Offset? _lastErasePos; // 用於塗掉模式的連續繪製
   final GlobalKey _imageKey = GlobalKey();
 
   Future<void> _processCrops() async {
@@ -33,26 +34,27 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
     final rects = cropState.rects;
     final erasePaths = cropState.erasePaths;
     final imagePath = widget.imageFile?.path;
-    
+
     // 獲取圖片在螢幕上的實際渲染大小
-    final RenderBox? renderBox = _imageKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? renderBox =
+        _imageKey.currentContext?.findRenderObject() as RenderBox?;
     final size = renderBox?.size;
 
     if (imagePath != null && size != null && rects.isNotEmpty) {
       // 1. 先 watch provider 確保它不會被銷毀
       ref.read(analysisQueueProvider);
-      
+
       // 2. 初始化並開始真正的裁切與 API 隊列（傳遞筆刷遮罩）
       ref.read(analysisQueueProvider.notifier).startAnalysis(
-        imagePath: imagePath,
-        rects: rects,
-        displaySize: size,
-        erasePaths: erasePaths, // 傳遞筆刷路徑用於實際遮罩
-      );
-      
+            imagePath: imagePath,
+            rects: rects,
+            displaySize: size,
+            erasePaths: erasePaths, // 傳遞筆刷路徑用於實際遮罩
+          );
+
       // 3. 等待一小段時間確保狀態已初始化
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // 4. 跳轉到進度頁面
       if (mounted) {
         Navigator.of(context).push(
@@ -75,7 +77,7 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
             opacity: 0.8,
             child: widget.imageFile != null
                 ? Image.file(
-                    widget.imageFile!, 
+                    widget.imageFile!,
                     key: _imageKey, // 用於獲取顯示尺寸
                     fit: BoxFit.contain,
                   )
@@ -110,7 +112,8 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
               if (cropState.mode == EditMode.select) {
                 // 框選模式
                 if (_startPos != null) {
-                  controller.updateCurrentRect(_startPos!, details.localPosition);
+                  controller.updateCurrentRect(
+                      _startPos!, details.localPosition);
                 }
               } else {
                 // 塗掉模式
@@ -197,16 +200,17 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               if (cropState.rects.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     "已選取 ${cropState.rects.length} 個區塊",
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
-              
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -243,10 +247,14 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.highlight : Colors.white.withValues(alpha: 0.2),
+          color: isSelected
+              ? AppColors.highlight
+              : Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.highlight : Colors.white.withValues(alpha: 0.3),
+            color: isSelected
+                ? AppColors.highlight
+                : Colors.white.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
@@ -257,7 +265,10 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),

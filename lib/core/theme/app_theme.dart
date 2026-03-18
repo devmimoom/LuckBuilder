@@ -36,7 +36,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
       primaryColor: AppColors.accent,
       fontFamily: AppFonts.primary,
-      
+
       // 1. 全域字型設定：主字型 + 數學/符號 fallback
       textTheme: _buildTextTheme(),
 
@@ -72,23 +72,26 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)), // 膠囊圓角
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(100)), // 膠囊圓角
           textStyle: AppFonts.resolve(
-            const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+            const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
           ),
         ),
       ),
-      
+
       // 5. 線框按鈕：黑框黑字
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
           side: const BorderSide(color: AppColors.border, width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
-      
+
       // 6. 輸入框：極簡底線或極淡框
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -106,9 +109,9 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.textPrimary, width: 1),
         ),
         contentPadding: const EdgeInsets.all(16),
-        hintStyle: AppFonts.resolve(const TextStyle(color: AppColors.textTertiary)),
+        hintStyle:
+            AppFonts.resolve(const TextStyle(color: AppColors.textTertiary)),
       ),
     );
   }
 }
-

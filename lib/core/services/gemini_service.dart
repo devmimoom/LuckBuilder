@@ -22,7 +22,7 @@ class GeminiService {
 
   // 🔐 從 .env 讀取 API Key（安全做法）
   String get _apiKey => dotenv.get('GEMINI_API_KEY', fallback: '');
-  
+
   // 保存當前使用的模型名稱
   String _currentModelName = '';
 
@@ -44,27 +44,28 @@ class GeminiService {
       debugPrint("✅ Gemini API 已經初始化，跳過重複初始化");
       return;
     }
-    
+
     if (_apiKey.isEmpty) {
       _lastError = "Gemini API Key 未設定，請在 .env 檔案中填入 GEMINI_API_KEY";
       debugPrint("❌ $_lastError");
       _isInitialized = false;
       return;
     }
-    
+
     debugPrint("🔧 開始初始化 Gemini API...");
     debugPrint("   API Key 長度: ${_apiKey.length} 字元");
-    debugPrint("   API Key 前4碼: ${_apiKey.substring(0, math.min(4, _apiKey.length))}...");
+    debugPrint(
+        "   API Key 前4碼: ${_apiKey.substring(0, math.min(4, _apiKey.length))}...");
     debugPrint("   使用模型: $_defaultModel");
-    
+
     try {
       // 直接創建模型實例，不發送測試請求
       // 這樣可以節省配額，在實際調用時才會驗證
-    _model = GenerativeModel(
-        model: _defaultModel, 
-      apiKey: _apiKey,
+      _model = GenerativeModel(
+        model: _defaultModel,
+        apiKey: _apiKey,
       );
-      
+
       _isInitialized = true;
       _currentModelName = _defaultModel;
       _lastError = null;
@@ -76,10 +77,10 @@ class GeminiService {
       debugPrint("❌ $_lastError");
     }
   }
-  
+
   /// 檢查是否已初始化
   bool get isReady => _isInitialized && _model != null;
-  
+
   /// 獲取 finishReason 的描述
   String _getFinishReasonDescription(FinishReason? reason) {
     if (reason == null) return "未知";
@@ -154,7 +155,7 @@ class GeminiService {
 
     try {
       debugPrint("🔍 Gemini 正在辨識圖片...");
-      
+
       final contentList = [
         Content.multi([
           TextPart(prompt),
@@ -175,15 +176,16 @@ class GeminiService {
         return null;
       }
 
-      debugPrint("✅ Gemini OCR 完成: ${text.substring(0, math.min(100, text.length))}...");
-      
+      debugPrint(
+          "✅ Gemini OCR 完成: ${text.substring(0, math.min(100, text.length))}...");
+
       // 添加檢查數學符號的調試日誌
-      final hasMathSymbols = text.contains('√') || 
-                             text.contains('²') || 
-                             text.contains('³') || 
-                             text.contains('√(') ||
-                             text.contains('根號') ||
-                             text.contains('平方');
+      final hasMathSymbols = text.contains('√') ||
+          text.contains('²') ||
+          text.contains('³') ||
+          text.contains('√(') ||
+          text.contains('根號') ||
+          text.contains('平方');
       debugPrint("   📊 數學符號檢查: ${hasMathSymbols ? '✅ 包含數學符號' : '❌ 未發現數學符號'}");
       if (hasMathSymbols) {
         // 提取包含數學符號的片段
@@ -198,7 +200,7 @@ class GeminiService {
       } else {
         debugPrint("   ⚠️ 警告：OCR 結果中未發現數學符號（√、²、³等），可能影響科目判斷");
       }
-      
+
       return text.trim();
     } catch (e) {
       debugPrint("❌ Gemini OCR 失敗: $e");
@@ -229,16 +231,16 @@ class GeminiService {
         return null;
       }
     }
-    
+
     // 再次檢查（初始化後可能仍然失敗）
     if (!isReady) {
-      final errorMsg = _apiKey.isEmpty 
+      final errorMsg = _apiKey.isEmpty
           ? "Gemini API Key 未設定，請在 .env 檔案中填入 GEMINI_API_KEY"
           : "GeminiService 初始化失敗: ${_lastError ?? '未知錯誤'}";
       debugPrint("❌ $errorMsg");
       return null;
     }
-    
+
     // 檢查圖片是否存在
     Uint8List? imageBytes;
     if (imageFile != null && await imageFile.exists()) {
@@ -580,24 +582,29 @@ B. 易錯提醒
 
 請確保所有內容都是繁體中文，並嚴格遵守以上所有規則。
 ''';
-    
+
     try {
       debugPrint("🧠 Gemini 正在分析題目...");
-      debugPrint("   API Key 狀態: ${_apiKey.isNotEmpty ? '已載入 (${_apiKey.substring(0, math.min(4, _apiKey.length))}...)' : '未載入'}");
-      debugPrint("   模型狀態: ${_model != null ? '已初始化 ($_currentModelName)' : '未初始化'}");
+      debugPrint(
+          "   API Key 狀態: ${_apiKey.isNotEmpty ? '已載入 (${_apiKey.substring(0, math.min(4, _apiKey.length))}...)' : '未載入'}");
+      debugPrint(
+          "   模型狀態: ${_model != null ? '已初始化 ($_currentModelName)' : '未初始化'}");
       final imageBytesLength = imageBytes?.length ?? 0;
-      debugPrint("   圖片狀態: ${imageBytes != null ? '已載入 ($imageBytesLength bytes)' : '無圖片'}");
-      
+      debugPrint(
+          "   圖片狀態: ${imageBytes != null ? '已載入 ($imageBytesLength bytes)' : '無圖片'}");
+
       // 添加檢查 OCR 文字中是否包含數學符號
       debugPrint("   📝 OCR 文字長度: ${questionText.length} 字元");
-      debugPrint("   📝 OCR 文字預覽: ${questionText.substring(0, math.min(200, questionText.length))}...");
-      final hasMathSymbolsInText = questionText.contains('√') || 
-                                    questionText.contains('²') || 
-                                    questionText.contains('³') ||
-                                    questionText.contains('√(') ||
-                                    questionText.contains('根號') ||
-                                    questionText.contains('平方');
-      debugPrint("   📊 OCR 文字中的數學符號檢查: ${hasMathSymbolsInText ? '✅ 包含數學符號' : '❌ 未發現數學符號'}");
+      debugPrint(
+          "   📝 OCR 文字預覽: ${questionText.substring(0, math.min(200, questionText.length))}...");
+      final hasMathSymbolsInText = questionText.contains('√') ||
+          questionText.contains('²') ||
+          questionText.contains('³') ||
+          questionText.contains('√(') ||
+          questionText.contains('根號') ||
+          questionText.contains('平方');
+      debugPrint(
+          "   📊 OCR 文字中的數學符號檢查: ${hasMathSymbolsInText ? '✅ 包含數學符號' : '❌ 未發現數學符號'}");
       if (!hasMathSymbolsInText && imageBytes == null) {
         debugPrint("   ⚠️ 警告：OCR 文字中沒有數學符號，且沒有提供圖片，可能導致科目判斷錯誤！");
       } else if (!hasMathSymbolsInText && imageBytes != null) {
@@ -621,16 +628,19 @@ B. 易錯提醒
         debugPrint("📤 發送請求到 Gemini API（僅文字）...");
       }
       debugPrint("   Prompt 長度: ${prompt.length} 字元");
-      
+
       final response = await _model!.generateContent(contentList);
-      
+
       debugPrint("📥 Gemini API 回應狀態:");
-      debugPrint("   response.text: ${response.text != null ? '有內容 (${response.text!.length} 字元)' : 'null'}");
-      debugPrint("   response.candidates.length: ${response.candidates.length}");
+      debugPrint(
+          "   response.text: ${response.text != null ? '有內容 (${response.text!.length} 字元)' : 'null'}");
+      debugPrint(
+          "   response.candidates.length: ${response.candidates.length}");
 
       // 3. 解析結果
       if (response.text != null && response.text!.isNotEmpty) {
-        debugPrint("📥 Gemini 回應原始文字 (前100字): ${response.text!.substring(0, math.min(100, response.text!.length))}...");
+        debugPrint(
+            "📥 Gemini 回應原始文字 (前100字): ${response.text!.substring(0, math.min(100, response.text!.length))}...");
         // 清理一下可能多餘的符號 (Gemini 有時還是會加 ```json)
         String text = response.text!;
         if (text.contains('```')) {
@@ -638,7 +648,7 @@ B. 易錯提醒
           text = text.replaceAll('```', '');
         }
         text = text.trim();
-        
+
         // 🔧 修復：修復 JSON 中的 LaTeX 轉義問題
         // Gemini 生成的 JSON 中，\( 和 \) 在字符串值中未正確轉義
         // JSON 標準要求反斜線必須轉義，所以 \( 應該寫成 \\(
@@ -646,92 +656,90 @@ B. 易錯提醒
         try {
           debugPrint("   🔧 開始修復 LaTeX 轉義問題...");
           final beforeText = text;
-          
+
           // 使用正則匹配所有 JSON 字符串（包括引號）
-          text = text.replaceAllMapped(
-            RegExp(r'"(?:[^"\\]|\\.)*"'), 
-            (match) {
-              String fullMatch = match.group(0)!;
-              // 提取引號內的內容（不包括引號）
-              String content = fullMatch.substring(1, fullMatch.length - 1);
-              
-              final originalContent = content;
-              
-              // 逐字符處理，正確轉義所有未轉義的反斜線序列
-              // 在 JSON 中，只有標準轉義序列是合法的，其他都需要轉義反斜線
-              StringBuffer result = StringBuffer();
-              
-              for (int i = 0; i < content.length; i++) {
-                if (content[i] == '\\' && i + 1 < content.length) {
-                  final nextChar = content[i + 1];
-                  
-                  // 標準的 JSON 轉義序列，保持原樣（已經是正確的 JSON 轉義）
-                  // \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
-                  if (nextChar == '"' || nextChar == '\\' || nextChar == '/') {
+          text = text.replaceAllMapped(RegExp(r'"(?:[^"\\]|\\.)*"'), (match) {
+            String fullMatch = match.group(0)!;
+            // 提取引號內的內容（不包括引號）
+            String content = fullMatch.substring(1, fullMatch.length - 1);
+
+            final originalContent = content;
+
+            // 逐字符處理，正確轉義所有未轉義的反斜線序列
+            // 在 JSON 中，只有標準轉義序列是合法的，其他都需要轉義反斜線
+            StringBuffer result = StringBuffer();
+
+            for (int i = 0; i < content.length; i++) {
+              if (content[i] == '\\' && i + 1 < content.length) {
+                final nextChar = content[i + 1];
+
+                // 標準的 JSON 轉義序列，保持原樣（已經是正確的 JSON 轉義）
+                // \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+                if (nextChar == '"' || nextChar == '\\' || nextChar == '/') {
+                  result.write(content[i]);
+                  result.write(nextChar);
+                  i++; // 跳過下一個字符
+                }
+                // 這幾個字元同時是 JSON 轉義（\n, \r, \t, \b, \f）與 LaTeX 指令開頭（\neq, \right 等）
+                // 如果後面還有英文字母，視為 LaTeX 指令，必須將反斜線轉義為 \\ 才能在 JSON 中合法呈現
+                else if (nextChar == 'b' ||
+                    nextChar == 'f' ||
+                    nextChar == 'n' ||
+                    nextChar == 'r' ||
+                    nextChar == 't') {
+                  final bool looksLikeLatexCommand = (i + 2 < content.length) &&
+                      RegExp(r'[a-zA-Z]').hasMatch(content[i + 2]);
+                  if (looksLikeLatexCommand) {
+                    // 例如：\right, \frac, \neq, \theta, \beta
+                    // 轉為 \\right, \\frac, \\neq 等，避免被 jsonDecode 當成控制字元吃掉
+                    result.write('\\\\');
+                    result.write(nextChar);
+                    i++; // 跳過下一個字符
+                  } else {
+                    // 真正的 JSON 轉義如 \n、\r、\t，保持原樣
                     result.write(content[i]);
                     result.write(nextChar);
                     i++; // 跳過下一個字符
                   }
-                  // 這幾個字元同時是 JSON 轉義（\n, \r, \t, \b, \f）與 LaTeX 指令開頭（\neq, \right 等）
-                  // 如果後面還有英文字母，視為 LaTeX 指令，必須將反斜線轉義為 \\ 才能在 JSON 中合法呈現
-                  else if (nextChar == 'b' ||
-                      nextChar == 'f' ||
-                      nextChar == 'n' ||
-                      nextChar == 'r' ||
-                      nextChar == 't') {
-                    final bool looksLikeLatexCommand =
-                        (i + 2 < content.length) &&
-                            RegExp(r'[a-zA-Z]').hasMatch(content[i + 2]);
-                    if (looksLikeLatexCommand) {
-                      // 例如：\right, \frac, \neq, \theta, \beta
-                      // 轉為 \\right, \\frac, \\neq 等，避免被 jsonDecode 當成控制字元吃掉
-                      result.write('\\\\');
-                      result.write(nextChar);
-                      i++; // 跳過下一個字符
-                    } else {
-                      // 真正的 JSON 轉義如 \n、\r、\t，保持原樣
-                      result.write(content[i]);
-                      result.write(nextChar);
-                      i++; // 跳過下一個字符
-                    }
-                  }
-                  // 處理 \uXXXX（Unicode 轉義序列）
-                  else if (nextChar == 'u' && i + 5 < content.length) {
-                    result.write(content[i]); // 寫入反斜線
-                    result.write(nextChar); // 寫入 'u'
-                    i++; // 跳過 'u'
-                    // 寫入接下來的 4 個十六進制字符
-                    for (int j = 0; j < 4 && i + 1 < content.length; j++) {
-                      i++;
-                      result.write(content[i]);
-                    }
-                  }
-                  // 所有其他反斜線序列（LaTeX 命令如 \sqrt, \frac, \(, \) 等）都需要轉義反斜線
-                  else {
-                    // 轉義反斜線：\sqrt → \\sqrt, \( → \\(
-                    result.write('\\\\');
-                    result.write(nextChar);
-                    i++; // 跳過下一個字符
-                  }
-                } else if (content[i] == '\\') {
-                  // 反斜線在字符串末尾，轉義它
-                  result.write('\\\\');
-                } else {
-                  // 普通字符
-                  result.write(content[i]);
                 }
+                // 處理 \uXXXX（Unicode 轉義序列）
+                else if (nextChar == 'u' && i + 5 < content.length) {
+                  result.write(content[i]); // 寫入反斜線
+                  result.write(nextChar); // 寫入 'u'
+                  i++; // 跳過 'u'
+                  // 寫入接下來的 4 個十六進制字符
+                  for (int j = 0; j < 4 && i + 1 < content.length; j++) {
+                    i++;
+                    result.write(content[i]);
+                  }
+                }
+                // 所有其他反斜線序列（LaTeX 命令如 \sqrt, \frac, \(, \) 等）都需要轉義反斜線
+                else {
+                  // 轉義反斜線：\sqrt → \\sqrt, \( → \\(
+                  result.write('\\\\');
+                  result.write(nextChar);
+                  i++; // 跳過下一個字符
+                }
+              } else if (content[i] == '\\') {
+                // 反斜線在字符串末尾，轉義它
+                result.write('\\\\');
+              } else {
+                // 普通字符
+                result.write(content[i]);
               }
-              
-              final fixedContent = result.toString();
-              if (originalContent != fixedContent) {
-                debugPrint("   🔧 修復了字符串片段: ${originalContent.substring(0, math.min(80, originalContent.length))}...");
-                debugPrint("   🔧 修復後: ${fixedContent.substring(0, math.min(80, fixedContent.length))}...");
-              }
-              
-              return '"$fixedContent"';
             }
-          );
-          
+
+            final fixedContent = result.toString();
+            if (originalContent != fixedContent) {
+              debugPrint(
+                  "   🔧 修復了字符串片段: ${originalContent.substring(0, math.min(80, originalContent.length))}...");
+              debugPrint(
+                  "   🔧 修復後: ${fixedContent.substring(0, math.min(80, fixedContent.length))}...");
+            }
+
+            return '"$fixedContent"';
+          });
+
           if (beforeText != text) {
             debugPrint("   🔧 已修復 LaTeX 轉義問題（文本已改變）");
           } else {
@@ -740,33 +748,41 @@ B. 易錯提醒
         } catch (e) {
           debugPrint("   ⚠️ 修復 LaTeX 轉義時出錯: $e，繼續嘗試解析原始 JSON");
         }
-        
+
         // 🔍 添加：打印清理後的完整 JSON（或者至少包含 subject 的部分）
-        debugPrint("📥 清理後的 JSON 文字 (前500字): ${text.substring(0, math.min(500, text.length))}...");
-        
+        debugPrint(
+            "📥 清理後的 JSON 文字 (前500字): ${text.substring(0, math.min(500, text.length))}...");
+
         // 🔍 添加：嘗試查找 subject 字段
-        final subjectMatch = RegExp(r'"subject"\s*:\s*"([^"]*)"').firstMatch(text);
+        final subjectMatch =
+            RegExp(r'"subject"\s*:\s*"([^"]*)"').firstMatch(text);
         if (subjectMatch != null) {
-          debugPrint("   🔍 在 JSON 中找到 subject 字段: \"${subjectMatch.group(1)}\"");
+          debugPrint(
+              "   🔍 在 JSON 中找到 subject 字段: \"${subjectMatch.group(1)}\"");
         } else {
           debugPrint("   ⚠️ 警告：在 JSON 中未找到 subject 字段！");
           // 嘗試查找其他可能的格式
-          final subjectMatch2 = RegExp(r'"subject"\s*:\s*([^,}\n]+)').firstMatch(text);
+          final subjectMatch2 =
+              RegExp(r'"subject"\s*:\s*([^,}\n]+)').firstMatch(text);
           if (subjectMatch2 != null) {
-            debugPrint("   🔍 找到 subject 字段（可能格式不同）: ${subjectMatch2.group(1)}");
+            debugPrint(
+                "   🔍 找到 subject 字段（可能格式不同）: ${subjectMatch2.group(1)}");
           }
         }
-        
+
         try {
           final result = jsonDecode(text) as Map<String, dynamic>;
           debugPrint("✅ JSON 解析成功");
-          
+
           // 🔍 添加：打印解析後的 subject 值
           debugPrint("   🔍 解析後的 JSON keys: ${result.keys.toList()}");
           if (result.containsKey('subject')) {
             final parsedSubject = result['subject'];
-            debugPrint("   🔍 解析後的 subject 值: \"$parsedSubject\" (類型: ${parsedSubject.runtimeType})");
-            if (parsedSubject == null || parsedSubject.toString().isEmpty || parsedSubject.toString() == 'null') {
+            debugPrint(
+                "   🔍 解析後的 subject 值: \"$parsedSubject\" (類型: ${parsedSubject.runtimeType})");
+            if (parsedSubject == null ||
+                parsedSubject.toString().isEmpty ||
+                parsedSubject.toString() == 'null') {
               debugPrint("   ⚠️ 警告：subject 值為 null、空或字符串 'null'！");
             }
           } else {
@@ -778,7 +794,8 @@ B. 易錯提醒
           // 純英文 → 一定是英文科；純中文 → 一定不是英文科
           // ================================================
           try {
-            final hasChinese = RegExp(r'[\u4e00-\u9fff]').hasMatch(questionText);
+            final hasChinese =
+                RegExp(r'[\u4e00-\u9fff]').hasMatch(questionText);
             final hasEnglish = RegExp(r'[A-Za-z]').hasMatch(questionText);
             final currentSubject = (result['subject'] ?? '').toString();
 
@@ -788,7 +805,8 @@ B. 易錯提醒
                     "   🔧 語言檢查：題目為純英文，強制將 subject 從 \"$currentSubject\" 更正為 \"英文\"");
               }
               result['subject'] = '英文';
-            } else if (hasChinese && !hasEnglish &&
+            } else if (hasChinese &&
+                !hasEnglish &&
                 (currentSubject == '英文' || currentSubject == 'English')) {
               debugPrint(
                   "   🔧 語言檢查：題目為純中文，但 subject 為 \"$currentSubject\"，改為 \"不確定\"");
@@ -797,31 +815,34 @@ B. 易錯提醒
           } catch (e) {
             debugPrint("   ⚠️ 語言結構檢查時發生例外：$e（略過修正，保留原 subject）");
           }
-          
+
           return _sanitizeParsedResult(result, questionText: questionText);
         } catch (e) {
           debugPrint("❌ JSON 解析失敗: $e");
-          debugPrint("   原始內容 (前200字): ${text.substring(0, math.min(200, text.length))}...");
+          debugPrint(
+              "   原始內容 (前200字): ${text.substring(0, math.min(200, text.length))}...");
           // 不再直接回傳原始回應，避免 prompt 或系統規則被帶到前台/列印內容。
           return _buildSafeFallbackResult(text, questionText: questionText);
         }
       } else {
         // 回應為空，檢查原因
         debugPrint("❌ Gemini API 回應為空");
-        
+
         if (response.candidates.isNotEmpty) {
           final candidate = response.candidates.first;
           debugPrint("   候選數量: ${response.candidates.length}");
           debugPrint("   完成原因 (finishReason): ${candidate.finishReason}");
-          debugPrint("   完成原因說明: ${_getFinishReasonDescription(candidate.finishReason)}");
-          
-          if (candidate.safetyRatings != null && candidate.safetyRatings!.isNotEmpty) {
+          debugPrint(
+              "   完成原因說明: ${_getFinishReasonDescription(candidate.finishReason)}");
+
+          if (candidate.safetyRatings != null &&
+              candidate.safetyRatings!.isNotEmpty) {
             debugPrint("   安全評級數量: ${candidate.safetyRatings!.length}");
             for (var rating in candidate.safetyRatings!) {
               debugPrint("     - ${rating.category}: ${rating.probability}");
             }
           }
-          
+
           // 如果有 finishReason，可能是被安全過濾器阻擋
           if (candidate.finishReason == FinishReason.safety) {
             debugPrint("   ⚠️ 內容被安全過濾器阻擋");
@@ -835,42 +856,41 @@ B. 易錯提醒
         } else {
           debugPrint("   ⚠️ 沒有任何候選回應");
         }
-        
+
         return null;
       }
-
     } catch (e, stackTrace) {
       debugPrint("❌ Gemini API 錯誤: $e");
       debugPrint("   錯誤類型: ${e.runtimeType}");
-      
+
       final errorString = e.toString().toLowerCase();
       final errorMessage = e.toString();
-      
+
       // 如果是模型不存在錯誤，嘗試備用模型
-      if (errorString.contains("not found") || 
+      if (errorString.contains("not found") ||
           errorString.contains("not_found") ||
           errorMessage.contains("models/gemini")) {
         debugPrint("   💡 當前模型 '$_currentModelName' 不可用，嘗試備用模型...");
-        
+
         // 備用模型列表
         final fallbackModels = [
           'gemini-1.5-flash',
-          'gemini-1.5-flash-latest', 
+          'gemini-1.5-flash-latest',
           'gemini-1.5-pro',
           'gemini-pro',
           'gemini-1.0-pro',
         ];
-        
+
         for (final modelName in fallbackModels) {
           if (modelName == _currentModelName) continue; // 跳過當前模型
-          
+
           try {
             debugPrint("   嘗試備用模型: $modelName");
             _model = GenerativeModel(
               model: modelName,
               apiKey: _apiKey,
             );
-            
+
             // 備用模型也使用相同的內容格式
             final List<Content> fallbackContent;
             if (imageBytes != null) {
@@ -884,11 +904,11 @@ B. 易錯提醒
               fallbackContent = [Content.text(prompt)];
             }
             final response = await _model!.generateContent(fallbackContent);
-            
+
             if (response.text != null && response.text!.isNotEmpty) {
               _currentModelName = modelName;
               debugPrint("   ✅ 備用模型 $modelName 成功！");
-              
+
               // 解析結果
               String text = response.text!;
               if (text.contains('```')) {
@@ -896,14 +916,15 @@ B. 易錯提醒
                 text = text.replaceAll('```', '');
               }
               text = text.trim();
-              
+
               try {
                 return _sanitizeParsedResult(
                   jsonDecode(text) as Map<String, dynamic>,
                   questionText: questionText,
                 );
               } catch (_) {
-                return _buildSafeFallbackResult(text, questionText: questionText);
+                return _buildSafeFallbackResult(text,
+                    questionText: questionText);
               }
             }
           } catch (fallbackError) {
@@ -911,50 +932,50 @@ B. 易錯提醒
             continue;
           }
         }
-        
+
         debugPrint("   ❌ 所有備用模型都失敗");
       }
-      
+
       // 提供更具體的錯誤訊息
       String errorDetail = "未知錯誤";
-      
-      if (errorString.contains("api_key") || 
+
+      if (errorString.contains("api_key") ||
           errorString.contains("invalid api key") ||
           errorString.contains("invalid api")) {
         errorDetail = "API Key 無效或未設定";
-      } else if (errorString.contains("permission") || 
-                 errorString.contains("forbidden") ||
-                 errorString.contains("403")) {
+      } else if (errorString.contains("permission") ||
+          errorString.contains("forbidden") ||
+          errorString.contains("403")) {
         errorDetail = "API Key 權限不足或被拒絕 (403)";
-      } else if (errorString.contains("not found") || 
-                 errorString.contains("not_found") ||
-                 errorMessage.contains("models/gemini")) {
+      } else if (errorString.contains("not found") ||
+          errorString.contains("not_found") ||
+          errorMessage.contains("models/gemini")) {
         errorDetail = "所有模型都不可用 - 請確認 API Key 有效或啟用計費";
         debugPrint("   💡 解決方案:");
         debugPrint("   1. 前往 https://makersuite.google.com/app/apikey");
         debugPrint("   2. 點擊 'Activate billing' 啟用計費");
         debugPrint("   3. 或創建新的 API Key");
-      } else if (errorString.contains("network") || 
-                 errorString.contains("timeout") || 
-                 errorString.contains("connection") ||
-                 errorString.contains("socket")) {
+      } else if (errorString.contains("network") ||
+          errorString.contains("timeout") ||
+          errorString.contains("connection") ||
+          errorString.contains("socket")) {
         errorDetail = "網絡連接失敗，請檢查網絡連線";
-      } else if (errorString.contains("quota") || 
-                 errorString.contains("rate limit") ||
-                 errorString.contains("429")) {
+      } else if (errorString.contains("quota") ||
+          errorString.contains("rate limit") ||
+          errorString.contains("429")) {
         errorDetail = "API 配額已用完或達到速率限制";
-      } else if (errorString.contains("safety") || 
-                 errorString.contains("blocked")) {
+      } else if (errorString.contains("safety") ||
+          errorString.contains("blocked")) {
         errorDetail = "內容被安全過濾器阻擋";
       }
-      
+
       debugPrint("   錯誤詳情: $errorDetail");
       debugPrint("   堆疊追蹤 (前3行):");
       final stackLines = stackTrace.toString().split('\n');
       for (int i = 0; i < math.min(3, stackLines.length); i++) {
         debugPrint("     ${stackLines[i]}");
       }
-      
+
       return null;
     }
   }
@@ -1002,11 +1023,14 @@ B. 易錯提醒
 
       content = _normalizeAiText(content);
       if (content.isEmpty) continue;
-      if (_containsPromptArtifacts(content, questionText: questionText)) continue;
+      if (_containsPromptArtifacts(content, questionText: questionText)) {
+        continue;
+      }
       if (!seen.add('$title\n$content')) continue;
 
       sanitized.add({
-        'title': _normalizeAiText(title).isEmpty ? '解法' : _normalizeAiText(title),
+        'title':
+            _normalizeAiText(title).isEmpty ? '解法' : _normalizeAiText(title),
         'content': content,
       });
     }
@@ -1031,10 +1055,7 @@ B. 易錯提醒
 
     return {
       'solutions': [
-        {
-          'title': 'AI 解析失敗',
-          'content': '本次 AI 回應格式異常，已略過不安全內容，請重新解析一次。'
-        }
+        {'title': 'AI 解析失敗', 'content': '本次 AI 回應格式異常，已略過不安全內容，請重新解析一次。'}
       ]
     };
   }

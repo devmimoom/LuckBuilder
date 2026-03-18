@@ -47,12 +47,15 @@ class PrintSettingsSheet extends ConsumerWidget {
                   children: [
                     const Text(
                       '列印設定',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     TextButton(
                       onPressed: () {
                         AppUX.feedbackClick();
-                        ref.read(printSettingsNotifierProvider.notifier).reset();
+                        ref
+                            .read(printSettingsNotifierProvider.notifier)
+                            .reset();
                       },
                       child: const Text('重置'),
                     ),
@@ -75,7 +78,9 @@ class PrintSettingsSheet extends ConsumerWidget {
                         isSelected: settings.contentOption == option,
                         onTap: () {
                           AppUX.feedbackClick();
-                          ref.read(printSettingsNotifierProvider.notifier).setContentOption(option);
+                          ref
+                              .read(printSettingsNotifierProvider.notifier)
+                              .setContentOption(option);
                         },
                       );
                     }),
@@ -95,7 +100,10 @@ class PrintSettingsSheet extends ConsumerWidget {
                               isSelected: settings.questionsPerPage == option,
                               onTap: () {
                                 AppUX.feedbackClick();
-                                ref.read(printSettingsNotifierProvider.notifier).setQuestionsPerPage(option);
+                                ref
+                                    .read(
+                                        printSettingsNotifierProvider.notifier)
+                                    .setQuestionsPerPage(option);
                               },
                             ),
                           ),
@@ -124,7 +132,9 @@ class PrintSettingsSheet extends ConsumerWidget {
                           selected: settings.sortOption == option,
                           onSelected: (_) {
                             AppUX.feedbackClick();
-                            ref.read(printSettingsNotifierProvider.notifier).setSortOption(option);
+                            ref
+                                .read(printSettingsNotifierProvider.notifier)
+                                .setSortOption(option);
                           },
                         );
                       }).toList(),
@@ -141,7 +151,9 @@ class PrintSettingsSheet extends ConsumerWidget {
                       value: settings.includeImages,
                       onChanged: (value) {
                         AppUX.feedbackClick();
-                        ref.read(printSettingsNotifierProvider.notifier).setIncludeImages(value);
+                        ref
+                            .read(printSettingsNotifierProvider.notifier)
+                            .setIncludeImages(value);
                       },
                     ),
                     SwitchListTile(
@@ -150,7 +162,9 @@ class PrintSettingsSheet extends ConsumerWidget {
                       value: settings.showDate,
                       onChanged: (value) {
                         AppUX.feedbackClick();
-                        ref.read(printSettingsNotifierProvider.notifier).setShowDate(value);
+                        ref
+                            .read(printSettingsNotifierProvider.notifier)
+                            .setShowDate(value);
                       },
                     ),
 
@@ -224,7 +238,9 @@ class PrintSettingsSheet extends ConsumerWidget {
 
     final mistakes = mistakesAsync.maybeWhen(
       data: (allMistakes) {
-        return allMistakes.where((m) => m.id != null && selectedIds.contains(m.id)).toList();
+        return allMistakes
+            .where((m) => m.id != null && selectedIds.contains(m.id))
+            .toList();
       },
       orElse: () => <Mistake>[],
     );
@@ -262,7 +278,9 @@ class PrintSettingsSheet extends ConsumerWidget {
 
     final mistakes = mistakesAsync.maybeWhen(
       data: (allMistakes) {
-        return allMistakes.where((m) => m.id != null && selectedIds.contains(m.id)).toList();
+        return allMistakes
+            .where((m) => m.id != null && selectedIds.contains(m.id))
+            .toList();
       },
       orElse: () => <Mistake>[],
     );
@@ -285,7 +303,9 @@ class PrintSettingsSheet extends ConsumerWidget {
         filename: '錯題本_${DateTime.now().toString().substring(0, 10)}.pdf',
       );
       navigator.pop(); // 關閉設定頁面
-      ref.read(selectionNotifierProvider.notifier).exitSelectionMode(); // 退出選取模式
+      ref
+          .read(selectionNotifierProvider.notifier)
+          .exitSelectionMode(); // 退出選取模式
     } catch (e) {
       debugPrint('產生 PDF 失敗: $e');
       if (context.mounted) {
@@ -320,7 +340,9 @@ class _ContentOptionTile extends StatelessWidget {
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? const Color(0xFF2196F3).withValues(alpha: 0.05) : null,
+          color: isSelected
+              ? const Color(0xFF2196F3).withValues(alpha: 0.05)
+              : null,
         ),
         child: Row(
           children: [
@@ -337,7 +359,8 @@ class _ContentOptionTile extends StatelessWidget {
                     option.title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? const Color(0xFF2196F3) : Colors.black87,
+                      color:
+                          isSelected ? const Color(0xFF2196F3) : Colors.black87,
                     ),
                   ),
                   Text(
@@ -381,7 +404,9 @@ class _QuestionsPerPageChip extends StatelessWidget {
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
-          color: isSelected ? const Color(0xFF2196F3).withValues(alpha: 0.05) : null,
+          color: isSelected
+              ? const Color(0xFF2196F3).withValues(alpha: 0.05)
+              : null,
         ),
         child: Column(
           children: [

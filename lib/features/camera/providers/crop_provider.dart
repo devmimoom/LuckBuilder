@@ -4,14 +4,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'crop_provider.g.dart';
 
 enum EditMode {
-  select,  // 框選模式
-  erase,   // 塗掉模式
+  select, // 框選模式
+  erase, // 塗掉模式
 }
 
 class CropState {
   final List<Rect> rects;
   final Rect? currentRect;
-  final EditMode mode;  // 當前模式
+  final EditMode mode; // 當前模式
   final Path erasePath; // 當前正在塗掉的路徑
   final List<Path> erasePaths; // 所有塗掉的路徑（用於實際遮罩）
 
@@ -21,8 +21,8 @@ class CropState {
     this.mode = EditMode.select,
     Path? erasePath,
     List<Path>? erasePaths,
-  }) : erasePath = erasePath ?? Path(),
-       erasePaths = erasePaths ?? const [];
+  })  : erasePath = erasePath ?? Path(),
+        erasePaths = erasePaths ?? const [];
 
   CropState copyWith({
     List<Rect>? rects,
@@ -50,7 +50,8 @@ class CropController extends _$CropController {
 
   // 切換模式
   void setMode(EditMode mode) {
-    state = state.copyWith(mode: mode, clearCurrent: true, clearErasePath: true);
+    state =
+        state.copyWith(mode: mode, clearCurrent: true, clearErasePath: true);
   }
 
   // 框選模式：更新當前矩形
@@ -84,7 +85,8 @@ class CropController extends _$CropController {
   // 塗掉模式：更新塗掉路徑
   void updateErasePath(Offset position) {
     if (state.mode != EditMode.erase) return;
-    final newPath = Path.from(state.erasePath)..lineTo(position.dx, position.dy);
+    final newPath = Path.from(state.erasePath)
+      ..lineTo(position.dx, position.dy);
     state = state.copyWith(erasePath: newPath);
   }
 
@@ -122,4 +124,3 @@ class CropController extends _$CropController {
     state = CropState(mode: state.mode); // 保留當前模式
   }
 }
-

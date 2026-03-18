@@ -19,7 +19,8 @@ class PdfPreviewPage extends StatelessWidget {
             onPressed: () async {
               await Printing.sharePdf(
                 bytes: pdfBytes,
-                filename: '錯題本_${DateTime.now().toString().substring(0, 10)}.pdf',
+                filename:
+                    '錯題本_${DateTime.now().toString().substring(0, 10)}.pdf',
               );
             },
           ),
@@ -34,7 +35,7 @@ class PdfPreviewPage extends StatelessWidget {
       body: PdfPreview(
         build: (_) => pdfBytes,
         allowPrinting: false, // 使用 AppBar 的列印按鈕，避免功能重複
-        allowSharing: false,  // 使用 AppBar 的分享按鈕，避免功能重複
+        allowSharing: false, // 使用 AppBar 的分享按鈕，避免功能重複
         canChangeOrientation: false,
         canChangePageFormat: false,
       ),

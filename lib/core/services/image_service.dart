@@ -17,11 +17,12 @@ class ImageService {
   /// 啟動拍照流程 (包含壓縮)
   /// context 用於顯示提示
   /// 回傳：處理好的 File，如果取消則回傳 null
-  Future<File?> pickAndCompressImage(BuildContext context, {bool fromCamera = true}) async {
+  Future<File?> pickAndCompressImage(BuildContext context,
+      {bool fromCamera = true}) async {
     try {
       // 1. 選擇圖片來源
       final source = fromCamera ? ImageSource.camera : ImageSource.gallery;
-      
+
       // 2. 呼叫相機/相簿
       // image_picker 會自動處理模擬器相機崩潰的問題 (它會回傳錯誤或無反應，但我們最好做個防呆)
       // 固定使用後置鏡頭，不允許切換（雖然系統界面可能仍顯示切換按鈕，但我們已設置預設為後置）
@@ -44,13 +45,13 @@ class ImageService {
 
       // 4. 執行壓縮
       final File compressedFile = await _compressImage(File(pickedFile.path));
-      
-      return compressedFile;
 
+      return compressedFile;
     } catch (e) {
       debugPrint("拍照錯誤: $e");
       // 簡單的模擬器防呆：如果 Crash，通常是因為模擬器沒相機
-      if (e.toString().contains("camera_access_denied") || e.toString().contains("Source not supported")) {
+      if (e.toString().contains("camera_access_denied") ||
+          e.toString().contains("Source not supported")) {
         if (context.mounted) {
           AppUX.showSnackBar(context, "此裝置不支援相機，請改用相簿", isError: true);
         }
@@ -83,4 +84,3 @@ class ImageService {
     return result != null ? File(result.path) : file;
   }
 }
-
