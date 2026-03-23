@@ -44,6 +44,8 @@ class _MainTabScreenState extends ConsumerState<MainTabScreen> {
     ];
 
     return Scaffold(
+      backgroundColor:
+          _currentIndex == 0 ? Colors.transparent : AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
         children: pages,

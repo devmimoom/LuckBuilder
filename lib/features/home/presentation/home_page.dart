@@ -1,15 +1,18 @@
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../core/theme/home_page_fonts.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
 import '../../../core/services/mistake_share_service.dart';
-import '../../../core/widgets/premium_card.dart';
+import 'widgets/home_mesh_background.dart';
 import '../../../core/database/models/mistake.dart';
 import '../../exams/presentation/exam_countdown_page.dart';
 import '../../exams/providers/exam_countdown_provider.dart';
@@ -23,7 +26,15 @@ import '../../review/presentation/review_page.dart';
 import '../../review/providers/review_provider.dart';
 import '../../tasks/presentation/tasks_page.dart';
 import '../../tasks/providers/tasks_provider.dart';
+import '../../settings/providers/home_background_preset_provider.dart';
 import '../../../core/services/image_service.dart';
+
+const _compactCardTitleShadows = [
+  Shadow(color: Color(0x42000000), offset: Offset(0, 1), blurRadius: 3),
+];
+const _compactCardSubtitleShadows = [
+  Shadow(color: Color(0x38000000), offset: Offset(0, 0.5), blurRadius: 2),
+];
 
 class HomePage extends ConsumerWidget {
   const HomePage({
@@ -39,13 +50,19 @@ class HomePage extends ConsumerWidget {
     final tasksAsync = ref.watch(todayTasksProvider);
     final mistakesAsync = ref.watch(allMistakesRawProvider);
     final examsAsync = ref.watch(examCountdownProvider);
+    final homeBgPreset = ref.watch(homeBackgroundPresetProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
-      body: SafeArea(
-        child: ListView(
-          padding: AppSpacing.screenPadding,
-          children: [
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: HomeMeshBackground(preset: homeBgPreset),
+          ),
+          SafeArea(
+            child: ListView(
+              padding: AppSpacing.screenPadding,
+              children: [
             _buildWelcomeCard(
                 context, reviewSummaryAsync, tasksAsync, examsAsync),
             const SizedBox(height: AppSpacing.xl),
@@ -61,7 +78,7 @@ class HomePage extends ConsumerWidget {
               left: _buildCompactCard(
                 title: 'AI 相似題練習',
                 subtitle: '輸入一題錯題，快速再練同核心觀念',
-                color: const Color(0xFFFF8A00),
+                fillGradient: HomeCompactCardGradients.similarPractice,
                 icon: Icons.edit_note_rounded,
                 badgeText: '練習',
                 emphasized: true,
@@ -80,7 +97,7 @@ class HomePage extends ConsumerWidget {
               right: _buildCompactCard(
                 title: '自訂模擬測驗',
                 subtitle: '從錯題庫快速組卷，限時練自己的弱點',
-                color: const Color(0xFFEF4444),
+                fillGradient: HomeCompactCardGradients.mockExam,
                 icon: Icons.assignment_turned_in_rounded,
                 badgeText: '備考',
                 onTap: () {
@@ -96,7 +113,7 @@ class HomePage extends ConsumerWidget {
               left: _buildCompactCard(
                 title: '知識圖譜',
                 subtitle: '把分類、章節與核心觀念串起來',
-                color: const Color(0xFF8B5CF6),
+                fillGradient: HomeCompactCardGradients.knowledgeGraph,
                 icon: Icons.hub_rounded,
                 badgeText: '洞察',
                 onTap: () {
@@ -109,7 +126,7 @@ class HomePage extends ConsumerWidget {
               right: _buildCompactCard(
                 title: '學習儀表板',
                 subtitle: '看見最近趨勢、科目分布與弱點章節',
-                color: const Color(0xFF10B981),
+                fillGradient: HomeCompactCardGradients.learningDashboard,
                 icon: Icons.bar_chart_rounded,
                 badgeText: '洞察',
                 onTap: () {
@@ -125,7 +142,7 @@ class HomePage extends ConsumerWidget {
               children: [
                 Text(
                   '最近錯題',
-                  style: AppFonts.heading(AppColors.textPrimary),
+                  style: HomePageFonts.heading(AppColors.textPrimary),
                 ),
                 const Spacer(),
                 TextButton(
@@ -133,7 +150,14 @@ class HomePage extends ConsumerWidget {
                     AppUX.feedbackClick();
                     onOpenMistakesTab();
                   },
-                  child: const Text('看全部'),
+                  child: Text(
+                    '看全部',
+                    style: HomePageFonts.resolve(const TextStyle(
+                      color: AppColors.highlight,
+                      fontSize: AppFonts.sizeBodySm,
+                      fontWeight: AppFonts.weightRegular,
+                    )),
+                  ),
                 ),
               ],
             ),
@@ -152,12 +176,25 @@ class HomePage extends ConsumerWidget {
               },
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: HomeMeshReferenceColors.lavender,
+                  ),
+                ),
               ),
-              error: (error, _) => Text('載入最近錯題失敗：$error'),
+              error: (error, _) => Text(
+                '載入最近錯題失敗：$error',
+                style: HomePageFonts.resolve(const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: AppFonts.sizeBodySm,
+                  fontWeight: AppFonts.weightRegular,
+                )),
+              ),
             ),
           ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -168,22 +205,28 @@ class HomePage extends ConsumerWidget {
     AsyncValue<DailyTasksData> tasksAsync,
     AsyncValue<ExamCountdownData> examsAsync,
   ) {
-    return Container(
-      padding: AppSpacing.cardPaddingLg,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5B6CFF), Color(0xFF8B5CFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    const r = HomeMeshReferenceColors.radiusGlassHero;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: HomeMeshReferenceColors.blurSigmaCard,
+          sigmaY: HomeMeshReferenceColors.blurSigmaCard,
         ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      ),
-      child: Column(
+        child: Container(
+          padding: AppSpacing.cardPaddingLg,
+          decoration: BoxDecoration(
+            color: HomeMeshReferenceColors.darkGlass
+                .withValues(alpha: HomeMeshReferenceColors.welcomeCardGlassOpacity),
+            borderRadius: BorderRadius.circular(r),
+            border: Border.all(color: HomeMeshReferenceColors.glassBorderWhite),
+          ),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '嗨，你今天也很棒',
-            style: AppFonts.displayMd(Colors.white),
+            style: HomePageFonts.displayMd(Colors.white),
           ),
           const SizedBox(height: AppSpacing.sm),
           reviewSummaryAsync.when(
@@ -191,24 +234,27 @@ class HomePage extends ConsumerWidget {
               summary.dueCount == 0
                   ? '複習進度都跟上了，繼續保持這個節奏！'
                   : '有 ${summary.dueCount} 題在等你複習，一題一題來就好。',
-              style: AppFonts.resolve(TextStyle(
+              style: HomePageFonts.resolve(TextStyle(
                 color: Colors.white.withValues(alpha: 0.75),
                 fontSize: AppFonts.sizeBodyLg,
                 height: AppFonts.lineHeightRelaxed,
+                fontWeight: AppFonts.weightRegular,
               )),
             ),
             loading: () => Text(
               '正在準備今天的學習計畫...',
-              style: AppFonts.resolve(TextStyle(
+              style: HomePageFonts.resolve(TextStyle(
                 color: Colors.white.withValues(alpha: 0.75),
                 fontSize: AppFonts.sizeBodyLg,
+                fontWeight: AppFonts.weightRegular,
               )),
             ),
             error: (_, __) => Text(
               '今天也是全新的一天，一起加油吧！',
-              style: AppFonts.resolve(TextStyle(
+              style: HomePageFonts.resolve(TextStyle(
                 color: Colors.white.withValues(alpha: 0.75),
                 fontSize: AppFonts.sizeBodyLg,
+                fontWeight: AppFonts.weightRegular,
               )),
             ),
           ),
@@ -231,14 +277,16 @@ class HomePage extends ConsumerWidget {
             ),
             child: Text(
               '只要持續記錄，進步就會自然發生 ✨',
-              style: AppFonts.resolve(const TextStyle(
+              style: HomePageFonts.resolve(const TextStyle(
                 color: Colors.white,
                 fontSize: AppFonts.sizeBodySm,
-                fontWeight: AppFonts.weightSemibold,
+                fontWeight: AppFonts.weightRegular,
               )),
             ),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
@@ -283,13 +331,14 @@ class HomePage extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('考試倒數',
-                            style: AppFonts.titleSm(Colors.white)),
+                            style: HomePageFonts.titleSm(Colors.white)),
                         const SizedBox(height: AppSpacing.xs),
                         Text('還沒設定考試日期，先加上你的下一場目標',
-                            style: AppFonts.resolve(TextStyle(
+                            style: HomePageFonts.resolve(TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: AppFonts.sizeBodySm,
                               height: AppFonts.lineHeightBody,
+                              fontWeight: AppFonts.weightRegular,
                             ))),
                       ],
                     );
@@ -304,7 +353,7 @@ class HomePage extends ConsumerWidget {
                           Flexible(
                             child: Text(
                               nextExam.name,
-                              style: AppFonts.titleSm(Colors.white),
+                              style: HomePageFonts.titleSm(Colors.white),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -313,15 +362,15 @@ class HomePage extends ConsumerWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.compact, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFF4D4F),
+                              color: HomeMeshReferenceColors.accentPurple,
                               borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                             ),
                             child: Text(
                               label,
-                              style: AppFonts.resolve(const TextStyle(
+                              style: HomePageFonts.resolve(const TextStyle(
                                 color: Colors.white,
                                 fontSize: AppFonts.sizeCaption,
-                                fontWeight: AppFonts.weightBold,
+                                fontWeight: AppFonts.weightSemibold,
                                 letterSpacing: AppFonts.letterSpacingButton,
                               )),
                             ),
@@ -331,10 +380,11 @@ class HomePage extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         '現在開始安排複習最剛好',
-                        style: AppFonts.resolve(TextStyle(
+                        style: HomePageFonts.resolve(TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: AppFonts.sizeBodySm,
                           height: AppFonts.lineHeightBody,
+                          fontWeight: AppFonts.weightRegular,
                         )),
                       ),
                     ],
@@ -342,16 +392,18 @@ class HomePage extends ConsumerWidget {
                 },
                 loading: () => Text(
                   '正在整理你的考試倒數...',
-                  style: AppFonts.resolve(TextStyle(
+                  style: HomePageFonts.resolve(TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: AppFonts.sizeBodySm,
+                    fontWeight: AppFonts.weightRegular,
                   )),
                 ),
                 error: (_, __) => Text(
                   '點擊設定你的下一場考試',
-                  style: AppFonts.resolve(TextStyle(
+                  style: HomePageFonts.resolve(TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: AppFonts.sizeBodySm,
+                    fontWeight: AppFonts.weightRegular,
                   )),
                 ),
               ),
@@ -400,30 +452,33 @@ class HomePage extends ConsumerWidget {
                 children: [
                   Text(
                     '今日任務',
-                    style: AppFonts.titleSm(Colors.white),
+                    style: HomePageFonts.titleSm(Colors.white),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   tasksAsync.when(
                     data: (tasksData) => Text(
                       '${tasksData.completedCount}/${tasksData.tasks.length} 完成・每天一小步，累積就是大進步',
-                      style: AppFonts.resolve(TextStyle(
+                      style: HomePageFonts.resolve(TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: AppFonts.sizeBodySm,
                         height: AppFonts.lineHeightBody,
+                        fontWeight: AppFonts.weightRegular,
                       )),
                     ),
                     loading: () => Text(
                       '正在整理今天的任務...',
-                      style: AppFonts.resolve(TextStyle(
+                      style: HomePageFonts.resolve(TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: AppFonts.sizeBodySm,
+                        fontWeight: AppFonts.weightRegular,
                       )),
                     ),
                     error: (_, __) => Text(
                       '點擊查看今日任務',
-                      style: AppFonts.resolve(TextStyle(
+                      style: HomePageFonts.resolve(TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: AppFonts.sizeBodySm,
+                        fontWeight: AppFonts.weightRegular,
                       )),
                     ),
                   ),
@@ -447,10 +502,11 @@ class HomePage extends ConsumerWidget {
         Expanded(
           child: Text(
             '遺忘曲線複習：系統會依你每次作答表現，安排 1、3、7、14、30 天的複習節點；答得越穩，間隔越長。',
-            style: AppFonts.resolve(TextStyle(
+            style: HomePageFonts.resolve(TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
               fontSize: AppFonts.sizeBodySm,
               height: AppFonts.lineHeightRelaxed,
+              fontWeight: AppFonts.weightRegular,
             )),
           ),
         ),
@@ -479,26 +535,35 @@ class HomePage extends ConsumerWidget {
     required IconData icon,
     required VoidCallback? onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-      child: Ink(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF007AFF), Color(0xFF0055D4)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF007AFF).withValues(alpha: 0.22),
-              offset: const Offset(0, 12),
-              blurRadius: 32,
+    const r = HomeMeshReferenceColors.radiusGlassHero;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(r),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(r),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                HomeMeshReferenceColors.teal,
+                HomeMeshReferenceColors.lavender,
+                HomeMeshReferenceColors.peach,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              stops: [0.0, 0.45, 1.0],
             ),
-          ],
-        ),
-        child: Padding(
+            borderRadius: BorderRadius.circular(r),
+            border: Border.all(color: HomeMeshReferenceColors.glassBorderWhite),
+            boxShadow: [
+              BoxShadow(
+                color: HomeMeshReferenceColors.teal.withValues(alpha: 0.28),
+                offset: const Offset(0, 14),
+                blurRadius: 36,
+              ),
+            ],
+          ),
+          child: Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.xxl,
             AppSpacing.xxl,
@@ -523,21 +588,22 @@ class HomePage extends ConsumerWidget {
                       ),
                       child: Text(
                         '最快開始',
-                        style: AppFonts.badge(Colors.white),
+                        style: HomePageFonts.badge(Colors.white),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.snug),
                     Text(
                       title,
-                      style: AppFonts.displayMd(Colors.white),
+                      style: HomePageFonts.displayMd(Colors.white),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       subtitle,
-                      style: AppFonts.resolve(TextStyle(
+                      style: HomePageFonts.resolve(TextStyle(
                         color: Colors.white.withValues(alpha: 0.75),
                         fontSize: AppFonts.sizeBodyLg,
                         height: AppFonts.lineHeightBody,
+                        fontWeight: AppFonts.weightRegular,
                       )),
                     ),
                     const SizedBox(height: AppSpacing.snug),
@@ -555,8 +621,8 @@ class HomePage extends ConsumerWidget {
                         children: [
                           Text(
                             ctaText,
-                            style: AppFonts.resolve(const TextStyle(
-                              color: Color(0xFF0055D4),
+                            style: HomePageFonts.resolve(const TextStyle(
+                              color: HomeMeshReferenceColors.darkGlass,
                               fontSize: AppFonts.sizeBodySm,
                               fontWeight: AppFonts.weightBold,
                               letterSpacing: AppFonts.letterSpacingButton,
@@ -566,7 +632,7 @@ class HomePage extends ConsumerWidget {
                           const Icon(
                             Icons.arrow_forward_rounded,
                             size: 16,
-                            color: Color(0xFF0055D4),
+                            color: HomeMeshReferenceColors.darkGlass,
                           ),
                         ],
                       ),
@@ -588,97 +654,120 @@ class HomePage extends ConsumerWidget {
           ),
         ),
       ),
+      ),
     );
   }
 
   Widget _buildCompactCard({
     required String title,
     required String subtitle,
-    required Color color,
+    required LinearGradient fillGradient,
     required IconData icon,
     required VoidCallback? onTap,
     String? badgeText,
     bool emphasized = false,
   }) {
     final minHeight = emphasized ? 158.0 : 138.0;
+    const r = HomeMeshReferenceColors.radiusGlassCompact;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: emphasized ? 0.05 : 0.03),
-              offset: const Offset(0, 6),
-              blurRadius: emphasized ? 18 : 12,
-            ),
-          ],
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: minHeight),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: emphasized ? 42 : 40,
-                      height: emphasized ? 42 : 40,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                      ),
-                      child: Icon(icon, color: color, size: emphasized ? 22 : 20),
-                    ),
-                    const Spacer(),
-                    if (badgeText != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                        ),
-                        child: Text(
-                          badgeText,
-                          style: AppFonts.badge(color),
-                        ),
-                      ),
-                  ],
-                ),
-                SizedBox(height: emphasized ? AppSpacing.lg : AppSpacing.md),
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.resolve(TextStyle(
-                    fontSize: emphasized ? AppFonts.sizeTitleMd : AppFonts.sizeTitleSm,
-                    fontWeight: AppFonts.weightSemibold,
-                    color: AppColors.textPrimary,
-                    height: AppFonts.lineHeightTight,
-                  )),
-                ),
-                const SizedBox(height: AppSpacing.tight),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.resolve(const TextStyle(
-                    fontSize: AppFonts.sizeCaption,
-                    color: AppColors.textSecondary,
-                    height: AppFonts.lineHeightBody,
-                  )),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(r),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(r),
+          splashColor: Colors.white.withValues(alpha: 0.22),
+          highlightColor: Colors.white.withValues(alpha: 0.12),
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: fillGradient,
+              borderRadius: BorderRadius.circular(r),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: emphasized ? 0.24 : 0.2),
+                  offset: const Offset(0, 8),
+                  blurRadius: emphasized ? 22 : 16,
                 ),
               ],
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: minHeight),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: emphasized ? 42 : 40,
+                          height: emphasized ? 42 : 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.28),
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusSm),
+                          ),
+                          child: Icon(
+                            icon,
+                            color: HomeMeshReferenceColors.onGradientPrimary,
+                            size: emphasized ? 22 : 20,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (badgeText != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.38),
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.radiusPill),
+                            ),
+                            child: Text(
+                              badgeText,
+                              style: HomePageFonts.badge(
+                                  HomeMeshReferenceColors.onGradientPrimary),
+                            ),
+                          ),
+                      ],
+                    ),
+                    SizedBox(
+                        height: emphasized ? AppSpacing.lg : AppSpacing.md),
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomePageFonts.resolve(TextStyle(
+                        fontSize: emphasized
+                            ? AppFonts.sizeTitleMd
+                            : AppFonts.sizeTitleSm,
+                        fontWeight: AppFonts.weightSemibold,
+                        color: HomeMeshReferenceColors.onGradientPrimary,
+                        height: AppFonts.lineHeightTight,
+                        shadows: _compactCardTitleShadows,
+                      )),
+                    ),
+                    const SizedBox(height: AppSpacing.tight),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomePageFonts.resolve(const TextStyle(
+                        fontSize: AppFonts.sizeCaption,
+                        fontWeight: AppFonts.weightRegular,
+                        color: HomeMeshReferenceColors.onGradientSecondary,
+                        height: AppFonts.lineHeightBody,
+                        shadows: _compactCardSubtitleShadows,
+                      )),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -694,7 +783,7 @@ class HomePage extends ConsumerWidget {
       data: (summary) => _buildCompactCard(
         title: '錯題複習',
         subtitle: summary.dueCount == 0 ? '進度有跟上，現在可以回頭看最近收藏' : '把昨天的錯，變成今天真的會',
-        color: const Color(0xFF7B61FF),
+        fillGradient: HomeCompactCardGradients.review,
         icon: Icons.refresh_rounded,
         badgeText: summary.dueCount == 0 ? '已跟上' : '${summary.dueCount} 題',
         emphasized: true,
@@ -708,7 +797,7 @@ class HomePage extends ConsumerWidget {
       loading: () => _buildCompactCard(
         title: '錯題複習',
         subtitle: '正在整理今天該回頭看的題目',
-        color: const Color(0xFF7B61FF),
+        fillGradient: HomeCompactCardGradients.review,
         icon: Icons.refresh_rounded,
         badgeText: '整理中',
         emphasized: true,
@@ -717,7 +806,7 @@ class HomePage extends ConsumerWidget {
       error: (_, __) => _buildCompactCard(
         title: '錯題複習',
         subtitle: '先去錯題本看看最近收藏的題目',
-        color: const Color(0xFF7B61FF),
+        fillGradient: HomeCompactCardGradients.review,
         icon: Icons.refresh_rounded,
         badgeText: '查看',
         emphasized: true,
@@ -738,7 +827,7 @@ class HomePage extends ConsumerWidget {
           subtitle: nextExam == null
               ? '先設定下一場考試，首頁與 Widget 會同步倒數'
               : '${nextExam.name}，提早把複習節奏排好',
-          color: const Color(0xFF6366F1),
+          fillGradient: HomeCompactCardGradients.examCountdown,
           icon: Icons.event_available_rounded,
           badgeText: nextExam == null ? '去設定' : examCountdownLabel(nextExam),
           onTap: () {
@@ -752,7 +841,7 @@ class HomePage extends ConsumerWidget {
       loading: () => _buildCompactCard(
         title: '考試倒數',
         subtitle: '正在整理你的下一場重要日期',
-        color: const Color(0xFF6366F1),
+        fillGradient: HomeCompactCardGradients.examCountdown,
         icon: Icons.event_available_rounded,
         badgeText: '整理中',
         onTap: null,
@@ -760,7 +849,7 @@ class HomePage extends ConsumerWidget {
       error: (_, __) => _buildCompactCard(
         title: '考試倒數',
         subtitle: '點一下設定段考、學測、會考或自訂日期',
-        color: const Color(0xFF6366F1),
+        fillGradient: HomeCompactCardGradients.examCountdown,
         icon: Icons.event_available_rounded,
         badgeText: '查看',
         onTap: () {
@@ -774,95 +863,125 @@ class HomePage extends ConsumerWidget {
   }
 
   Widget _buildRecentMistakeCard(Mistake mistake) {
+    const r = HomeMeshReferenceColors.radiusGlassCompact;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.compact),
-      child: PremiumCard(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Wrap(
-                    spacing: AppSpacing.tight,
-                    runSpacing: AppSpacing.tight,
-                    children: [
-                      _smallTag(mistake.subject, const Color(0xFFFF9800)),
-                      _smallTag(mistake.category, const Color(0xFF2196F3)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () async {
-                    AppUX.feedbackClick();
-                    await MistakeShareService.shareMistake(mistake);
-                  },
-                  icon: const Icon(Icons.ios_share_rounded, size: 20),
-                  tooltip: '分享錯題',
-                  color: AppColors.textSecondary,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: HomeMeshReferenceColors.blurSigmaCard,
+            sigmaY: HomeMeshReferenceColors.blurSigmaCard,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: HomeMeshReferenceColors.glassFillLight,
+              borderRadius: BorderRadius.circular(r),
+              border: Border.all(color: HomeMeshReferenceColors.glassBorderWhite),
             ),
-            Row(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
               children: [
-                if (mistake.imagePath.isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
-                    child: Image.file(
-                      File(mistake.imagePath),
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 56,
-                        height: 56,
-                        color: AppColors.surface,
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.image_not_supported),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Wrap(
+                        spacing: AppSpacing.tight,
+                        runSpacing: AppSpacing.tight,
+                        children: [
+                          _smallTag(
+                              mistake.subject, HomeMeshReferenceColors.peach),
+                          _smallTag(
+                              mistake.category, HomeMeshReferenceColors.teal),
+                        ],
                       ),
                     ),
-                  ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    LatexHelper.toReadableText(
-                      mistake.title,
-                      fallback: '未命名題目',
+                    IconButton(
+                      onPressed: () async {
+                        AppUX.feedbackClick();
+                        await MistakeShareService.shareMistake(mistake);
+                      },
+                      icon: const Icon(Icons.ios_share_rounded, size: 20),
+                      tooltip: '分享錯題',
+                      color: AppColors.textSecondary,
+                      visualDensity: VisualDensity.compact,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.resolve(const TextStyle(
-                      fontSize: AppFonts.sizeBodySm,
-                      color: AppColors.textPrimary,
-                      height: AppFonts.lineHeightBody,
-                    )),
-                  ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    if (mistake.imagePath.isNotEmpty)
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusXs),
+                        child: Image.file(
+                          File(mistake.imagePath),
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 56,
+                            height: 56,
+                            color: AppColors.surface,
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.image_not_supported),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        LatexHelper.toReadableText(
+                          mistake.title,
+                          fallback: '未命名題目',
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomePageFonts.resolve(const TextStyle(
+                          fontSize: AppFonts.sizeBodySm,
+                          fontWeight: AppFonts.weightRegular,
+                          color: AppColors.textPrimary,
+                          height: AppFonts.lineHeightBody,
+                        )),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildEmptyRecentCard() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.inset),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Text(
-        '還沒有錯題，拍一題開始吧！每道錯題都是進步的起點。',
-        style: AppFonts.resolve(const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: AppFonts.sizeBodySm,
-          height: AppFonts.lineHeightRelaxed,
-        )),
+    const r = HomeMeshReferenceColors.radiusGlassCompact;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: HomeMeshReferenceColors.blurSigmaCard,
+          sigmaY: HomeMeshReferenceColors.blurSigmaCard,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.inset),
+          decoration: BoxDecoration(
+            color: HomeMeshReferenceColors.glassFillLight,
+            borderRadius: BorderRadius.circular(r),
+            border: Border.all(color: HomeMeshReferenceColors.glassBorderWhite),
+          ),
+          child: Text(
+            '還沒有錯題，拍一題開始吧！每道錯題都是進步的起點。',
+            style: HomePageFonts.resolve(const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: AppFonts.sizeBodySm,
+              fontWeight: AppFonts.weightRegular,
+              height: AppFonts.lineHeightRelaxed,
+            )),
+          ),
+        ),
       ),
     );
   }
@@ -877,7 +996,7 @@ class HomePage extends ConsumerWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
       ),
-      child: Text(text, style: AppFonts.badge(color)),
+      child: Text(text, style: HomePageFonts.badge(color)),
     );
   }
 

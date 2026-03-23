@@ -15,6 +15,7 @@ import '../../../core/database/models/mistake.dart';
 import '../../solver/presentation/solver_page.dart';
 import 'print_settings_sheet.dart';
 import 'glyph_test_page.dart';
+import '../../settings/presentation/settings_page.dart';
 import 'dart:io';
 
 class MistakesListPage extends ConsumerStatefulWidget {
@@ -282,6 +283,16 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
         onPressed: () {
           AppUX.feedbackClick();
           ref.read(selectionNotifierProvider.notifier).enterSelectionMode();
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.settings_outlined),
+        tooltip: '設定',
+        onPressed: () {
+          AppUX.feedbackClick();
+          Navigator.of(context).push(
+            AppUX.fadeRoute(const SettingsPage()),
+          );
         },
       ),
       const SizedBox(width: 8),
