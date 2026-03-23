@@ -3,11 +3,8 @@ import 'package:flutter/foundation.dart' as foundation;
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'dart:math' as math;
-import 'package:image/image.dart' as img;
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import '../../../core/services/gemini_service.dart' hide debugPrint;
+import '../utils/crop_image_helper.dart';
 
 part 'analysis_provider.g.dart';
 
@@ -143,38 +140,21 @@ class AnalysisQueue extends _$AnalysisQueue {
   Future<void> _processQueue(String imagePath, List<Rect> rects,
       Size displaySize, List<Path> erasePaths) async {
     debugPrint("=== [AnalysisQueue] _processQueue 開始 ===");
-
-    // 讀取原始圖片
-    final file = File(imagePath);
-    if (!await file.exists()) {
-      debugPrint("錯誤：圖片檔案不存在: $imagePath");
+    CropImageResult cropResult;
+    try {
+      cropResult = await CropImageHelper.cropSelectedRegions(
+        imagePath: imagePath,
+        rects: rects,
+        displaySize: displaySize,
+        erasePaths: erasePaths,
+      );
+    } catch (e) {
+      debugPrint("❌ 裁切失敗: $e");
+      for (var i = 0; i < rects.length; i++) {
+        _updateTask(i, status: AnalysisStatus.failed, title: '裁切圖片失敗');
+      }
       return;
     }
-
-    final bytes = await file.readAsBytes();
-    debugPrint("讀取圖片成功，大小: ${bytes.length} bytes");
-
-    var originalImage = img.decodeImage(bytes);
-    if (originalImage == null) {
-      debugPrint("錯誤：無法解碼圖片");
-      return;
-    }
-
-    // 🟢 核心修正 1：處理照片轉向問題 (EXIF 方向)
-    // 這會把 iPhone 橫拍/直拍的旋轉資訊「烘焙」進像素，確保裁切座標正確
-    originalImage = img.bakeOrientation(originalImage);
-    debugPrint(
-        "圖片處理完成 (含 EXIF 校正): ${originalImage.width}x${originalImage.height}");
-
-    // 🟢 應用筆刷遮罩：在裁切之前，將塗掉的路徑繪製到圖片上（用白色填充）
-    if (erasePaths.isNotEmpty) {
-      debugPrint("=== 應用筆刷遮罩 ===");
-      originalImage = _applyEraseMask(originalImage, displaySize, erasePaths);
-      debugPrint("筆刷遮罩已應用");
-    }
-
-    final tempDir = await getTemporaryDirectory();
-    debugPrint("臨時目錄: ${tempDir.path}");
 
     for (int i = 0; i < rects.length; i++) {
       debugPrint("=== 處理任務 $i ===");
@@ -182,68 +162,7 @@ class AnalysisQueue extends _$AnalysisQueue {
           status: AnalysisStatus.processing, title: '正在裁切與辨識題目 ${i + 1}...');
 
       try {
-        final rect = rects[i];
-        debugPrint("框選區域 (螢幕座標): $rect");
-        debugPrint("顯示區域大小: $displaySize");
-
-        // 🟢 核心修正 2：精準計算 BoxFit.contain 的黑邊補償
-        // 圖片在螢幕上使用 BoxFit.contain，可能有上下或左右黑邊
-        final double imgAspect = originalImage.width / originalImage.height;
-        final double viewAspect = displaySize.width / displaySize.height;
-
-        double actualVisibleWidth, actualVisibleHeight;
-        double offsetX = 0, offsetY = 0;
-
-        if (viewAspect > imgAspect) {
-          // 螢幕比圖片更寬 → 左右有黑邊
-          actualVisibleHeight = displaySize.height;
-          actualVisibleWidth = displaySize.height * imgAspect;
-          offsetX = (displaySize.width - actualVisibleWidth) / 2;
-        } else {
-          // 螢幕比圖片更高 → 上下有黑邊
-          actualVisibleWidth = displaySize.width;
-          actualVisibleHeight = displaySize.width / imgAspect;
-          offsetY = (displaySize.height - actualVisibleHeight) / 2;
-        }
-
-        debugPrint(
-            "實際可見區域: ${actualVisibleWidth}x$actualVisibleHeight, 偏移: ($offsetX, $offsetY)");
-
-        // 縮放比例：用「實際可見寬度」來計算
-        final double scale = originalImage.width / actualVisibleWidth;
-        debugPrint("縮放比例: $scale");
-
-        // 座標轉換：先扣除黑邊偏移量，再縮放到圖片像素
-        final int left = ((rect.left - offsetX) * scale)
-            .toInt()
-            .clamp(0, originalImage.width - 1);
-        final int top = ((rect.top - offsetY) * scale)
-            .toInt()
-            .clamp(0, originalImage.height - 1);
-        int width = (rect.width * scale).toInt();
-        int height = (rect.height * scale).toInt();
-
-        // 確保不超出圖片邊界
-        width = width.clamp(1, originalImage.width - left);
-        height = height.clamp(1, originalImage.height - top);
-
-        debugPrint("裁切參數: left=$left, top=$top, width=$width, height=$height");
-
-        // 執行裁切
-        final croppedImage = img.copyCrop(
-          originalImage,
-          x: left,
-          y: top,
-          width: width,
-          height: height,
-        );
-        debugPrint("裁切成功: ${croppedImage.width}x${croppedImage.height}");
-
-        // 儲存裁切後的圖片
-        final cropFileName =
-            'crop_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-        final cropPath = p.join(tempDir.path, cropFileName);
-        await File(cropPath).writeAsBytes(img.encodeJpg(croppedImage));
+        final cropPath = cropResult.cropPaths[i];
         debugPrint("裁切圖片已儲存: $cropPath");
 
         _updateTask(i,
@@ -386,73 +305,18 @@ class AnalysisQueue extends _$AnalysisQueue {
     Size displaySize,
   ) async {
     try {
-      // 讀取原始圖片
-      final file = File(imagePath);
-      if (!await file.exists()) {
-        debugPrint("錯誤：圖片檔案不存在: $imagePath");
-        _updateTask(taskIndex, status: AnalysisStatus.failed, title: '圖片檔案不存在');
-        return;
-      }
-
-      final bytes = await file.readAsBytes();
-      var originalImage = img.decodeImage(bytes);
-      if (originalImage == null) {
-        debugPrint("錯誤：無法解碼圖片");
-        _updateTask(taskIndex, status: AnalysisStatus.failed, title: '無法解碼圖片');
-        return;
-      }
-
-      // 處理 EXIF 方向
-      originalImage = img.bakeOrientation(originalImage);
-
-      final tempDir = await getTemporaryDirectory();
-
       _updateTask(taskIndex,
           status: AnalysisStatus.processing, title: '正在裁切題目...');
-
-      // 計算裁切參數（與 _processQueue 中的邏輯相同）
-      final double imgAspect = originalImage.width / originalImage.height;
-      final double viewAspect = displaySize.width / displaySize.height;
-
-      double actualVisibleWidth, actualVisibleHeight;
-      double offsetX = 0, offsetY = 0;
-
-      if (viewAspect > imgAspect) {
-        actualVisibleHeight = displaySize.height;
-        actualVisibleWidth = displaySize.height * imgAspect;
-        offsetX = (displaySize.width - actualVisibleWidth) / 2;
-      } else {
-        actualVisibleWidth = displaySize.width;
-        actualVisibleHeight = displaySize.width / imgAspect;
-        offsetY = (displaySize.height - actualVisibleHeight) / 2;
-      }
-
-      final double scale = originalImage.width / actualVisibleWidth;
-      final int left = ((rect.left - offsetX) * scale)
-          .toInt()
-          .clamp(0, originalImage.width - 1);
-      final int top = ((rect.top - offsetY) * scale)
-          .toInt()
-          .clamp(0, originalImage.height - 1);
-      int width = (rect.width * scale).toInt();
-      int height = (rect.height * scale).toInt();
-      width = width.clamp(1, originalImage.width - left);
-      height = height.clamp(1, originalImage.height - top);
-
-      // 執行裁切
-      final croppedImage = img.copyCrop(
-        originalImage,
-        x: left,
-        y: top,
-        width: width,
-        height: height,
+      final cropResult = await CropImageHelper.cropSelectedRegions(
+        imagePath: imagePath,
+        rects: [rect],
+        displaySize: displaySize,
       );
-
-      // 儲存裁切後的圖片
-      final cropFileName =
-          'crop_${DateTime.now().millisecondsSinceEpoch}_$taskIndex.jpg';
-      final cropPath = p.join(tempDir.path, cropFileName);
-      await File(cropPath).writeAsBytes(img.encodeJpg(croppedImage));
+      final cropPath = cropResult.firstCropPath;
+      if (cropPath == null) {
+        _updateTask(taskIndex, status: AnalysisStatus.failed, title: '裁切圖片失敗');
+        return;
+      }
 
       _updateTask(taskIndex,
           progress: 0.3, cropPath: cropPath, title: '正在 Gemini OCR 辨識題目...');
@@ -530,93 +394,6 @@ class AnalysisQueue extends _$AnalysisQueue {
       debugPrint("Stack trace: $stack");
       _updateTask(taskIndex, status: AnalysisStatus.failed, title: '重試失敗');
     }
-  }
-
-  /// 應用筆刷遮罩：將屏幕座標的 Path 轉換為圖片像素座標，並繪製白色填充
-  img.Image _applyEraseMask(
-      img.Image originalImage, Size displaySize, List<Path> erasePaths) {
-    // 計算座標轉換參數（與裁切邏輯相同）
-    final double imgAspect = originalImage.width / originalImage.height;
-    final double viewAspect = displaySize.width / displaySize.height;
-
-    double actualVisibleWidth, actualVisibleHeight;
-    double offsetX = 0, offsetY = 0;
-
-    if (viewAspect > imgAspect) {
-      // 螢幕比圖片更寬 → 左右有黑邊
-      actualVisibleHeight = displaySize.height;
-      actualVisibleWidth = displaySize.height * imgAspect;
-      offsetX = (displaySize.width - actualVisibleWidth) / 2;
-    } else {
-      // 螢幕比圖片更高 → 上下有黑邊
-      actualVisibleWidth = displaySize.width;
-      actualVisibleHeight = displaySize.width / imgAspect;
-      offsetY = (displaySize.height - actualVisibleHeight) / 2;
-    }
-
-    // 縮放比例：用「實際可見寬度」來計算
-    final double scale = originalImage.width / actualVisibleWidth;
-
-    // 創建一個新的圖片副本（不修改原圖）
-    final maskedImage = img.copyResize(originalImage,
-        width: originalImage.width, height: originalImage.height);
-
-    // 將每個筆刷路徑轉換為圖片像素座標並繪製白色填充
-    for (final screenPath in erasePaths) {
-      final pathMetrics = screenPath.computeMetrics();
-
-      for (final metric in pathMetrics) {
-        // 遍歷路徑的每個點
-        final pathPoints = <img.Point>[];
-
-        // 採樣路徑點（每隔一小段採樣一次）
-        for (double t = 0.0; t <= 1.0; t += 0.01) {
-          final tangent = metric.getTangentForOffset(metric.length * t);
-          if (tangent != null) {
-            final screenPoint = tangent.position;
-            // 座標轉換：先扣除黑邊偏移量，再縮放到圖片像素
-            final pixelX = ((screenPoint.dx - offsetX) * scale)
-                .toInt()
-                .clamp(0, originalImage.width - 1);
-            final pixelY = ((screenPoint.dy - offsetY) * scale)
-                .toInt()
-                .clamp(0, originalImage.height - 1);
-            pathPoints.add(img.Point(pixelX, pixelY));
-          }
-        }
-
-        // 使用筆刷寬度（30.0 屏幕單位）轉換為像素寬度
-        final brushWidth =
-            (30.0 * scale).toInt().clamp(5, 100); // 最小 5 像素，最大 100 像素
-
-        // 繪製白色填充：對每個路徑點周圍的圓形區域進行填充
-        for (final point in pathPoints) {
-          final x = point.x;
-          final y = point.y;
-          final radius = brushWidth ~/ 2;
-
-          // 繪製圓形白色填充
-          for (int dy = -radius; dy <= radius; dy++) {
-            for (int dx = -radius; dx <= radius; dx++) {
-              final px = (x + dx).toInt();
-              final py = (y + dy).toInt();
-              if (px >= 0 &&
-                  px < maskedImage.width &&
-                  py >= 0 &&
-                  py < maskedImage.height) {
-                final distance = math.sqrt(dx * dx + dy * dy);
-                if (distance <= radius) {
-                  // 設置為白色像素
-                  maskedImage.setPixel(px, py, img.ColorRgb8(255, 255, 255));
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return maskedImage;
   }
 
   void _updateTask(

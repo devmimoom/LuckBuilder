@@ -128,7 +128,7 @@ List<DailyTask> _buildTasks(List<Mistake> mistakes, Set<String> completedIds) {
       id: 'due_review',
       title: '到期錯題複習',
       subtitle: dueMistakes.isEmpty
-          ? '今天沒有到期複習，維持得很好'
+          ? '今天沒有到期複習，代表你複習得很到位！'
           : '有 ${dueMistakes.length} 題該回來複習',
       estimateMinutes:
           dueMistakes.isEmpty ? 3 : (dueMistakes.length * 2).clamp(5, 20),
@@ -139,7 +139,9 @@ List<DailyTask> _buildTasks(List<Mistake> mistakes, Set<String> completedIds) {
     DailyTask(
       id: 'weak_spot',
       title: '弱點章節練習',
-      subtitle: weakGroup == null ? '先累積幾題錯題，系統再幫你抓弱點' : '優先補強 ${weakGroup.$1}',
+      subtitle: weakGroup == null
+          ? '繼續累積錯題，系統會自動幫你找到弱點'
+          : '優先補強 ${weakGroup.$1}',
       estimateMinutes: 8,
       ctaLabel: '專攻弱點',
       actionType: TaskActionType.weakSpot,
@@ -148,7 +150,7 @@ List<DailyTask> _buildTasks(List<Mistake> mistakes, Set<String> completedIds) {
     DailyTask(
       id: 'capture_new',
       title: '拍題求助',
-      subtitle: '遇到卡關題目時，直接拍照拆解步驟',
+      subtitle: '遇到卡關題目？拍一張照片，30 秒找到突破口',
       estimateMinutes: 5,
       ctaLabel: '去拍題',
       actionType: TaskActionType.captureNew,

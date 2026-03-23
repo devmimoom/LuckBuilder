@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -39,6 +39,7 @@ class DatabaseHelper {
         solutions TEXT NOT NULL,
         subject TEXT NOT NULL,
         category TEXT NOT NULL,
+        chapter TEXT,
         error_reason TEXT,
         review_count INTEGER NOT NULL DEFAULT 0,
         last_reviewed_at INTEGER,
@@ -66,6 +67,11 @@ class DatabaseHelper {
       );
       await db.execute(
         'ALTER TABLE mistakes ADD COLUMN error_type TEXT',
+      );
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE mistakes ADD COLUMN chapter TEXT',
       );
     }
   }

@@ -65,6 +65,7 @@ class MistakesExamplePage extends ConsumerWidget {
           solutions: ['解法一：使用相似三角形性質', '解法二：使用比例'],
           subject: '數學',
           category: '幾何',
+          chapter: '相似形',
         );
   }
 }

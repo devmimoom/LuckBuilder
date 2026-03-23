@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' as foundation;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../utils/latex_helper.dart';
 
 const bool _enableVerboseGeminiLogs =
     bool.fromEnvironment('LB_VERBOSE_GEMINI_LOGS', defaultValue: false);
@@ -201,7 +202,11 @@ class GeminiService {
         debugPrint("   ⚠️ 警告：OCR 結果中未發現數學符號（√、²、³等），可能影響科目判斷");
       }
 
-      return text.trim();
+      final normalized = LatexHelper.normalizeModelText(
+        text,
+        preserveLineBreaks: true,
+      );
+      return normalized.isEmpty ? null : normalized;
     } catch (e) {
       debugPrint("❌ Gemini OCR 失敗: $e");
       return null;
@@ -216,6 +221,15 @@ class GeminiService {
     String questionText, {
     File? imageFile,
   }) async {
+    final normalizedQuestionText = LatexHelper.normalizeModelText(
+      questionText,
+      preserveLineBreaks: true,
+    );
+    if (normalizedQuestionText.isEmpty) {
+      debugPrint("❌ 題目文字為空，無法分析");
+      return null;
+    }
+
     // 如果尚未初始化，嘗試初始化
     if (!isReady) {
       debugPrint("⚠️ GeminiService 尚未初始化，嘗試自動初始化...");
@@ -276,7 +290,7 @@ class GeminiService {
 
 $imageInstruction
 以下是透過 OCR 辨識的題目文字：
-「$questionText」
+「$normalizedQuestionText」
 
 請你【嚴格】依照下列規則分析題目，並以 JSON 格式輸出，不要包含任何 Markdown。
 
@@ -594,15 +608,15 @@ B. 易錯提醒
           "   圖片狀態: ${imageBytes != null ? '已載入 ($imageBytesLength bytes)' : '無圖片'}");
 
       // 添加檢查 OCR 文字中是否包含數學符號
-      debugPrint("   📝 OCR 文字長度: ${questionText.length} 字元");
+      debugPrint("   📝 OCR 文字長度: ${normalizedQuestionText.length} 字元");
       debugPrint(
-          "   📝 OCR 文字預覽: ${questionText.substring(0, math.min(200, questionText.length))}...");
-      final hasMathSymbolsInText = questionText.contains('√') ||
-          questionText.contains('²') ||
-          questionText.contains('³') ||
-          questionText.contains('√(') ||
-          questionText.contains('根號') ||
-          questionText.contains('平方');
+          "   📝 OCR 文字預覽: ${normalizedQuestionText.substring(0, math.min(200, normalizedQuestionText.length))}...");
+      final hasMathSymbolsInText = normalizedQuestionText.contains('√') ||
+          normalizedQuestionText.contains('²') ||
+          normalizedQuestionText.contains('³') ||
+          normalizedQuestionText.contains('√(') ||
+          normalizedQuestionText.contains('根號') ||
+          normalizedQuestionText.contains('平方');
       debugPrint(
           "   📊 OCR 文字中的數學符號檢查: ${hasMathSymbolsInText ? '✅ 包含數學符號' : '❌ 未發現數學符號'}");
       if (!hasMathSymbolsInText && imageBytes == null) {
@@ -795,8 +809,9 @@ B. 易錯提醒
           // ================================================
           try {
             final hasChinese =
-                RegExp(r'[\u4e00-\u9fff]').hasMatch(questionText);
-            final hasEnglish = RegExp(r'[A-Za-z]').hasMatch(questionText);
+                RegExp(r'[\u4e00-\u9fff]').hasMatch(normalizedQuestionText);
+            final hasEnglish =
+                RegExp(r'[A-Za-z]').hasMatch(normalizedQuestionText);
             final currentSubject = (result['subject'] ?? '').toString();
 
             if (hasEnglish && !hasChinese) {
@@ -816,13 +831,19 @@ B. 易錯提醒
             debugPrint("   ⚠️ 語言結構檢查時發生例外：$e（略過修正，保留原 subject）");
           }
 
-          return _sanitizeParsedResult(result, questionText: questionText);
+          return _sanitizeParsedResult(
+            result,
+            questionText: normalizedQuestionText,
+          );
         } catch (e) {
           debugPrint("❌ JSON 解析失敗: $e");
           debugPrint(
               "   原始內容 (前200字): ${text.substring(0, math.min(200, text.length))}...");
           // 不再直接回傳原始回應，避免 prompt 或系統規則被帶到前台/列印內容。
-          return _buildSafeFallbackResult(text, questionText: questionText);
+          return _buildSafeFallbackResult(
+            text,
+            questionText: normalizedQuestionText,
+          );
         }
       } else {
         // 回應為空，檢查原因
@@ -980,6 +1001,332 @@ B. 易錯提醒
     }
   }
 
+  /// 依據錯題生成一題不需要圖片的相似練習題。
+  Future<Map<String, dynamic>?> generateSimilarPracticeQuestion({
+    required String sourceQuestionText,
+    File? imageFile,
+  }) async {
+    final normalizedSourceQuestionText = LatexHelper.normalizeModelText(
+      sourceQuestionText,
+      preserveLineBreaks: true,
+    );
+    if (normalizedSourceQuestionText.isEmpty) return null;
+
+    if (!isReady) {
+      try {
+        await init();
+        if (!isReady) return null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    Uint8List? imageBytes;
+    if (imageFile != null && await imageFile.exists()) {
+      try {
+        imageBytes = await imageFile.readAsBytes();
+      } catch (_) {
+        imageBytes = null;
+      }
+    }
+
+    Map<String, dynamic>? sourceAnalysis;
+    try {
+      sourceAnalysis = await solveProblem(
+        normalizedSourceQuestionText,
+        imageFile: imageFile,
+      );
+    } catch (_) {
+      sourceAnalysis = null;
+    }
+
+    final detectedSubject = sourceAnalysis?['subject']?.toString().trim();
+    final detectedCategory = sourceAnalysis?['category']?.toString().trim();
+    final detectedGradeLevel =
+        sourceAnalysis?['grade_level']?.toString().trim();
+    final detectedChapter = sourceAnalysis?['chapter']?.toString().trim();
+    final detectedKeyConcepts =
+        _normalizeStringList(sourceAnalysis?['key_concepts']);
+
+    final imageInstruction = imageBytes == null
+        ? ''
+        : '''
+你同時會看到原題圖片。圖片只用來幫助你理解原題，不可要求新題依賴任何新圖片、圖表、表格或幾何圖形才能作答。
+若原題本身依賴圖片，請改寫成同觀念、可用純文字或 LaTeX 完整表達的新題。
+''';
+
+    final sourceContext = '''
+若下列來源分析可用，請優先沿用：
+- 科目：${detectedSubject?.isNotEmpty == true ? detectedSubject : '待判斷'}
+- 題型分類：${detectedCategory?.isNotEmpty == true ? detectedCategory : '待判斷'}
+- 年級：${detectedGradeLevel?.isNotEmpty == true ? detectedGradeLevel : '待判斷'}
+- 章節：${detectedChapter?.isNotEmpty == true ? detectedChapter : '待判斷'}
+- 核心觀念：${detectedKeyConcepts.isEmpty ? '待判斷' : detectedKeyConcepts.join('、')}
+''';
+
+    final gradeStrategy =
+        _buildSimilarPracticeGradeStrategy(detectedGradeLevel);
+    final subjectStrategy =
+        _buildSimilarPracticeSubjectStrategy(detectedSubject);
+
+    final prompt = '''
+你是一位熟悉台灣國中與高中題型的老師，特別擅長幫學生把錯題轉成有效練習。請根據使用者輸入的錯題，生成 1 題「相似但不是照抄」的新練習題。
+
+$imageInstruction
+$sourceContext
+原始錯題如下：
+「$normalizedSourceQuestionText」
+
+$gradeStrategy
+$subjectStrategy
+
+請嚴格遵守以下規則：
+1. 新題必須考相同或非常接近的核心觀念。
+2. 新題必須可以只靠文字或 LaTeX 作答，不能依賴任何新圖片。
+3. 不可要求參考圖、表、地圖、座標圖、幾何圖、實驗圖或閱讀附圖。
+4. 若原題需要圖片，請主動改寫成等值的純文字版本。
+5. 不可直接照抄原題數字、句子或選項，要保留觀念但換題目內容。
+6. 請使用繁體中文。
+7. explanation 要適合國中生閱讀，清楚、友善、可直接拿來複習。
+8. 若來源是國中題，禁止跳到高中才會學的核心方法或術語。
+9. 若無法判斷年級，預設以國中生可理解的難度出題。
+10. 先在內部完成驗算，只輸出驗算後的最終版本，不可輸出嘗試、修正、反思、檢查過程或錯誤思路。
+11. 若你發現題目條件不足、可能多解、可能無解，或無法確認答案唯一，請直接在內部重寫成條件完整、可解且答案明確的新題後再輸出。
+12. question_text 不可出現「如下圖」、「參考附圖」、「看圖作答」、「表中資料」等需要額外素材的描述。
+13. explanation 只能保留最終正確解法，不可出現「一開始算錯」、「再修正」、「最後修正」、「重新檢查後」這類文字。
+14. answer 必須與 explanation 一致，且可以回推出 question_text 的唯一合理答案。
+15. 只要有數學公式、算式、未知數、分數、根號、次方、下標、乘號或不等式，必須使用標準 LaTeX。
+16. 行內公式一律使用 \\( ... \\)；獨立成行的公式一律使用 \\[ ... \\]。禁止直接在中文句子裡裸露輸出 x^2、a_n、\\frac、\\sqrt、\\times 這類公式片段。
+17. 所有 LaTeX 指令前只能有一個反斜線，且所有括號 {}, (), [] 必須完整閉合。
+18. 如果一句中文裡夾了算式，例如「面積為 x^2+3x」，請輸出成「面積為 \\( x^2 + 3x \\)」。
+
+只輸出 JSON，不要輸出 Markdown，不要加上 ```json。
+
+{
+  "question_text": "新練習題題目（公式必須用標準 LaTeX 包裹）",
+  "answer": "答案（若有公式必須用標準 LaTeX 包裹）",
+  "explanation": "解析（若有公式必須用標準 LaTeX 包裹）",
+  "difficulty": "same",
+  "subject": "數學/英文/國文/自然/地理/歷史/公民/其他",
+  "grade_level": "國一/國二/國三/高一/高二/高三/不確定",
+  "category": "具體題型分類",
+  "chapter": "具體章節名稱",
+  "key_concepts": ["核心觀念1", "核心觀念2"],
+  "key_point": "這題主要在練什麼觀念"
+}
+
+difficulty 只能是 same、easier、harder 其中一個。
+key_concepts 請輸出 2 到 4 個具體概念。
+''';
+
+    const maxGenerationAttempts = 2;
+
+    for (var attempt = 1; attempt <= maxGenerationAttempts; attempt++) {
+      try {
+        final List<Content> contentList;
+        if (imageBytes != null) {
+          contentList = [
+            Content.multi([
+              TextPart(prompt),
+              DataPart('image/jpeg', imageBytes),
+            ])
+          ];
+        } else {
+          contentList = [Content.text(prompt)];
+        }
+
+        final response = await _model!.generateContent(contentList);
+        final rawText = response.text;
+        if (rawText == null || rawText.trim().isEmpty) {
+          debugPrint("⚠️ 相似題第 $attempt 次生成為空");
+          continue;
+        }
+
+        var cleaned = _normalizeAiText(rawText);
+        cleaned = _repairJsonStringBackslashes(cleaned);
+
+        final decoded = jsonDecode(cleaned);
+        if (decoded is! Map<String, dynamic>) {
+          debugPrint("⚠️ 相似題第 $attempt 次格式不是 JSON 物件");
+          continue;
+        }
+
+        final questionText = decoded['question_text']?.toString().trim() ?? '';
+        final answer = decoded['answer']?.toString().trim() ?? '';
+        final explanation = decoded['explanation']?.toString().trim() ?? '';
+        final difficulty = decoded['difficulty']?.toString().trim() ?? 'same';
+        final subject = decoded['subject']?.toString().trim() ?? '';
+        final gradeLevel = decoded['grade_level']?.toString().trim() ?? '';
+        final category = decoded['category']?.toString().trim() ?? '';
+        final chapter = decoded['chapter']?.toString().trim() ?? '';
+        final keyConcepts = _normalizeStringList(decoded['key_concepts']);
+        final keyPoint = decoded['key_point']?.toString().trim() ?? '';
+
+        if (questionText.isEmpty || answer.isEmpty || explanation.isEmpty) {
+          debugPrint("⚠️ 相似題第 $attempt 次缺少必要欄位");
+          continue;
+        }
+
+        if (_containsExternalReference(questionText) ||
+            _containsExternalReference(explanation) ||
+            _looksLikeDraftReasoning(answer) ||
+            _looksLikeDraftReasoning(explanation)) {
+          debugPrint("⚠️ 相似題第 $attempt 次含草稿痕跡或外部參照");
+          continue;
+        }
+
+        final candidateResult = {
+          'question_text': _normalizeAiText(questionText),
+          'answer': _normalizeAiText(answer),
+          'explanation': _normalizeAiText(explanation),
+          'difficulty': const {'same', 'easier', 'harder'}.contains(difficulty)
+              ? difficulty
+              : 'same',
+          'subject': subject.isNotEmpty
+              ? _normalizeAiText(subject)
+              : (detectedSubject?.isNotEmpty == true ? detectedSubject : '其他'),
+          'grade_level': gradeLevel.isNotEmpty
+              ? _normalizeAiText(gradeLevel)
+              : (detectedGradeLevel ?? '不確定'),
+          'category': category.isNotEmpty
+              ? _normalizeAiText(category)
+              : (detectedCategory?.isNotEmpty == true
+                  ? detectedCategory
+                  : '其他'),
+          'chapter': chapter.isNotEmpty
+              ? _normalizeAiText(chapter)
+              : (detectedChapter?.isNotEmpty == true
+                  ? detectedChapter
+                  : '待確認章節'),
+          'key_concepts': keyConcepts.isNotEmpty
+              ? keyConcepts.map(_normalizeAiText).toList()
+              : detectedKeyConcepts.map(_normalizeAiText).toList(),
+          'key_point': _normalizeAiText(
+            keyPoint.isNotEmpty
+                ? keyPoint
+                : (keyConcepts.isNotEmpty
+                    ? keyConcepts.first
+                    : (detectedKeyConcepts.isNotEmpty
+                        ? detectedKeyConcepts.first
+                        : '核心概念待確認')),
+          ),
+        };
+
+        final isValidated = await _validateSimilarPracticeWithAi(
+          sourceQuestionText: normalizedSourceQuestionText,
+          candidateResult: candidateResult,
+        );
+        if (!isValidated) {
+          debugPrint("⚠️ 相似題第 $attempt 次未通過二次驗證，將重試生成");
+          continue;
+        }
+
+        return candidateResult;
+      } catch (e) {
+        debugPrint("❌ 相似題第 $attempt 次生成失敗: $e");
+      }
+    }
+
+    return null;
+  }
+
+  Future<String?> askTutorFollowUp({
+    required String questionText,
+    required String studentQuestion,
+    String? subject,
+    String? category,
+    String? chapter,
+    List<String> keyConcepts = const [],
+    List<Map<String, String>> solutions = const [],
+    List<Map<String, String>> history = const [],
+  }) async {
+    if (!isReady) {
+      try {
+        await init();
+        if (!isReady) return null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final normalizedQuestionText = LatexHelper.normalizeModelText(
+      questionText,
+      preserveLineBreaks: true,
+    );
+    final trimmedStudentQuestion = LatexHelper.normalizeModelText(
+      studentQuestion,
+      preserveLineBreaks: true,
+    );
+    if (trimmedStudentQuestion.isEmpty) return null;
+
+    final historyText = history.isEmpty
+        ? '無'
+        : history.map((item) {
+            final role = item['role'] == 'user' ? '學生' : '老師';
+            final content = _normalizeAiText(item['content']?.toString() ?? '');
+            return '$role：$content';
+          }).join('\n');
+
+    final solutionsText = solutions.isEmpty
+        ? '目前沒有現成解法可參考'
+        : solutions.map((item) {
+            final title =
+                _normalizeAiText(item['title']?.toString() ?? '').isNotEmpty
+                    ? _normalizeAiText(item['title']?.toString() ?? '')
+                    : '解法';
+            final content = _normalizeAiText(item['content']?.toString() ?? '');
+            return '$title：$content';
+          }).join('\n\n');
+
+    final prompt = '''
+你是一位很會教學生的家教老師。請根據題目、已知解析與對話脈絡，回答學生的追問。
+
+請遵守以下規則：
+1. 一律使用繁體中文。
+2. 先直接回答學生真正卡住的點，不要重複整題完整解析。
+3. 優先用國中/高中學生能懂的語氣，簡單、具體、友善。
+4. 若需要公式，保留簡潔的 LaTeX 或數學符號即可。
+5. 若學生在問「為什麼這一步可以這樣做」，請聚焦解釋原理。
+6. 若學生在問「有沒有更快的方法」，請提供較短的替代思路。
+7. 若學生在問練習方向，可以給 1 個很短的小練習提示，但不要離題。
+8. 不要捏造看不到的圖形細節；若題目需要圖形，請明講你只能依現有文字與解析回答。
+9. 回答盡量控制在 3 到 8 句，除非學生要求更詳細。
+
+【題目】
+$normalizedQuestionText
+
+【題目資訊】
+- 科目：${subject?.trim().isNotEmpty == true ? subject!.trim() : '未提供'}
+- 類別：${category?.trim().isNotEmpty == true ? category!.trim() : '未提供'}
+- 章節：${chapter?.trim().isNotEmpty == true ? chapter!.trim() : '未提供'}
+- 核心觀念：${keyConcepts.isEmpty ? '未提供' : keyConcepts.join('、')}
+
+【已知解析】
+$solutionsText
+
+【先前對話】
+$historyText
+
+【學生這次的問題】
+$trimmedStudentQuestion
+
+請直接輸出老師要對學生說的內容，不要輸出 JSON，不要加標題。
+''';
+
+    try {
+      final response = await _model!.generateContent(
+          [Content.text(prompt)]).timeout(const Duration(seconds: 60));
+      final text = response.text;
+      if (text == null || text.trim().isEmpty) {
+        return null;
+      }
+      return _normalizeAiText(text);
+    } catch (e) {
+      debugPrint('❌ AI 互動問答失敗: $e');
+      return null;
+    }
+  }
+
   Map<String, dynamic> _sanitizeParsedResult(
     Map<String, dynamic> result, {
     required String questionText,
@@ -994,6 +1341,36 @@ B. 易錯提醒
       sanitized.remove('solutions');
     } else {
       sanitized['solutions'] = sanitizedSolutions;
+    }
+
+    final normalizedQuestionText = _normalizeAiText(
+      result['question_text']?.toString() ?? questionText,
+    );
+    if (normalizedQuestionText.isNotEmpty) {
+      sanitized['question_text'] = normalizedQuestionText;
+    }
+
+    for (final field in [
+      'subject',
+      'grade_level',
+      'category',
+      'chapter',
+      'answer',
+      'key_point',
+    ]) {
+      final normalized = _normalizeAiText(result[field]?.toString() ?? '');
+      if (normalized.isNotEmpty) {
+        sanitized[field] = normalized;
+      } else {
+        sanitized.remove(field);
+      }
+    }
+
+    final normalizedConcepts = _normalizeStringList(result['key_concepts']);
+    if (normalizedConcepts.isEmpty) {
+      sanitized.remove('key_concepts');
+    } else {
+      sanitized['key_concepts'] = normalizedConcepts;
     }
 
     return sanitized;
@@ -1061,17 +1438,212 @@ B. 易錯提醒
   }
 
   String _normalizeAiText(String text) {
-    var normalized = text.trim();
-    if (normalized.startsWith('```json')) {
-      normalized = normalized.replaceFirst(RegExp(r'^```json\s*'), '');
+    return LatexHelper.normalizeModelText(text, preserveLineBreaks: true);
+  }
+
+  List<String> _normalizeStringList(dynamic rawList) {
+    if (rawList is! List) return const [];
+    return rawList
+        .map((item) => _normalizeAiText(item.toString()))
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  bool _containsExternalReference(String text) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) return false;
+
+    return RegExp(
+      r'如下圖|參考附圖|參考下圖|看圖作答|由圖可知|圖中|表中資料|參考下表|附表|座標圖|幾何圖|實驗圖',
+    ).hasMatch(normalized);
+  }
+
+  bool _looksLikeDraftReasoning(String text) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) return false;
+
+    return RegExp(
+      r'一開始算錯|前面算錯|再修正|最後修正|重新檢查後|重新計算後|改成|更正為|思路|推理過程|先假設|先試',
+    ).hasMatch(normalized);
+  }
+
+  Future<bool> _validateSimilarPracticeWithAi({
+    required String sourceQuestionText,
+    required Map<String, dynamic> candidateResult,
+  }) async {
+    if (_model == null) return false;
+
+    final prompt = '''
+你是「題目品質審核員」。請審核下列 AI 相似題是否合格。
+
+【來源題目】
+$sourceQuestionText
+
+【待審核相似題(JSON)】
+${jsonEncode(candidateResult)}
+
+請嚴格檢查以下條件，任一不符合都判定不合格：
+1. 題目條件完整，且是可解題（不是資訊不足）。
+2. 答案唯一且明確，不是多解或無解。
+3. answer 與 explanation 一致，且 explanation 能合理推出 answer。
+4. explanation 不包含錯誤嘗試、修正過程、反思稿或草稿語氣。
+5. 題目不依賴附圖、表格、外部資訊，僅靠文字即可作答。
+
+只輸出 JSON，不要任何額外文字：
+{
+  "is_valid": true 或 false,
+  "reason": "一句話說明"
+}
+''';
+
+    try {
+      final response = await _model!.generateContent([Content.text(prompt)]);
+      final rawText = response.text;
+      if (rawText == null || rawText.trim().isEmpty) {
+        debugPrint('⚠️ 相似題二次驗證回傳空內容');
+        return false;
+      }
+
+      var cleaned = _normalizeAiText(rawText);
+      cleaned = _repairJsonStringBackslashes(cleaned);
+
+      final decoded = jsonDecode(cleaned);
+      if (decoded is! Map<String, dynamic>) {
+        debugPrint('⚠️ 相似題二次驗證格式異常');
+        return false;
+      }
+
+      final isValid = decoded['is_valid'] == true;
+      final reason = decoded['reason']?.toString().trim() ?? '';
+      debugPrint('🔎 相似題二次驗證結果: is_valid=$isValid, reason=$reason');
+      return isValid;
+    } catch (e) {
+      debugPrint('❌ 相似題二次驗證失敗: $e');
+      return false;
     }
-    if (normalized.startsWith('```')) {
-      normalized = normalized.replaceFirst(RegExp(r'^```\s*'), '');
+  }
+
+  String _buildSimilarPracticeGradeStrategy(String? gradeLevel) {
+    if (gradeLevel == null || gradeLevel.isEmpty || gradeLevel == '不確定') {
+      return '''
+請預設以國中生可練習的難度出題，避免超出國中課綱的術語或解法。
+''';
     }
-    if (normalized.endsWith('```')) {
-      normalized = normalized.replaceFirst(RegExp(r'\s*```$'), '');
+
+    if (gradeLevel.startsWith('國')) {
+      return '''
+這題推定屬於 $gradeLevel。請務必保持在國中課綱與國中生可理解的難度內，不可跳用高中觀念。
+''';
     }
-    return normalized.trim();
+
+    return '''
+這題推定屬於 $gradeLevel。若能以更清楚的國中到高中銜接方式表達，請優先使用學生容易吸收的教學語氣。
+''';
+  }
+
+  String _buildSimilarPracticeSubjectStrategy(String? subject) {
+    switch (subject) {
+      case '數學':
+        return '''
+【數學出題策略】
+- 優先練單一核心觀念，例如方程式、比例、機率、代數化簡、基礎幾何性質。
+- 改變數字、情境或問法，但保留相同觀念與相近難度。
+- 解析請明確指出每一步為什麼這樣做，並提醒最常犯錯的地方。
+- 若原題含圖，請改寫成不需要圖也能完整理解的文字題。
+''';
+      case '英文':
+        return '''
+【英文出題策略】
+- 優先練文法、句型、單字或短篇閱讀理解。
+- 題幹長度適中，避免過長閱讀造成額外負擔。
+- 解析請用繁體中文說明關鍵語感、文法線索或選項差異。
+''';
+      case '國文':
+        return '''
+【國文出題策略】
+- 優先練字詞、修辭、句意、文意理解或短篇閱讀。
+- 題幹與文本長度適中，避免過長篇章。
+- 解析請指出判斷線索，而不是只給結論。
+''';
+      case '自然':
+        return '''
+【自然出題策略】
+- 優先練單一概念，如力學、熱學、酸鹼、生物基本概念、地科基礎判斷。
+- 盡量用生活化情境幫助國中生理解。
+- 若原題依賴圖表或實驗圖，請改寫成純文字可作答版本。
+''';
+      case '地理':
+      case '歷史':
+      case '公民':
+        return '''
+【社會科出題策略】
+- 以觀念辨析、短材料理解、因果判斷或基本情境應用為主。
+- 不可要求地圖、圖片或表格判讀。
+- 解析請直接點出關鍵概念與容易混淆的地方。
+''';
+      default:
+        return '''
+【通用出題策略】
+- 優先維持與原題相近的核心觀念與難度。
+- 新題要短、清楚、適合國中生練習。
+''';
+    }
+  }
+
+  String _repairJsonStringBackslashes(String text) {
+    try {
+      return text.replaceAllMapped(RegExp(r'"(?:[^"\\]|\\.)*"'), (match) {
+        final fullMatch = match.group(0)!;
+        final content = fullMatch.substring(1, fullMatch.length - 1);
+        final buffer = StringBuffer();
+
+        for (var i = 0; i < content.length; i++) {
+          final current = content[i];
+          if (current != '\\') {
+            buffer.write(current);
+            continue;
+          }
+
+          if (i == content.length - 1) {
+            buffer.write(r'\\');
+            continue;
+          }
+
+          final next = content[i + 1];
+          final isJsonEscape = next == '"' ||
+              next == '\\' ||
+              next == '/' ||
+              next == 'b' ||
+              next == 'f' ||
+              next == 'n' ||
+              next == 'r' ||
+              next == 't';
+
+          final isUnicodeEscape = next == 'u' && i + 5 < content.length;
+
+          if (isJsonEscape || isUnicodeEscape) {
+            buffer.write(current);
+            buffer.write(next);
+            i++;
+            if (isUnicodeEscape) {
+              for (var j = 0; j < 4; j++) {
+                i++;
+                buffer.write(content[i]);
+              }
+            }
+            continue;
+          }
+
+          buffer.write(r'\\');
+          buffer.write(next);
+          i++;
+        }
+
+        return '"${buffer.toString()}"';
+      });
+    } catch (_) {
+      return text;
+    }
   }
 
   bool _containsPromptArtifacts(

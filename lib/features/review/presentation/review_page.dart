@@ -147,7 +147,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '今天先把該複習的題目拿下來',
+              '每一次複習，都在鞏固你的實力',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -287,21 +287,21 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
           const SizedBox(height: 12),
           _buildOutcomeButton(
             label: '會了',
-            subtitle: '下次隔久一點再複習',
+            subtitle: '太好了！下次隔久一點再複習',
             color: const Color(0xFF2E7D32),
             onTap: () => controller.submitOutcome(ReviewOutcome.mastered),
           ),
           const SizedBox(height: 10),
           _buildOutcomeButton(
             label: '半懂',
-            subtitle: '保留在近期再練一次',
+            subtitle: '快到了，近期再練一次就能掌握',
             color: const Color(0xFFF9A825),
             onTap: () => controller.submitOutcome(ReviewOutcome.almost),
           ),
           const SizedBox(height: 10),
           _buildOutcomeButton(
             label: '不會',
-            subtitle: '明天再回來重練',
+            subtitle: '沒關係，明天再來一次就好',
             color: AppColors.error,
             onTap: () => controller.submitOutcome(ReviewOutcome.retry),
           ),
@@ -549,7 +549,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '今天的複習完成了',
+                  '做得好！今天的複習完成了',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -558,7 +558,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '這次完成 ${session.completedCount} 題，其中 $mastered 題已經穩了，$almost 題還要再熟一點。',
+                  '這次完成 ${session.completedCount} 題，其中 $mastered 題已經穩了，$almost 題還要再熟一點。持續複習是最有效的學習方式，明天見！',
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,

@@ -4,12 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/analysis_provider.dart';
 import '../providers/crop_provider.dart';
+import '../utils/crop_image_helper.dart';
 import 'analysis_progress_page.dart';
 import 'widgets/box_painter.dart';
 
+enum MultiCropCompletionMode { analysis, returnCrops }
+
 class MultiCropScreen extends ConsumerStatefulWidget {
   final File? imageFile;
-  const MultiCropScreen({super.key, this.imageFile});
+  final MultiCropCompletionMode completionMode;
+  final String? confirmButtonText;
+
+  const MultiCropScreen({
+    super.key,
+    this.imageFile,
+    this.completionMode = MultiCropCompletionMode.analysis,
+    this.confirmButtonText,
+  });
 
   @override
   ConsumerState<MultiCropScreen> createState() => _MultiCropScreenState();
@@ -17,7 +28,14 @@ class MultiCropScreen extends ConsumerStatefulWidget {
 
 class _MistakeCropContent extends ConsumerStatefulWidget {
   final File? imageFile;
-  const _MistakeCropContent({this.imageFile});
+  final MultiCropCompletionMode completionMode;
+  final String? confirmButtonText;
+
+  const _MistakeCropContent({
+    this.imageFile,
+    required this.completionMode,
+    this.confirmButtonText,
+  });
 
   @override
   ConsumerState<_MistakeCropContent> createState() =>
@@ -28,8 +46,10 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
   Offset? _startPos;
   Offset? _lastErasePos; // 用於塗掉模式的連續繪製
   final GlobalKey _imageKey = GlobalKey();
+  bool _isSubmitting = false;
 
   Future<void> _processCrops() async {
+    if (_isSubmitting) return;
     final cropState = ref.read(cropControllerProvider);
     final rects = cropState.rects;
     final erasePaths = cropState.erasePaths;
@@ -41,25 +61,47 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
     final size = renderBox?.size;
 
     if (imagePath != null && size != null && rects.isNotEmpty) {
-      // 1. 先 watch provider 確保它不會被銷毀
-      ref.read(analysisQueueProvider);
+      setState(() {
+        _isSubmitting = true;
+      });
 
-      // 2. 初始化並開始真正的裁切與 API 隊列（傳遞筆刷遮罩）
-      ref.read(analysisQueueProvider.notifier).startAnalysis(
+      try {
+        if (widget.completionMode == MultiCropCompletionMode.returnCrops) {
+          final cropResult = await CropImageHelper.cropSelectedRegions(
             imagePath: imagePath,
             rects: rects,
             displaySize: size,
-            erasePaths: erasePaths, // 傳遞筆刷路徑用於實際遮罩
+            erasePaths: erasePaths,
+            filePrefix: 'practice_crop',
           );
+          if (!mounted) return;
+          Navigator.of(context).pop(cropResult);
+          return;
+        }
 
-      // 3. 等待一小段時間確保狀態已初始化
-      await Future.delayed(const Duration(milliseconds: 100));
+        ref.read(analysisQueueProvider);
+        ref.read(analysisQueueProvider.notifier).startAnalysis(
+              imagePath: imagePath,
+              rects: rects,
+              displaySize: size,
+              erasePaths: erasePaths,
+            );
 
-      // 4. 跳轉到進度頁面
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const AnalysisProgressPage()),
-        );
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const AnalysisProgressPage(),
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
       }
     }
   }
@@ -214,13 +256,23 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: cropState.rects.isEmpty ? null : _processCrops,
+                  onPressed: cropState.rects.isEmpty || _isSubmitting
+                      ? null
+                      : _processCrops,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.highlight,
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
                   ),
-                  child: const Text("開始 AI 智能解析"),
+                  child: Text(
+                    _isSubmitting
+                        ? '處理中...'
+                        : (widget.confirmButtonText ??
+                            (widget.completionMode ==
+                                    MultiCropCompletionMode.analysis
+                                ? '開始 AI 智能解析'
+                                : '匯入題目')),
+                  ),
                 ),
               ),
             ],
@@ -308,7 +360,11 @@ class _MultiCropScreenState extends ConsumerState<MultiCropScreen> {
           ),
         ],
       ),
-      body: _MistakeCropContent(imageFile: widget.imageFile),
+      body: _MistakeCropContent(
+        imageFile: widget.imageFile,
+        completionMode: widget.completionMode,
+        confirmButtonText: widget.confirmButtonText,
+      ),
     );
   }
 }

@@ -1,32 +1,100 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_fonts.dart';
+import 'app_spacing.dart';
 
 class AppTheme {
-  // 安全地建立文字主題，避免字體載入失敗阻塞應用
   static TextTheme _buildTextTheme() {
     return TextTheme(
-      displayLarge: AppFonts.resolve(
-        const TextStyle(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.bold,
-          height: 1.2,
-        ),
-      ),
-      bodyLarge: AppFonts.resolve(
-        const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 16,
-          height: 1.6,
-        ),
-      ),
-      bodyMedium: AppFonts.resolve(
-        const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 14,
-          height: 1.5,
-        ),
-      ),
+      // ── Display：頁面主視覺大標 ─────────────────────────────
+      displayLarge: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeDisplayLg,
+        fontWeight: AppFonts.weightBold,
+        height: AppFonts.lineHeightTight,
+        letterSpacing: AppFonts.letterSpacingTitle,
+      )),
+      displayMedium: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeDisplayMd,
+        fontWeight: AppFonts.weightBold,
+        height: AppFonts.lineHeightTight,
+        letterSpacing: AppFonts.letterSpacingTitle,
+      )),
+
+      // ── Headline：Section / 卡片大標 ────────────────────────
+      headlineLarge: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeHeading,
+        fontWeight: AppFonts.weightSemibold,
+        height: AppFonts.lineHeightTight,
+        letterSpacing: AppFonts.letterSpacingTitle,
+      )),
+      headlineMedium: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeTitleLg,
+        fontWeight: AppFonts.weightSemibold,
+        height: AppFonts.lineHeightTight,
+      )),
+
+      // ── Title：卡片標題 ──────────────────────────────────────
+      titleLarge: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeTitleLg,
+        fontWeight: AppFonts.weightSemibold,
+        height: AppFonts.lineHeightTight,
+      )),
+      titleMedium: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeTitleMd,
+        fontWeight: AppFonts.weightSemibold,
+        height: AppFonts.lineHeightTight,
+      )),
+      titleSmall: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeTitleSm,
+        fontWeight: AppFonts.weightSemibold,
+        height: AppFonts.lineHeightTight,
+      )),
+
+      // ── Body：內文（降低飽和度以拉開層次）─────────────────────
+      bodyLarge: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeBodyLg,
+        fontWeight: AppFonts.weightRegular,
+        height: AppFonts.lineHeightBody,
+      )),
+      bodyMedium: AppFonts.resolve(const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: AppFonts.sizeBodySm,
+        fontWeight: AppFonts.weightRegular,
+        height: AppFonts.lineHeightBody,
+      )),
+      bodySmall: AppFonts.resolve(const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: AppFonts.sizeCaption,
+        fontWeight: AppFonts.weightRegular,
+        height: AppFonts.lineHeightRelaxed,
+      )),
+
+      // ── Label：輔助說明 / Tag ────────────────────────────────
+      labelLarge: AppFonts.resolve(const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: AppFonts.sizeCaption,
+        fontWeight: AppFonts.weightMedium,
+        letterSpacing: AppFonts.letterSpacingButton,
+      )),
+      labelMedium: AppFonts.resolve(const TextStyle(
+        color: AppColors.textTertiary,
+        fontSize: AppFonts.sizeBadge,
+        fontWeight: AppFonts.weightMedium,
+        letterSpacing: AppFonts.letterSpacingButton,
+      )),
+      labelSmall: AppFonts.resolve(const TextStyle(
+        color: AppColors.textTertiary,
+        fontSize: AppFonts.sizeXs,
+        fontWeight: AppFonts.weightRegular,
+      )),
     );
   }
 
@@ -37,80 +105,90 @@ class AppTheme {
       primaryColor: AppColors.accent,
       fontFamily: AppFonts.primary,
 
-      // 1. 全域字型設定：主字型 + 數學/符號 fallback
       textTheme: _buildTextTheme(),
 
-      // 2. AppBar 去除陰影，純白乾淨
+      // ── AppBar：去除陰影，iOS 風格靠左 ───────────────────────
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         elevation: 0,
-        centerTitle: false, // iOS 風格靠左
-        scrolledUnderElevation: 0, // 捲動時不要變色
+        centerTitle: false,
+        scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 22),
         titleTextStyle: AppFonts.resolve(const TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontSize: AppFonts.sizeTitleLg,
+          fontWeight: AppFonts.weightSemibold,
+          letterSpacing: AppFonts.letterSpacingTitle,
         )),
       ),
 
-      // 3. 卡片風格：極淡的邊框代替陰影
+      // ── 卡片：圓角 16px，極淡邊框代替陰影 ───────────────────
       cardTheme: CardThemeData(
         color: AppColors.background,
-        elevation: 0, // 去除預設陰影
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border, width: 1), // 1px 細邊框
-          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         ),
         margin: EdgeInsets.zero,
       ),
 
-      // 4. 按鈕風格：黑底白字，無陰影，膠囊狀
+      // ── ElevatedButton：黑底白字，膠囊圓角 ──────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100)), // 膠囊圓角
-          textStyle: AppFonts.resolve(
-            const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxl,
+            vertical: AppSpacing.lg,
           ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          ),
+          textStyle: AppFonts.resolve(const TextStyle(
+            fontSize: AppFonts.sizeBodyLg,
+            fontWeight: AppFonts.weightSemibold,
+            letterSpacing: AppFonts.letterSpacingButton,
+          )),
         ),
       ),
 
-      // 5. 線框按鈕：黑框黑字
+      // ── OutlinedButton：黑框黑字 ─────────────────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
           side: const BorderSide(color: AppColors.border, width: 1),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxl,
+            vertical: AppSpacing.lg,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          ),
         ),
       ),
 
-      // 6. 輸入框：極簡底線或極淡框
+      // ── InputDecoration：極簡填充框 ─────────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: const BorderSide(color: AppColors.textPrimary, width: 1),
         ),
-        contentPadding: const EdgeInsets.all(16),
-        hintStyle:
-            AppFonts.resolve(const TextStyle(color: AppColors.textTertiary)),
+        contentPadding: AppSpacing.cardPaddingMd,
+        hintStyle: AppFonts.resolve(
+          const TextStyle(color: AppColors.textTertiary),
+        ),
       ),
     );
   }

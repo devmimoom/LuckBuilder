@@ -8,9 +8,48 @@ import '../../../core/utils/image_path_helper.dart';
 
 part 'mistakes_provider.g.dart';
 
+Future<List<Mistake>> _loadAllMistakesWithImageMigration(
+  DatabaseHelper dbHelper,
+) async {
+  final allMistakes = await dbHelper.getAllMistakes();
+  return _migrateLegacyImagePathsIfNeeded(dbHelper, allMistakes);
+}
+
+Future<List<Mistake>> _migrateLegacyImagePathsIfNeeded(
+  DatabaseHelper dbHelper,
+  List<Mistake> mistakes,
+) async {
+  if (mistakes.isEmpty) return mistakes;
+
+  bool hasMigration = false;
+  final migratedMistakes = <Mistake>[];
+
+  for (final mistake in mistakes) {
+    final resolvedPath =
+        await ImagePathHelper.resolveStoredImagePath(mistake.imagePath);
+    final persistentPath =
+        await ImagePathHelper.ensurePersistentImagePath(resolvedPath);
+
+    if (persistentPath != mistake.imagePath) {
+      final updatedMistake = mistake.copyWith(imagePath: persistentPath);
+      await dbHelper.updateMistake(updatedMistake);
+      migratedMistakes.add(updatedMistake);
+      hasMigration = true;
+    } else {
+      migratedMistakes.add(mistake);
+    }
+  }
+
+  if (hasMigration) {
+    debugPrint('✅ 已自動遷移舊版錯題圖片路徑到永久資料夾');
+  }
+
+  return migratedMistakes;
+}
+
 final allMistakesRawProvider = FutureProvider<List<Mistake>>((ref) async {
   ref.watch(mistakesProvider);
-  return DatabaseHelper().getAllMistakes();
+  return _loadAllMistakesWithImageMigration(DatabaseHelper());
 });
 
 @riverpod
@@ -80,7 +119,7 @@ class Mistakes extends _$Mistakes {
   @override
   FutureOr<List<Mistake>> build() async {
     final filters = ref.watch(mistakeFiltersProvider);
-    final allMistakes = await _loadAllMistakesWithImageMigration();
+    final allMistakes = await _loadAllMistakesWithImageMigration(_dbHelper);
 
     return allMistakes.where((m) {
       // 科目篩選
@@ -93,6 +132,7 @@ class Mistakes extends _$Mistakes {
           m.title.contains(searchQuery) ||
           m.subject.contains(searchQuery) ||
           m.category.contains(searchQuery) ||
+          (m.resolvedChapter?.contains(searchQuery) ?? false) ||
           m.tags.any((t) => t.contains(searchQuery));
 
       // 時間篩選（第一次段考：假設是最近一個月的題目）
@@ -155,6 +195,7 @@ class Mistakes extends _$Mistakes {
     required List<String> solutions,
     required String subject,
     required String category,
+    String? chapter,
     String? errorReason,
   }) async {
     state = const AsyncLoading();
@@ -171,6 +212,7 @@ class Mistakes extends _$Mistakes {
         solutions: solutions,
         subject: subject,
         category: category,
+        chapter: chapter,
         errorReason: errorReason,
         errorType: errorReason,
         nextReviewAt: DateTime.now(),
@@ -183,7 +225,7 @@ class Mistakes extends _$Mistakes {
 
   Future<List<Mistake>> _fetchFilteredMistakes() async {
     final filters = ref.read(mistakeFiltersProvider);
-    final allMistakes = await _loadAllMistakesWithImageMigration();
+    final allMistakes = await _loadAllMistakesWithImageMigration(_dbHelper);
     return allMistakes.where((m) {
       final matchesSubject =
           filters['subject'] == '全部' || m.subject == filters['subject'];
@@ -193,6 +235,7 @@ class Mistakes extends _$Mistakes {
           m.title.contains(searchQuery) ||
           m.subject.contains(searchQuery) ||
           m.category.contains(searchQuery) ||
+          (m.resolvedChapter?.contains(searchQuery) ?? false) ||
           m.tags.any((t) => t.contains(searchQuery));
 
       // 時間篩選
@@ -246,44 +289,6 @@ class Mistakes extends _$Mistakes {
     }).toList();
   }
 
-  /// 讀取全部錯題，並在載入時自動修復舊版圖片路徑
-  Future<List<Mistake>> _loadAllMistakesWithImageMigration() async {
-    final allMistakes = await _dbHelper.getAllMistakes();
-    return await _migrateLegacyImagePathsIfNeeded(allMistakes);
-  }
-
-  /// 將舊版（非永久資料夾）圖片路徑遷移到永久資料夾
-  Future<List<Mistake>> _migrateLegacyImagePathsIfNeeded(
-    List<Mistake> mistakes,
-  ) async {
-    if (mistakes.isEmpty) return mistakes;
-
-    bool hasMigration = false;
-    final migratedMistakes = <Mistake>[];
-
-    for (final mistake in mistakes) {
-      final resolvedPath =
-          await ImagePathHelper.resolveStoredImagePath(mistake.imagePath);
-      final persistentPath =
-          await ImagePathHelper.ensurePersistentImagePath(resolvedPath);
-
-      if (persistentPath != mistake.imagePath) {
-        final updatedMistake = mistake.copyWith(imagePath: persistentPath);
-        await _dbHelper.updateMistake(updatedMistake);
-        migratedMistakes.add(updatedMistake);
-        hasMigration = true;
-      } else {
-        migratedMistakes.add(mistake);
-      }
-    }
-
-    if (hasMigration) {
-      debugPrint('✅ 已自動遷移舊版錯題圖片路徑到永久資料夾');
-    }
-
-    return migratedMistakes;
-  }
-
   Future<void> deleteMistake(int id) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
@@ -328,6 +333,7 @@ class Mistakes extends _$Mistakes {
     required String subject,
     required String category,
     required List<String> tags,
+    String? chapter,
   }) async {
     debugPrint("💾 updateMistakeTags 被調用");
     debugPrint("   id: $id");
@@ -350,6 +356,7 @@ class Mistakes extends _$Mistakes {
         tags: tags,
         subject: subject,
         category: category,
+        chapter: chapter,
       );
 
       final result = await _dbHelper.updateMistake(updatedMistake);
@@ -407,5 +414,12 @@ class Mistakes extends _$Mistakes {
 @riverpod
 Future<Mistake?> mistakeById(Ref ref, int id) async {
   final dbHelper = DatabaseHelper();
-  return await dbHelper.getMistakeById(id);
+  final mistake = await dbHelper.getMistakeById(id);
+  if (mistake == null) return null;
+
+  final migratedMistakes = await _migrateLegacyImagePathsIfNeeded(
+    dbHelper,
+    [mistake],
+  );
+  return migratedMistakes.first;
 }

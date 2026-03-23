@@ -6,7 +6,6 @@ import '../../../core/utils/app_ux.dart';
 import '../../../core/services/image_service.dart';
 import '../../camera/presentation/multi_crop_screen.dart';
 import '../../mistakes/presentation/mistakes_list_page.dart';
-import '../../tasks/presentation/tasks_page.dart';
 import 'home_page.dart';
 
 class MainTabScreen extends ConsumerStatefulWidget {
@@ -39,11 +38,9 @@ class _MainTabScreenState extends ConsumerState<MainTabScreen> {
   Widget build(BuildContext context) {
     final pages = [
       HomePage(
-        onOpenTasksTab: () => setState(() => _currentIndex = 2),
         onOpenMistakesTab: () => setState(() => _currentIndex = 1),
       ),
       const MistakesListPage(),
-      const TasksPage(),
     ];
 
     return Scaffold(
@@ -90,11 +87,6 @@ class _MainTabScreenState extends ConsumerState<MainTabScreen> {
               icon: Icon(Icons.auto_stories_outlined),
               activeIcon: Icon(Icons.auto_stories),
               label: '題庫',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.checklist_outlined),
-              activeIcon: Icon(Icons.checklist),
-              label: '任務',
             ),
           ],
         ),

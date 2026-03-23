@@ -4,12 +4,30 @@ import '../theme/app_fonts.dart';
 
 /// LaTeX 和文字處理工具類
 class LatexHelper {
+  /// 統一清理 AI / OCR 原始文字，優先修復反斜線被 JSON 轉義吃掉後的殘缺 LaTeX。
+  static String normalizeModelText(
+    String? text, {
+    bool preserveLineBreaks = true,
+  }) {
+    if (text == null || text.isEmpty) return '';
+
+    var normalized = _stripCodeFences(text.trim());
+    if (normalized.isEmpty) return '';
+
+    normalized = _repairCorruptedLatexSequences(normalized);
+    normalized = normalized.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+
+    return _sanitizeInput(
+      normalized,
+      preserveLineBreaks: preserveLineBreaks,
+    );
+  }
+
   /// 清理 OCR 結果，移除不必要的文字
   /// 例如：移除 "特別拿出來說的是這個：111署考数学 年 15 䟎" 這類的雜訊
   static String cleanOcrText(String? text) {
-    if (text == null || text.isEmpty) return '';
-
-    String cleaned = text;
+    String cleaned = normalizeModelText(text, preserveLineBreaks: true);
+    if (cleaned.isEmpty) return '';
 
     // 0. 移除控制字元（優先處理，避免後續處理問題）
     // 移除 ASCII 控制字元（0x00-0x1F），保留換行符（\n = 0x0A）和回車符（\r = 0x0D）
@@ -781,7 +799,7 @@ class LatexHelper {
   /// 6. 基礎清理
   /// 7. 根據 Gemini prompt 規則驗證和修復 LaTeX 格式
   static String ultimatePreprocess(String content) {
-    String processed = content;
+    String processed = normalizeModelText(content, preserveLineBreaks: true);
 
     // ========================================
     // 第 0 步：處理 \n 變為 1n 的問題
@@ -948,9 +966,12 @@ class LatexHelper {
   }
 
   /// 常規清理函式：處理常見的髒資料問題
-  static String _sanitizeInput(String input) {
-    return input
-        // 移除控制字元（ASCII 和 C1），保留 \n 和 \r
+  static String _sanitizeInput(
+    String input, {
+    bool preserveLineBreaks = true,
+  }) {
+    var sanitized = input
+        // 移除控制字元（ASCII 和 C1），保留換行符
         .replaceAll(RegExp(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]'), '')
         .replaceAll(RegExp(r'[\u0080-\u009F]'), '')
         // 處理 literal \n（字串中的 \n 而非換行符）
@@ -958,10 +979,139 @@ class LatexHelper {
         // 只匹配 \n 後面不是字母的情況（即不是 LaTeX 指令的一部分）
         .replaceAll(RegExp(r'\\n(?![a-zA-Z])'), '\n')
         // 移除不可見字元
-        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
-        // 將連續多個換行合併為兩個（避免過多空白）
-        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
-        .trim();
+        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '');
+
+    if (preserveLineBreaks) {
+      sanitized = sanitized.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    } else {
+      sanitized = sanitized.replaceAll(RegExp(r'\s+'), ' ');
+    }
+
+    return sanitized.trim();
+  }
+
+  static String _stripCodeFences(String text) {
+    var stripped = text;
+    if (stripped.startsWith('```')) {
+      stripped = stripped.replaceFirst(RegExp(r'^```[a-zA-Z0-9_-]*\s*'), '');
+    }
+    if (stripped.endsWith('```')) {
+      stripped = stripped.replaceFirst(RegExp(r'\s*```$'), '');
+    }
+    return stripped.trim();
+  }
+
+  static String _repairCorruptedLatexSequences(String text) {
+    if (text.isEmpty) return text;
+
+    var repaired = text;
+
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u000C',
+      tail: 'rac{',
+      replacement: r'\frac{',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u0009',
+      tail: 'extbf{',
+      replacement: r'\textbf{',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u0009',
+      tail: 'extit{',
+      replacement: r'\textit{',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u0009',
+      tail: 'ext{',
+      replacement: r'\text{',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u0009',
+      tail: 'riangle',
+      replacement: r'\triangle',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u0009',
+      tail: 'heta',
+      replacement: r'\theta',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u0009',
+      tail: 'imes',
+      replacement: r'\times',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u000D',
+      tail: 'ightarrow',
+      replacement: r'\rightarrow',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u000D',
+      tail: 'ight',
+      replacement: r'\right',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u000A',
+      tail: 'subseteq',
+      replacement: r'\nsubseteq',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u000A',
+      tail: 'supseteq',
+      replacement: r'\nsupseteq',
+    );
+    repaired = _replaceControlCharLatexTail(
+      repaired,
+      controlChar: '\u000A',
+      tail: 'eq',
+      replacement: r'\neq',
+    );
+
+    final orphanReplacements = <RegExp, String>{
+      RegExp(r'(?<![A-Za-z\\])rac(?=\{)'): r'\frac',
+      RegExp(r'(?<![A-Za-z\\])extbf(?=\{)'): r'\textbf',
+      RegExp(r'(?<![A-Za-z\\])extit(?=\{)'): r'\textit',
+      RegExp(r'(?<![A-Za-z\\])ext(?=\{)'): r'\text',
+      RegExp(r'(?<![A-Za-z\\])riangle(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'):
+          r'\triangle',
+      RegExp(r'(?<![A-Za-z\\])heta(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'): r'\theta',
+      RegExp(r'(?<![A-Za-z\\])imes(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'): r'\times',
+      RegExp(r'(?<![A-Za-z\\])ightarrow(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'):
+          r'\rightarrow',
+      RegExp(r'(?<![A-Za-z\\])ight(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'): r'\right',
+      RegExp(r'(?<![A-Za-z\\])subseteq(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'):
+          r'\nsubseteq',
+      RegExp(r'(?<![A-Za-z\\])supseteq(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'):
+          r'\nsupseteq',
+      RegExp(r'(?<![A-Za-z\\])eq(?=(?:\s|$|[)\]}\.,;:+\-*/=<>]))'): r'\neq',
+    };
+
+    orphanReplacements.forEach((pattern, replacement) {
+      repaired = repaired.replaceAllMapped(pattern, (match) => replacement);
+    });
+
+    return repaired;
+  }
+
+  static String _replaceControlCharLatexTail(
+    String text, {
+    required String controlChar,
+    required String tail,
+    required String replacement,
+  }) {
+    return text.replaceAll('$controlChar$tail', replacement);
   }
 }
 
@@ -1071,7 +1221,8 @@ class LatexText extends StatelessWidget {
       (m) => LatexHelper.toReadableText(m.group(1) ?? '',
           fallback: m.group(0) ?? ''),
     );
-    return result;
+    // 裸露的 x^2 / a_n / \times 若仍留在文字行中，轉成較直觀的可讀樣式。
+    return LatexHelper.toReadableText(result, fallback: result);
   }
 
   static final _latexCommandPattern = RegExp(

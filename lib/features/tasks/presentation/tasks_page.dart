@@ -59,7 +59,7 @@ class TasksPage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '今天照著做就進步',
+            '每天照著做，進步看得見',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -90,6 +90,18 @@ class TasksPage extends ConsumerWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (tasksData.completedCount == tasksData.tasks.length &&
+              tasksData.tasks.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Text(
+              '今天的任務全部完成了，你真的很棒！',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -8,6 +8,7 @@ class Mistake {
   final List<String> solutions;
   final String subject; // 新增：科目 (數學, 英文...)
   final String category; // 新增：分類 (幾何, 文法...)
+  final String? chapter; // 章節
   final String? errorReason; // 新增：錯誤原因 (粗心, 觀念不懂...)
   final int reviewCount;
   final DateTime? lastReviewedAt;
@@ -24,6 +25,7 @@ class Mistake {
     required this.solutions,
     required this.subject,
     required this.category,
+    this.chapter,
     this.errorReason,
     this.reviewCount = 0,
     this.lastReviewedAt,
@@ -42,6 +44,7 @@ class Mistake {
       'solutions': jsonEncode(solutions),
       'subject': subject,
       'category': category,
+      'chapter': chapter,
       'error_reason': errorReason,
       'review_count': reviewCount,
       'last_reviewed_at': lastReviewedAt?.millisecondsSinceEpoch,
@@ -60,6 +63,7 @@ class Mistake {
     List<String>? solutions,
     String? subject,
     String? category,
+    String? chapter,
     String? errorReason,
     int? reviewCount,
     DateTime? lastReviewedAt,
@@ -80,6 +84,7 @@ class Mistake {
       solutions: solutions ?? this.solutions,
       subject: subject ?? this.subject,
       category: category ?? this.category,
+      chapter: chapter ?? this.chapter,
       errorReason: clearErrorReason ? null : (errorReason ?? this.errorReason),
       reviewCount: reviewCount ?? this.reviewCount,
       lastReviewedAt:
@@ -101,6 +106,7 @@ class Mistake {
       solutions: List<String>.from(jsonDecode(map['solutions'] as String)),
       subject: map['subject'] as String? ?? '其他',
       category: map['category'] as String? ?? '一般',
+      chapter: map['chapter'] as String?,
       errorReason: map['error_reason'] as String?,
       reviewCount: map['review_count'] as int? ?? 0,
       lastReviewedAt: map['last_reviewed_at'] == null
@@ -113,5 +119,35 @@ class Mistake {
       errorType: map['error_type'] as String?,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
     );
+  }
+
+  String? get resolvedChapter {
+    final stored = chapter?.trim();
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
+
+    for (final tag in tags) {
+      final normalized = tag.trim();
+      if (normalized.isEmpty ||
+          normalized == 'AI 解析' ||
+          normalized == 'AI 練習題') {
+        continue;
+      }
+      return normalized;
+    }
+    return null;
+  }
+
+  List<String> get resolvedKeyConcepts {
+    final chapterLabel = resolvedChapter;
+    return tags
+        .map((tag) => tag.trim())
+        .where((tag) =>
+            tag.isNotEmpty &&
+            tag != 'AI 解析' &&
+            tag != 'AI 練習題' &&
+            tag != chapterLabel)
+        .toList();
   }
 }

@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/gemini_service.dart' hide debugPrint;
 import 'features/home/presentation/main_tab_screen.dart';
+import 'features/review/presentation/review_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,8 +52,58 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAppLinks();
+  }
+
+  Future<void> _initAppLinks() async {
+    try {
+      final initial = await _appLinks.getInitialLink();
+      if (initial != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleIncomingUri(initial);
+        });
+      }
+    } catch (_) {}
+
+    _linkSub = _appLinks.uriLinkStream.listen(_handleIncomingUri);
+  }
+
+  void _handleIncomingUri(Uri uri) {
+    if (uri.scheme != 'luckbuilder') return;
+
+    final path = uri.host.isNotEmpty ? uri.host : uri.path.replaceAll('/', '');
+    if (path != 'review') return;
+
+    final context = _navigatorKey.currentContext;
+    if (context == null) return;
+
+    _navigatorKey.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const ReviewPage(),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +111,7 @@ class MyApp extends StatelessWidget {
       title: '錯題解析助手',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      navigatorKey: _navigatorKey,
       home: const MainTabScreen(),
     );
   }

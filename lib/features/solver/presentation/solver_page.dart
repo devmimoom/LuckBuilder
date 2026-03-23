@@ -58,11 +58,26 @@ class SolverPage extends ConsumerStatefulWidget {
   ConsumerState<SolverPage> createState() => _SolverPageState();
 }
 
+class _TutorChatMessage {
+  const _TutorChatMessage({
+    required this.role,
+    required this.content,
+  });
+
+  final String role;
+  final String content;
+
+  bool get isUser => role == 'user';
+}
+
 class _SolverPageState extends ConsumerState<SolverPage> {
   bool _isSaved = false;
   bool _isRecoveringFullQuestionText = false;
   int _currentProblemIndex = 0; // 當前顯示的題目索引（用於多題目模式）
   late PageController _pageController;
+  final TextEditingController _tutorController = TextEditingController();
+  final List<_TutorChatMessage> _tutorMessages = <_TutorChatMessage>[];
+  bool _isTutorLoading = false;
   // 多題目模式下，記錄每個題目是否已保存
   final Set<int> _savedProblemIndices = <int>{};
   // 多題目模式下，記錄每個題目的標籤編輯狀態（用於臨時編輯）
@@ -223,6 +238,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
 
   @override
   void dispose() {
+    _tutorController.dispose();
     _pageController.dispose();
     // 不需要在 dispose 中重置狀態，因為：
     // 1. 每次進入頁面時 initState 都會重置並重新開始分析
@@ -297,6 +313,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
               subject: currentSubject,
               category: currentCategory,
               tags: newTags,
+              chapter: solverState.chapter,
             );
       } catch (e) {
         debugPrint("   ❌ 保存失敗: $e");
@@ -349,6 +366,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
             solutions: solutionStrings,
             subject: solverState.subject ?? '其他',
             category: solverState.category ?? '一般',
+            chapter: solverState.chapter,
           );
 
       if (mounted) {
@@ -504,6 +522,11 @@ class _SolverPageState extends ConsumerState<SolverPage> {
           const SizedBox(height: 16),
 
           _buildSolutionArea(state),
+
+          if (state.status == SolverStatus.completed) ...[
+            const SizedBox(height: 24),
+            _buildTutorSection(state),
+          ],
 
           const SizedBox(height: 20), // 移除底部留白，因為 FAB 已經移到標題旁
         ],
@@ -1059,6 +1082,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
             solutions: solutionStrings,
             subject: subject,
             category: category,
+            chapter: chapter,
           );
 
       if (mounted) {
@@ -1346,6 +1370,295 @@ class _SolverPageState extends ConsumerState<SolverPage> {
     }
   }
 
+  Future<void> _submitTutorQuestion(
+    SolverResult state, {
+    String? presetQuestion,
+  }) async {
+    final question = (presetQuestion ?? _tutorController.text).trim();
+    if (question.isEmpty || _isTutorLoading) return;
+
+    FocusScope.of(context).unfocus();
+    if (presetQuestion == null) {
+      _tutorController.clear();
+    }
+
+    setState(() {
+      _tutorMessages.add(_TutorChatMessage(role: 'user', content: question));
+      _isTutorLoading = true;
+    });
+
+    final reply = await GeminiService().askTutorFollowUp(
+      questionText: state.recognizedLatex ?? widget.initialLatex ?? '',
+      studentQuestion: question,
+      subject: state.subject,
+      category: state.category,
+      chapter: state.chapter,
+      keyConcepts: state.keyConcepts.where((item) => item != 'AI 解析').toList(),
+      solutions: state.solutions
+          .map((solution) => {
+                'title': solution.title,
+                'content': solution.content,
+              })
+          .toList(),
+      history: _tutorMessages
+          .map((message) => {
+                'role': message.role,
+                'content': message.content,
+              })
+          .toList(),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _tutorMessages.add(
+        _TutorChatMessage(
+          role: 'assistant',
+          content: reply?.trim().isNotEmpty == true
+              ? reply!.trim()
+              : '這次沒有成功回覆，你可以換個問法再問一次。',
+        ),
+      );
+      _isTutorLoading = false;
+    });
+  }
+
+  Widget _buildTutorSection(SolverResult state) {
+    final quickQuestions = [
+      '這一步為什麼可以這樣做？',
+      '有沒有更快的方法？',
+      '這題最容易錯在哪裡？',
+      '幫我用更簡單的方式重講一次',
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            offset: const Offset(0, 2),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.forum_rounded,
+                  color: Color(0xFF4F46E5),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI 互動問答',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '看不懂哪一步，就直接追問。',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: quickQuestions
+                .map(
+                  (question) => ActionChip(
+                    label: Text(question),
+                    backgroundColor: const Color(0xFFF5F7FF),
+                    side: const BorderSide(color: Color(0xFFDCE3FF)),
+                    onPressed: _isTutorLoading
+                        ? null
+                        : () => _submitTutorQuestion(
+                              state,
+                              presetQuestion: question,
+                            ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 16),
+          if (_tutorMessages.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Text(
+                '你可以問：這一步為什麼要移項？為什麼這裡可以約分？這題有沒有更快的判斷方式？',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  height: 1.6,
+                ),
+              ),
+            )
+          else
+            Column(
+              children: _tutorMessages
+                  .map((message) => _buildTutorMessageBubble(message))
+                  .toList(),
+            ),
+          if (_isTutorLoading) ...[
+            const SizedBox(height: 12),
+            _buildTutorLoadingBubble(),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _tutorController,
+                  minLines: 1,
+                  maxLines: 4,
+                  textInputAction: TextInputAction.send,
+                  decoration: InputDecoration(
+                    hintText: '輸入你看不懂的地方...',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                  onSubmitted: (_) => _submitTutorQuestion(state),
+                ),
+              ),
+              const SizedBox(width: 10),
+              FilledButton(
+                onPressed:
+                    _isTutorLoading ? null : () => _submitTutorQuestion(state),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.textPrimary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(52, 52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Icon(Icons.send_rounded),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTutorMessageBubble(_TutorChatMessage message) {
+    final isUser = message.isUser;
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 10),
+        child: Row(
+          mainAxisAlignment:
+              isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isUser
+                      ? const Color(0xFF1F2937)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isUser
+                        ? const Color(0xFF1F2937)
+                        : const Color(0xFFE5E7EB),
+                  ),
+                ),
+                child: isUser
+                    ? Text(
+                        message.content,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          height: 1.55,
+                        ),
+                      )
+                    : LatexText(
+                        text: message.content,
+                        fontSize: 14,
+                        lineHeight: 1.7,
+                        textColor: AppColors.textPrimary,
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTutorLoadingBubble() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            Text(
+              'AI 老師正在整理回答...',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSolutionCard(SolutionItem solution) {
     // 根據標題選擇顏色和樣式
     Color tagColor = const Color(0xFF2196F3);
@@ -1420,7 +1733,10 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                 // 標題
                 Expanded(
                   child: Text(
-                    solution.title,
+                    LatexHelper.toReadableText(
+                      solution.title,
+                      fallback: '解法',
+                    ),
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_image_viewer.dart';
+import '../../../core/services/mistake_share_service.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
 import '../providers/mistakes_provider.dart';
@@ -50,7 +51,8 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
             savedSolutions: mistake.solutions,
             subject: mistake.subject,
             category: mistake.category,
-            keyConcepts: mistake.tags.where((t) => t != 'AI 解析').toList(),
+            chapter: mistake.resolvedChapter,
+            keyConcepts: mistake.resolvedKeyConcepts,
             mistakeId: mistake.id,
           ),
         ),
@@ -380,14 +382,16 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
     final customTags = (filter['customTags'] as List<dynamic>?) ?? [];
     final customTagsSet = customTags.map((t) => t.toString()).toSet();
 
-    // 從所有錯題中提取常用標籤（排除「AI 解析」和自訂標籤）
+    // 從所有錯題中提取常用標籤（排除「AI 解析」「AI 練習題」和自訂標籤）
     final popularTags = mistakesAsync.maybeWhen(
       data: (mistakes) {
         final tagCount = <String, int>{};
         for (var mistake in mistakes) {
           for (var tag in mistake.tags) {
-            // 排除「AI 解析」標籤和自訂標籤
-            if (tag != 'AI 解析' && !customTagsSet.contains(tag)) {
+            // 排除「AI 解析」「AI 練習題」標籤和自訂標籤
+            if (tag != 'AI 解析' &&
+                tag != 'AI 練習題' &&
+                !customTagsSet.contains(tag)) {
               tagCount[tag] = (tagCount[tag] ?? 0) + 1;
             }
           }
@@ -475,6 +479,21 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
               }
             },
           ),
+          _buildFilterChip(
+            ref,
+            "AI 練習題",
+            isSelected: filter['tagFilter'] == 'AI 練習題',
+            onTap: () {
+              AppUX.feedbackClick();
+              if (filter['tagFilter'] == 'AI 練習題') {
+                ref.read(mistakeFiltersProvider.notifier).setTagFilter(null);
+              } else {
+                ref
+                    .read(mistakeFiltersProvider.notifier)
+                    .setTagFilter('AI 練習題');
+              }
+            },
+          ),
           // 動態標籤（前5個）
           ...popularTags.map((tag) => _buildFilterChip(
                 ref,
@@ -546,7 +565,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
         final tagSet = <String>{};
         for (var mistake in mistakes) {
           for (var tag in mistake.tags) {
-            if (tag != 'AI 解析') {
+            if (tag != 'AI 解析' && tag != 'AI 練習題') {
               tagSet.add(tag);
             }
           }
@@ -896,7 +915,8 @@ class MistakeCard extends StatelessWidget {
               savedSolutions: mistake.solutions,
               subject: mistake.subject,
               category: mistake.category,
-              keyConcepts: mistake.tags.where((t) => t != 'AI 解析').toList(),
+              chapter: mistake.resolvedChapter,
+              keyConcepts: mistake.resolvedKeyConcepts,
               mistakeId: mistake.id,
             ),
           ),
@@ -906,12 +926,29 @@ class MistakeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSmallTag(mistake.subject, const Color(0xFFFF9800)),
-              _buildSmallTag(mistake.category, const Color(0xFF2196F3)),
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _buildSmallTag(mistake.subject, const Color(0xFFFF9800)),
+                    _buildSmallTag(mistake.category, const Color(0xFF2196F3)),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () async {
+                  AppUX.feedbackClick();
+                  await MistakeShareService.shareMistake(mistake);
+                },
+                icon: const Icon(Icons.ios_share_rounded, size: 20),
+                tooltip: '分享錯題',
+                color: AppColors.textSecondary,
+                visualDensity: VisualDensity.compact,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -942,8 +979,12 @@ class MistakeCard extends StatelessWidget {
                             .take(3)
                             .map((t) => _buildLabel(t)),
                         if (mistake.errorReason != null)
-                          _buildLabel("錯誤：${mistake.errorReason}",
-                              isHighlight: true),
+                          _buildLabel(
+                            mistake.errorReason == 'AI 練習題'
+                                ? mistake.errorReason!
+                                : '錯誤：${mistake.errorReason}',
+                            isHighlight: true,
+                          ),
                       ],
                     ),
                   ],
@@ -978,7 +1019,7 @@ class MistakeCard extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: _buildImage(mistake.imagePath),
+                      child: _buildThumbnail(),
                     ),
                   ),
                 ),
@@ -1035,6 +1076,49 @@ class MistakeCard extends StatelessWidget {
 
   String _buildPreviewText(String text) {
     return LatexHelper.toReadableText(text, fallback: '未命名題目');
+  }
+
+  bool get _isAiPracticeMistake {
+    return mistake.tags.contains('AI 練習題') || mistake.errorReason == 'AI 練習題';
+  }
+
+  Widget _buildThumbnail() {
+    if (_isAiPracticeMistake) {
+      // 縮圖固定約 70×70，內部可用空間更小；用 FittedBox 避免 Column 溢出
+      return const ColoredBox(
+        color: Color(0xFFFFF7ED),
+        child: FittedBox(
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          child: Padding(
+            padding: EdgeInsets.all(4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Color(0xFFFF8A00),
+                  size: 20,
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'AI\n練習題',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    height: 1.15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFB45309),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return _buildImage(mistake.imagePath);
   }
 
   Widget _buildImage(String path) {
