@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/models/mistake.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
 import '../../../core/widgets/premium_card.dart';
@@ -57,13 +58,15 @@ class KnowledgeGraphPage extends ConsumerStatefulWidget {
 
 class _KnowledgeGraphPageState extends ConsumerState<KnowledgeGraphPage> {
   String? _selectedSubject;
+  static const int _headerHeroPaletteIndex =
+      HomeFeatureCardPaletteIndex.knowledgeGraph;
 
   @override
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(knowledgeGraphProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.transparent,
       body: dataAsync.when(
         data: (data) =>
             data.totalMistakes == 0 ? const _EmptyState() : _buildBody(data),
@@ -88,11 +91,13 @@ class _KnowledgeGraphPageState extends ConsumerState<KnowledgeGraphPage> {
       slivers: [
         const SliverAppBar(
           floating: true,
-          backgroundColor: Color(0xFFFAFAFA),
+          backgroundColor: Colors.transparent,
           title: Text('知識地圖'),
           elevation: 0,
         ),
-        SliverToBoxAdapter(child: _Header(data: data)),
+        SliverToBoxAdapter(
+            child: _Header(
+                data: data, heroPaletteIndex: _headerHeroPaletteIndex)),
         SliverToBoxAdapter(child: _StatsRow(data: data)),
         if (data.subjects.length > 1)
           SliverToBoxAdapter(
@@ -118,6 +123,7 @@ class _KnowledgeGraphPageState extends ConsumerState<KnowledgeGraphPage> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _CategoryCard(
+                  listIndex: index,
                   subject: subject,
                   cluster: cluster,
                   onTapConcept: _showConceptSheet,
@@ -256,23 +262,28 @@ class _KnowledgeGraphPageState extends ConsumerState<KnowledgeGraphPage> {
 // ===========================================================================
 
 class _Header extends StatelessWidget {
-  const _Header({required this.data});
+  const _Header({required this.data, required this.heroPaletteIndex});
   final KnowledgeMapData data;
+  final int heroPaletteIndex;
 
   @override
   Widget build(BuildContext context) {
     final weakCount =
         data.weakestConcepts.where((c) => c.averageMastery < 0.8).length;
+    final heroSample =
+        HomeCompactCardPalette.solidColors[heroPaletteIndex];
+    final onHero = HomeCompactCardPalette.onAccent(heroSample);
+    final onHeroSub = HomeCompactCardPalette.onAccentSecondary(heroSample);
+    final iconWell = heroSample.computeLuminance() > 0.62
+        ? Colors.black.withValues(alpha: 0.06)
+        : Colors.white.withValues(alpha: 0.14);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
       child: Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-          ),
+          gradient:
+              HomeCompactCardPalette.compactGradientByIndex(heroPaletteIndex),
           borderRadius: BorderRadius.circular(24),
         ),
         child: Row(
@@ -280,27 +291,26 @@ class _Header extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: iconWell,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child:
-                  const Icon(Icons.hub_rounded, color: Colors.white, size: 26),
+              child: Icon(Icons.hub_rounded, color: onHero, size: 26),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('知識地圖',
+                  Text('知識地圖',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: onHero,
                           fontSize: 21,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text(
                     '${data.totalConcepts} 個觀念'
                     '${weakCount > 0 ? ' · $weakCount 個待加強' : ''}',
-                    style: const TextStyle(color: Colors.white60, fontSize: 13),
+                    style: TextStyle(color: onHeroSub, fontSize: 13),
                   ),
                 ],
               ),
@@ -613,12 +623,14 @@ class _WeakCard extends StatelessWidget {
 
 class _CategoryCard extends StatefulWidget {
   const _CategoryCard({
+    required this.listIndex,
     required this.subject,
     required this.cluster,
     required this.onTapConcept,
     required this.onTapChapter,
     required this.onTapMistake,
   });
+  final int listIndex;
   final String subject;
   final CategoryCluster cluster;
   final ValueChanged<ConceptNode> onTapConcept;
@@ -640,6 +652,7 @@ class _CategoryCardState extends State<_CategoryCard> {
     final subjectC = _subjectColor(widget.subject);
 
     return PremiumCard(
+      backgroundOpacity: 0.52,
       padding: EdgeInsets.zero,
       onTap: () => setState(() => _expanded = !_expanded),
       child: Column(
@@ -678,7 +691,13 @@ class _CategoryCardState extends State<_CategoryCard> {
                                     color: AppColors.textPrimary)),
                           ),
                           const SizedBox(width: 8),
-                          _MiniTag(text: widget.subject, color: subjectC),
+                          _MiniTag(
+                            text: widget.subject,
+                            color: HomeCompactCardPalette.chipColor(
+                              sectionIndex: 4,
+                              index: widget.listIndex,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 7),
@@ -954,15 +973,16 @@ class _MiniTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fg = Color.lerp(color, const Color(0xFF111827), 0.38)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.28),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(text,
           style: TextStyle(
-              color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+              color: fg, fontSize: 10, fontWeight: FontWeight.w700)),
     );
   }
 }
@@ -1019,11 +1039,17 @@ class _MistakeTile extends StatelessWidget {
                     children: [
                       _MiniTag(
                           text: mistake.subject,
-                          color: _subjectColor(mistake.subject)),
+                          color: HomeCompactCardPalette.chipColor(
+                            sectionIndex: 6,
+                            index: mistake.id ?? mistake.hashCode.abs(),
+                          )),
                       if (mistake.resolvedChapter != null)
                         _MiniTag(
                             text: mistake.resolvedChapter!,
-                            color: const Color(0xFF8B5CF6)),
+                            color: HomeCompactCardPalette.chipColor(
+                              sectionIndex: 7,
+                              index: mistake.resolvedChapter.hashCode.abs(),
+                            )),
                     ],
                   ),
                 ],
@@ -1048,7 +1074,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('知識地圖'),
         backgroundColor: Colors.transparent,

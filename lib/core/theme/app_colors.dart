@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class AppColors {
   // 1. 背景色：不是死白，而是極致的紙張白 (Paper White)
   static const Color background = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFFAFAFA); // 用於次要區塊
+  /// 次要區塊／輸入底；在彌散底上常搭配 `withValues(alpha: …)`。
+  static const Color surface = Color(0xFFFAFAFA);
 
   // 2. 文字色：避免純黑 (#000000)，使用「碳黑」與「石墨灰」
   static const Color textPrimary = Color(0xFF1A1A1A); // 主標題

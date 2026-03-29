@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// 字體系統
-/// 主字體：NotoSansTC（思源黑體）— 字重豐富，適合細膩層次區分
-/// 數學/符號：NotoSansMath + NotoSansSymbols2 作為 fallback
+/// 全站字體（與首頁一致）
+///
+/// - **iOS**：`PingFang TC` + NotoSansTC／數學／符號 fallback。
+/// - **其他平台**：`Inter` + 同上 fallback（中文落到思源黑體）。
 class AppFonts {
   // ── 字體家族 ─────────────────────────────────────────────────
   static const String primary = 'NotoSansTC';
@@ -10,6 +14,9 @@ class AppFonts {
   static const String symbols = 'NotoSansSymbols2';
 
   static const List<String> fallback = <String>[math, symbols];
+
+  static List<String> get _resolvedFallback =>
+      <String>[primary, math, symbols];
 
   // ── 字重常數 ─────────────────────────────────────────────────
   /// 標題用：增加視覺錨點
@@ -48,12 +55,17 @@ class AppFonts {
   static const double sizeBadge = 11.0;      // Tag / Badge
   static const double sizeXs = 10.0;         // 極小文字（labelSmall）
 
-  // ── 核心方法：注入字體 fallback ──────────────────────────────
+  // ── 核心方法：依平台套用字族 + fallback ──────────────────────
   static TextStyle resolve(TextStyle? base) {
     final style = base ?? const TextStyle();
-    return style.copyWith(
-      fontFamily: style.fontFamily ?? primary,
-      fontFamilyFallback: style.fontFamilyFallback ?? fallback,
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return style.copyWith(
+        fontFamily: style.fontFamily ?? 'PingFang TC',
+        fontFamilyFallback: style.fontFamilyFallback ?? _resolvedFallback,
+      );
+    }
+    return GoogleFonts.inter(textStyle: style).copyWith(
+      fontFamilyFallback: style.fontFamilyFallback ?? _resolvedFallback,
     );
   }
 
@@ -88,7 +100,7 @@ class AppFonts {
   /// 標籤 / Badge 文字
   static TextStyle badge(Color color) => resolve(TextStyle(
         fontSize: sizeBadge,
-        fontWeight: weightBold,
+        fontWeight: weightSemibold,
         letterSpacing: letterSpacingButton,
         color: color,
       ));

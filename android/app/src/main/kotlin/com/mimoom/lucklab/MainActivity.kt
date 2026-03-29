@@ -1,4 +1,4 @@
-package com.example.luck_builder
+package com.mimoom.lucklab
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -21,7 +21,7 @@ class MistakeShareService {
 
     final params = ShareParams(
       text: summary,
-      subject: 'LuckBuilder 錯題分享',
+      subject: 'LuckLab 錯題分享',
       files: files.isEmpty ? null : files,
     );
 
@@ -34,7 +34,7 @@ class MistakeShareService {
     final concepts = mistake.resolvedKeyConcepts.take(3).join('、');
 
     return [
-      '我在 LuckBuilder 整理了一張錯題卡',
+      '我在 LuckLab 整理了一張錯題卡',
       '',
       '題目：$title',
       '科目：${mistake.subject}',

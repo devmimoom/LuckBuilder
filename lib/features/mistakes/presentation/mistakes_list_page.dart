@@ -1,10 +1,18 @@
+import 'dart:io';
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
+
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/premium_card.dart';
+import '../../../core/theme/app_fonts.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
+import '../../../core/theme/home_page_fonts.dart';
+import '../../../core/widgets/glass_compact_card_shell.dart';
 import '../../../core/widgets/premium_image_viewer.dart';
 import '../../../core/services/mistake_share_service.dart';
 import '../../../core/utils/app_ux.dart';
@@ -16,7 +24,6 @@ import '../../solver/presentation/solver_page.dart';
 import 'print_settings_sheet.dart';
 import 'glyph_test_page.dart';
 import '../../settings/presentation/settings_page.dart';
-import 'dart:io';
 
 class MistakesListPage extends ConsumerStatefulWidget {
   const MistakesListPage({super.key});
@@ -70,7 +77,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
     final selection = ref.watch(selectionNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       body: CustomScrollView(
         slivers: [
           // 1. AppBar
@@ -87,25 +94,49 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
             delegate: _SliverAppBarDelegate(
               minHeight: 50.0,
               maxHeight: 50.0,
-              child: Container(
-                color: AppColors.background,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildSubjectTab(ref, "全部", filter['subject'] == "全部"),
-                      _buildSubjectTab(ref, "數學", filter['subject'] == "數學"),
-                      _buildSubjectTab(ref, "英文", filter['subject'] == "英文"),
-                      _buildSubjectTab(ref, "國文", filter['subject'] == "國文"),
-                      _buildSubjectTab(ref, "自然", filter['subject'] == "自然"),
-                      _buildSubjectTab(ref, "地理", filter['subject'] == "地理"),
-                      _buildSubjectTab(ref, "歷史", filter['subject'] == "歷史"),
-                      _buildSubjectTab(ref, "公民", filter['subject'] == "公民"),
-                      _buildSubjectTab(ref, "其他", filter['subject'] == "其他"),
-                    ],
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(
+                    sigmaX: HomeMeshReferenceColors.blurSigmaCard,
+                    sigmaY: HomeMeshReferenceColors.blurSigmaCard,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: HomeMeshReferenceColors.glassFillLight,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: HomeMeshReferenceColors.glassBorderWhite,
+                        ),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildSubjectTab(
+                              ref, "全部", filter['subject'] == "全部", 0),
+                          _buildSubjectTab(
+                              ref, "數學", filter['subject'] == "數學", 1),
+                          _buildSubjectTab(
+                              ref, "英文", filter['subject'] == "英文", 2),
+                          _buildSubjectTab(
+                              ref, "國文", filter['subject'] == "國文", 3),
+                          _buildSubjectTab(
+                              ref, "自然", filter['subject'] == "自然", 4),
+                          _buildSubjectTab(
+                              ref, "地理", filter['subject'] == "地理", 5),
+                          _buildSubjectTab(
+                              ref, "歷史", filter['subject'] == "歷史", 6),
+                          _buildSubjectTab(
+                              ref, "公民", filter['subject'] == "公民", 7),
+                          _buildSubjectTab(
+                              ref, "其他", filter['subject'] == "其他", 8),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -147,7 +178,9 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
                                 padding: const EdgeInsets.only(right: 20),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE02E2E),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(
+                                    HomeMeshReferenceColors.radiusGlassCompact,
+                                  ),
                                 ),
                                 child: const Icon(Icons.delete_outline,
                                     color: Colors.white, size: 28),
@@ -303,50 +336,61 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
     final selection = ref.watch(selectionNotifierProvider);
     if (!selection.isSelectionMode) return null;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.72),
+            border: Border(
+              top: BorderSide(
+                color: AppColors.border.withValues(alpha: 0.55),
+                width: 0.5,
+              ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  AppUX.feedbackClick();
-                  ref
-                      .read(selectionNotifierProvider.notifier)
-                      .exitSelectionMode();
-                },
-                child: const Text('取消'),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: selection.selectedCount > 0
-                    ? () {
-                        AppUX.feedbackClick();
-                        _showPrintSettingsSheet(context, ref);
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
+          child: SafeArea(
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      AppUX.feedbackClick();
+                      ref
+                          .read(selectionNotifierProvider.notifier)
+                          .exitSelectionMode();
+                    },
+                    child: const Text('取消'),
+                  ),
                 ),
-                child: Text('列印 (${selection.selectedCount} 題)'),
-              ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: selection.selectedCount > 0
+                        ? () {
+                            AppUX.feedbackClick();
+                            _showPrintSettingsSheet(context, ref);
+                          }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text('列印 (${selection.selectedCount} 題)'),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -361,7 +405,16 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
     );
   }
 
-  Widget _buildSubjectTab(WidgetRef ref, String label, bool isSelected) {
+  Widget _buildSubjectTab(
+    WidgetRef ref,
+    String label,
+    bool isSelected,
+    int tabIndex,
+  ) {
+    final accent = HomeCompactCardPalette.chipColor(
+      sectionIndex: 10,
+      index: tabIndex,
+    );
     return GestureDetector(
       onTap: () => ref.read(mistakeFiltersProvider.notifier).setSubject(label),
       child: Container(
@@ -369,7 +422,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.textPrimary : Colors.transparent,
+          color: isSelected ? accent : accent.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -377,7 +430,9 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+            color: isSelected
+                ? HomeCompactCardPalette.onAccent(accent)
+                : AppColors.textSecondary,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -415,6 +470,8 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
       orElse: () => <String>[],
     );
 
+    var paletteIndex = 0;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -426,6 +483,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
             builder: (context) => _buildFilterChip(
               ref,
               "✏️ 自訂標籤",
+              paletteIndex: paletteIndex++,
               isAction: true,
               onTap: () {
                 AppUX.feedbackClick();
@@ -437,6 +495,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           _buildFilterChip(
             ref,
             "All",
+            paletteIndex: paletteIndex++,
             isAction: true,
             isSelected: filter['timeFilter'] == null &&
                 filter['errorFilter'] == null &&
@@ -452,6 +511,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
               .map((customTag) => _buildFilterChip(
                     ref,
                     "🏷️ ${customTag.toString()}",
+                    paletteIndex: paletteIndex++,
                     isSelected: true,
                     onTap: () {
                       AppUX.feedbackClick();
@@ -463,6 +523,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           _buildFilterChip(
             ref,
             "📅 近30天",
+            paletteIndex: paletteIndex++,
             isSelected: filter['timeFilter'] == 'first_exam',
             onTap: () {
               AppUX.feedbackClick();
@@ -478,6 +539,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           _buildFilterChip(
             ref,
             "⚠️ 常錯",
+            paletteIndex: paletteIndex++,
             isSelected: filter['errorFilter'] == 'frequent',
             onTap: () {
               AppUX.feedbackClick();
@@ -493,6 +555,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           _buildFilterChip(
             ref,
             "AI 練習題",
+            paletteIndex: paletteIndex++,
             isSelected: filter['tagFilter'] == 'AI 練習題',
             onTap: () {
               AppUX.feedbackClick();
@@ -509,6 +572,7 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           ...popularTags.map((tag) => _buildFilterChip(
                 ref,
                 "🏷️ $tag",
+                paletteIndex: paletteIndex++,
                 isSelected: filter['tagFilter'] == tag,
                 onTap: () {
                   AppUX.feedbackClick();
@@ -529,10 +593,15 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
   Widget _buildFilterChip(
     WidgetRef ref,
     String label, {
+    required int paletteIndex,
     bool isAction = false,
     bool isSelected = false,
     VoidCallback? onTap,
   }) {
+    final accent = HomeCompactCardPalette.chipColor(
+      sectionIndex: 11,
+      index: paletteIndex,
+    );
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -542,11 +611,11 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           color: isAction
               ? Colors.transparent
               : isSelected
-                  ? AppColors.highlight.withValues(alpha: 0.2)
-                  : AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
+                  ? accent.withValues(alpha: 0.2)
+                  : HomeMeshReferenceColors.glassFillLight,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
-            color: isSelected ? AppColors.highlight : AppColors.border,
+            color: isSelected ? accent : AppColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -555,9 +624,9 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
           style: TextStyle(
             fontSize: 12,
             color: isAction
-                ? AppColors.highlight
+                ? accent
                 : isSelected
-                    ? AppColors.highlight
+                    ? accent
                     : AppColors.textSecondary,
             fontWeight:
                 isAction || isSelected ? FontWeight.bold : FontWeight.normal,
@@ -790,11 +859,11 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         date,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
+        style: HomePageFonts.resolve(const TextStyle(
+          fontSize: AppFonts.sizeBodyLg,
+          fontWeight: AppFonts.weightSemibold,
           color: AppColors.textTertiary,
-        ),
+        )),
       ),
     );
   }
@@ -814,20 +883,42 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.auto_stories_outlined,
-              size: 64, color: AppColors.textTertiary.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          const Text(
-            "題庫空空如也",
-            style: TextStyle(
-                fontSize: 18,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.bold),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: GlassCompactCardShell(
+          padding: const EdgeInsets.all(AppSpacing.inset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.auto_stories_outlined,
+                size: 48,
+                color: AppColors.textTertiary.withValues(alpha: 0.45),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                '題庫空空如也',
+                textAlign: TextAlign.center,
+                style: HomePageFonts.resolve(const TextStyle(
+                  fontSize: AppFonts.sizeTitleMd,
+                  fontWeight: AppFonts.weightSemibold,
+                  color: AppColors.textSecondary,
+                )),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                '拍一題或從首頁加入錯題，就會出現在這裡。',
+                textAlign: TextAlign.center,
+                style: HomePageFonts.resolve(const TextStyle(
+                  fontSize: AppFonts.sizeBodySm,
+                  fontWeight: AppFonts.weightRegular,
+                  color: AppColors.textTertiary,
+                  height: AppFonts.lineHeightRelaxed,
+                )),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -905,34 +996,36 @@ class MistakeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PremiumCard(
-      padding: const EdgeInsets.all(16),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        if (onTap != null) {
-          onTap!.call();
-          return;
-        }
+    void handleTap() {
+      HapticFeedback.lightImpact();
+      if (onTap != null) {
+        onTap!.call();
+        return;
+      }
 
-        final imagePath = mistake.imagePath;
-        final imageFile = imagePath.isNotEmpty ? File(imagePath) : null;
+      final imagePath = mistake.imagePath;
+      final imageFile = imagePath.isNotEmpty ? File(imagePath) : null;
 
-        Navigator.of(context).push(
-          AppUX.fadeRoute(
-            SolverPage(
-              originalImage: imageFile,
-              initialLatex: mistake.title,
-              isFromMistakes: true,
-              savedSolutions: mistake.solutions,
-              subject: mistake.subject,
-              category: mistake.category,
-              chapter: mistake.resolvedChapter,
-              keyConcepts: mistake.resolvedKeyConcepts,
-              mistakeId: mistake.id,
-            ),
+      Navigator.of(context).push(
+        AppUX.fadeRoute(
+          SolverPage(
+            originalImage: imageFile,
+            initialLatex: mistake.title,
+            isFromMistakes: true,
+            savedSolutions: mistake.solutions,
+            subject: mistake.subject,
+            category: mistake.category,
+            chapter: mistake.resolvedChapter,
+            keyConcepts: mistake.resolvedKeyConcepts,
+            mistakeId: mistake.id,
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    return GlassCompactCardShell(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      onTap: handleTap,
       onLongPress: onLongPress,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -942,11 +1035,13 @@ class MistakeCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: AppSpacing.tight,
+                  runSpacing: AppSpacing.tight,
                   children: [
-                    _buildSmallTag(mistake.subject, const Color(0xFFFF9800)),
-                    _buildSmallTag(mistake.category, const Color(0xFF2196F3)),
+                    _buildSmallTag(
+                        mistake.subject, HomeMeshReferenceColors.peach),
+                    _buildSmallTag(
+                        mistake.category, HomeMeshReferenceColors.teal),
                   ],
                 ),
               ),
@@ -962,7 +1057,7 @@ class MistakeCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.tight),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -974,16 +1069,17 @@ class MistakeCard extends StatelessWidget {
                       _buildPreviewText(mistake.title),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.5,
+                      style: HomePageFonts.resolve(const TextStyle(
+                        fontSize: AppFonts.sizeBodySm,
+                        height: AppFonts.lineHeightBody,
+                        fontWeight: AppFonts.weightRegular,
                         color: AppColors.textPrimary,
-                      ),
+                      )),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
                       children: [
                         ...mistake.tags
                             .where((t) => t != 'AI 解析')
@@ -1001,7 +1097,7 @@ class MistakeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               GestureDetector(
                 onTap: () {
                   if (!enableImagePreview) {
@@ -1021,15 +1117,19 @@ class MistakeCard extends StatelessWidget {
                 child: Hero(
                   tag: 'mistake_image_${mistake.id}',
                   child: Container(
-                    width: 70,
-                    height: 70,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusXs),
+                      border: Border.all(
+                        color: AppColors.border.withValues(alpha: 0.65),
+                      ),
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusXs),
                       child: _buildThumbnail(),
                     ),
                   ),
@@ -1044,43 +1144,49 @@ class MistakeCard extends StatelessWidget {
 
   Widget _buildSmallTag(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
       ),
       child: Text(
         _buildPreviewText(text),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style:
-            TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+        style: HomePageFonts.badge(color),
       ),
     );
   }
 
   Widget _buildLabel(String text, {bool isHighlight = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: isHighlight
-            ? AppColors.error.withValues(alpha: 0.05)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
+            ? AppColors.error.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
         border: Border.all(
-            color: isHighlight
-                ? AppColors.error.withValues(alpha: 0.2)
-                : AppColors.border),
+          color: isHighlight
+              ? AppColors.error.withValues(alpha: 0.25)
+              : HomeMeshReferenceColors.glassBorderWhite,
+        ),
       ),
       child: Text(
         _buildPreviewText(text),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 11,
+        style: HomePageFonts.resolve(TextStyle(
+          fontSize: AppFonts.sizeCaption,
           color: isHighlight ? AppColors.error : AppColors.textSecondary,
-        ),
+          fontWeight: AppFonts.weightRegular,
+        )),
       ),
     );
   }
@@ -1193,7 +1299,9 @@ class _MistakeCardWithSelection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: isSelected ? const Color(0xFF2196F3).withValues(alpha: 0.1) : null,
+      color: isSelected
+          ? HomeMeshReferenceColors.lavender.withValues(alpha: 0.18)
+          : null,
       child: Row(
         children: [
           // 選取模式時顯示勾選框

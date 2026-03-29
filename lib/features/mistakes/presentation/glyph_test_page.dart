@@ -13,7 +13,7 @@ class GlyphTestPage extends StatelessWidget {
       title: '中文與標點',
       description: '先確認常用繁中字、括號與全形標點都能正常顯示。',
       samples: [
-        '列印設定、我的錯題本、錯題解析助手',
+        '列印設定、我的錯題本、LuckLab',
         '（如圖）下列敘述何者正確？請選出正確答案。',
         '甲、乙、丙、丁；因為、所以、因此、但是。',
       ],
@@ -51,7 +51,7 @@ class GlyphTestPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('缺字測試'),
         actions: [

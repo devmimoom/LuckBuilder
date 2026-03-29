@@ -39,22 +39,24 @@ enum HomeBackgroundPresetId {
   lilacPurple,
   meadowGreen,
   midnightBlack,
+  paperWhite,
+  coffeeBrown,
 }
 
 /// 內建預設組與查表。
 abstract final class HomeBackgroundPresets {
-  /// 預設：與 [HomeMeshReferenceColors] 藕粉系一致。
+  /// 預設：藕粉霧（較明顯的粉調；色團僅此主題使用，不影響其他頁全域色票）。
   static const HomeBackgroundPreset pinkMist = HomeBackgroundPreset(
     id: HomeBackgroundPresetId.pinkMist,
     label: '藕粉霧',
     gradientTop: HomeMeshReferenceColors.meshBaseTop,
     gradientMid: HomeMeshReferenceColors.meshBaseMid,
-    gradientBottom: Color(0xFFFAF0F5),
-    blobTeal: HomeMeshReferenceColors.teal,
-    blobLavender: HomeMeshReferenceColors.lavender,
-    blobPeach: HomeMeshReferenceColors.peach,
-    blobPinkMist: HomeMeshReferenceColors.pinkMist,
-    previewColor: Color(0xFFE8B4C4),
+    gradientBottom: Color(0xFFFFDEE8),
+    blobTeal: Color(0xFFC8A8B4),
+    blobLavender: Color(0xFFD8A0C0),
+    blobPeach: Color(0xFFE8A8B8),
+    blobPinkMist: Color(0xFFF0A0BC),
+    previewColor: Color(0xFFF0A0B8),
   );
 
   /// 亮色系：天藍／奶油／淡底。
@@ -75,13 +77,13 @@ abstract final class HomeBackgroundPresets {
   static const HomeBackgroundPreset morandiCool = HomeBackgroundPreset(
     id: HomeBackgroundPresetId.morandiCool,
     label: '霧灰藍',
-    gradientTop: Color(0xFFE4E8ED),
-    gradientMid: Color(0xFFE8E6E4),
-    gradientBottom: Color(0xFFF2F0EE),
-    blobTeal: Color(0xFF9CA8A8),
-    blobLavender: Color(0xFFA8A4B0),
-    blobPeach: Color(0xFFB5ADA5),
-    blobPinkMist: Color(0xFFC8C0C4),
+    gradientTop: Color(0xFFECEFF3),
+    gradientMid: Color(0xFFF0EEEC),
+    gradientBottom: Color(0xFFF7F5F4),
+    blobTeal: Color(0xFFA8B4B8),
+    blobLavender: Color(0xFFB4B0BC),
+    blobPeach: Color(0xFFC0B8B0),
+    blobPinkMist: Color(0xFFD4CCD0),
     previewColor: Color(0xFF9BA8B8),
   );
 
@@ -141,18 +143,46 @@ abstract final class HomeBackgroundPresets {
     previewColor: Color(0xFF66BB6A),
   );
 
-  /// 黑色系：深色漸層＋低調色團（非純黑，保留彌散層次）。
+  /// 深灰系：深灰漸層＋米白／咖啡色團（設定頁原「黑色」選項）。
   static const HomeBackgroundPreset midnightBlack = HomeBackgroundPreset(
     id: HomeBackgroundPresetId.midnightBlack,
-    label: '黑色',
-    gradientTop: Color(0xFF1A1A1F),
-    gradientMid: Color(0xFF222228),
-    gradientBottom: Color(0xFF2A2A32),
-    blobTeal: Color(0xFF3D5A6B),
-    blobLavender: Color(0xFF4A3D5C),
-    blobPeach: Color(0xFF4D4540),
-    blobPinkMist: Color(0xFF3E3A44),
-    previewColor: Color(0xFF212121),
+    label: '深灰',
+    gradientTop: Color(0xFF34353A),
+    gradientMid: Color(0xFF3C3D44),
+    gradientBottom: Color(0xFF44464E),
+    blobTeal: Color(0xFFF2F0EC),
+    blobLavender: Color(0xFF5C4A3E),
+    blobPeach: Color(0xFF8B6F5C),
+    blobPinkMist: Color(0xFFEDE8E0),
+    previewColor: Color(0xFF544F4A),
+  );
+
+  /// 白色系：淺灰白漸層＋柔霧色團。
+  static const HomeBackgroundPreset paperWhite = HomeBackgroundPreset(
+    id: HomeBackgroundPresetId.paperWhite,
+    label: '白色',
+    gradientTop: Color(0xFFFCFCFE),
+    gradientMid: Color(0xFFF8F8FA),
+    gradientBottom: Color(0xFFF2F2F6),
+    blobTeal: Color(0xFFFFFFFF),
+    blobLavender: Color(0xFFF0EEF5),
+    blobPeach: Color(0xFFEAE8F0),
+    blobPinkMist: Color(0xFFE4E2EC),
+    previewColor: Color(0xFFE8E8EE),
+  );
+
+  /// 咖啡色系：暖褐漸層＋拿鐵／焦糖色團。
+  static const HomeBackgroundPreset coffeeBrown = HomeBackgroundPreset(
+    id: HomeBackgroundPresetId.coffeeBrown,
+    label: '咖啡色',
+    gradientTop: Color(0xFF4A3D36),
+    gradientMid: Color(0xFF3D332E),
+    gradientBottom: Color(0xFF322A26),
+    blobTeal: Color(0xFFB89A82),
+    blobLavender: Color(0xFF8B6F5C),
+    blobPeach: Color(0xFF6B5344),
+    blobPinkMist: Color(0xFFA8896E),
+    previewColor: Color(0xFF5D4037),
   );
 
   static const List<HomeBackgroundPreset> all = [
@@ -164,6 +194,8 @@ abstract final class HomeBackgroundPresets {
     lilacPurple,
     meadowGreen,
     midnightBlack,
+    paperWhite,
+    coffeeBrown,
   ];
 
   static HomeBackgroundPreset get defaultPreset => pinkMist;

@@ -101,15 +101,15 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: Colors.transparent,
       primaryColor: AppColors.accent,
-      fontFamily: AppFonts.primary,
 
       textTheme: _buildTextTheme(),
 
-      // ── AppBar：去除陰影，iOS 風格靠左 ───────────────────────
+      // ── AppBar：透明以透出全域彌散底 ───────────────────────────
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
@@ -122,12 +122,28 @@ class AppTheme {
         )),
       ),
 
-      // ── 卡片：圓角 16px，極淡邊框代替陰影 ───────────────────
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        selectedLabelStyle: AppFonts.resolve(const TextStyle(
+          fontSize: 12,
+          fontWeight: AppFonts.weightSemibold,
+        )),
+        unselectedLabelStyle: AppFonts.resolve(const TextStyle(
+          fontSize: 12,
+          fontWeight: AppFonts.weightMedium,
+        )),
+      ),
+
+      // ── 卡片：半透表面（彌散底上可讀）──────────────────────────
       cardTheme: CardThemeData(
-        color: AppColors.background,
+        color: AppColors.surface.withValues(alpha: 0.88),
         elevation: 0,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.border, width: 1),
+          side: BorderSide(
+            color: AppColors.border.withValues(alpha: 0.65),
+            width: 1,
+          ),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         ),
         margin: EdgeInsets.zero,
@@ -172,7 +188,7 @@ class AppTheme {
       // ── InputDecoration：極簡填充框 ─────────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.surface.withValues(alpha: 0.9),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           borderSide: BorderSide.none,

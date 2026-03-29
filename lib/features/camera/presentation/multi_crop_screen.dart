@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/paywall_gate.dart';
 import '../providers/analysis_provider.dart';
 import '../providers/crop_provider.dart';
+import '../../subscription/providers/feature_trial_provider.dart';
 import '../utils/crop_image_helper.dart';
 import 'analysis_progress_page.dart';
 import 'widgets/box_painter.dart';
@@ -76,6 +78,14 @@ class _MistakeCropContentState extends ConsumerState<_MistakeCropContent> {
           );
           if (!mounted) return;
           Navigator.of(context).pop(cropResult);
+          return;
+        }
+
+        if (!await PaywallGate.consumeTrialIfNeeded(
+          context,
+          ref,
+          TrialFeature.cameraSolve,
+        )) {
           return;
         }
 

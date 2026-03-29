@@ -16,9 +16,9 @@ abstract final class HomeMeshReferenceColors {
 
   static const Color darkGlass = Color(0xFF3E3639);
 
-  /// 彌散底：淡粉紫天光／霧粉。
-  static const Color meshBaseTop = Color(0xFFF0E8F0);
-  static const Color meshBaseMid = Color(0xFFF5E4EA);
+  /// 彌散底（預設「藕粉霧」主題）：偏粉的天光，仍維持偏亮少灰。
+  static const Color meshBaseTop = Color(0xFFFFF2F7);
+  static const Color meshBaseMid = Color(0xFFFFE8F1);
 
   static const double darkGlassOpacity = 0.65;
 
@@ -37,8 +37,8 @@ abstract final class HomeMeshReferenceColors {
   static const double radiusGlassCompact = 22;
 
   static const double blurSigmaCard = 24;
-  /// 莫蘭迪彌散略柔邊。
-  static const double blurSigmaMesh = 44;
+  /// 莫蘭迪彌散柔邊（過強會把多色糊成濁灰）。
+  static const double blurSigmaMesh = 32;
 
   /// 漸層小卡字色（偏粉白）。
   static const Color onGradientPrimary = Color(0xFFFFF8FA);
@@ -94,4 +94,68 @@ abstract final class HomeCompactCardGradients {
         const Color(0xFF8FA090),
         const Color(0xFF9FB0A0),
       );
+}
+
+/// 首頁六張功能小卡順序（與 [HomeCompactCardGradients] 一致），內頁標題區可固定對應首頁入口色。
+abstract final class HomeFeatureCardPaletteIndex {
+  static const int similarPractice = 0;
+  static const int review = 1;
+  static const int examCountdown = 2;
+  static const int mockExam = 3;
+  static const int knowledgeGraph = 4;
+  static const int learningDashboard = 5;
+}
+
+/// 與首頁六張功能小卡對應的**單色**（AI 相似題、錯題複習、考試倒數、模擬測驗、知識圖譜、學習儀表板）。
+/// 用於標題卡背景、區塊內膠囊抽色等。
+abstract final class HomeCompactCardPalette {
+  static const List<Color> solidColors = <Color>[
+    Color(0xFFB89898), // AI 相似題練習
+    Color(0xFF9A7A98), // 錯題複習
+    Color(0xFF8A98B0), // 考試倒數
+    Color(0xFFB08888), // 自訂模擬測驗
+    Color(0xFF8E7898), // 知識圖譜
+    Color(0xFF8FA090), // 學習儀表板
+  ];
+
+  static Color colorForSeed(int seed) =>
+      solidColors[seed.abs() % solidColors.length];
+
+  /// 與 [solidColors] 同序：首頁六張功能小卡的**漸層**（與圖示一致，隨機選一張時請用此）。
+  static LinearGradient compactGradientByIndex(int i) {
+    switch (i % solidColors.length) {
+      case 0:
+        return HomeCompactCardGradients.similarPractice;
+      case 1:
+        return HomeCompactCardGradients.review;
+      case 2:
+        return HomeCompactCardGradients.examCountdown;
+      case 3:
+        return HomeCompactCardGradients.mockExam;
+      case 4:
+        return HomeCompactCardGradients.knowledgeGraph;
+      case 5:
+        return HomeCompactCardGradients.learningDashboard;
+      default:
+        return HomeCompactCardGradients.similarPractice;
+    }
+  }
+
+  /// 同一區塊內第 [index] 顆膠囊：穩定偽隨機（不重排即可重現）。
+  static Color chipColor({
+    required int sectionIndex,
+    required int index,
+  }) =>
+      colorForSeed(sectionIndex * 1009 + index * 97 + 13);
+
+  /// 置於彩色底上的主文字（深淺自動）。
+  static Color onAccent(Color background) =>
+      background.computeLuminance() > 0.62
+          ? const Color(0xFF1A1A1A)
+          : const Color(0xFFFFF8FA);
+
+  static Color onAccentSecondary(Color background) =>
+      background.computeLuminance() > 0.62
+          ? const Color(0xFF666666)
+          : Colors.white70;
 }

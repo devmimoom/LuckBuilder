@@ -49,7 +49,7 @@ class HomeMeshBackground extends StatelessWidget {
                   child: _blob(
                     diameter: 300,
                     colors: [
-                      p.blobTeal.withValues(alpha: 0.58),
+                      p.blobTeal.withValues(alpha: 0.46),
                       Colors.transparent,
                     ],
                   ),
@@ -60,7 +60,7 @@ class HomeMeshBackground extends StatelessWidget {
                   child: _blob(
                     diameter: 280,
                     colors: [
-                      p.blobLavender.withValues(alpha: 0.52),
+                      p.blobLavender.withValues(alpha: 0.40),
                       Colors.transparent,
                     ],
                   ),
@@ -71,7 +71,7 @@ class HomeMeshBackground extends StatelessWidget {
                   child: _blob(
                     diameter: 320,
                     colors: [
-                      p.blobPeach.withValues(alpha: 0.55),
+                      p.blobPeach.withValues(alpha: 0.42),
                       Colors.transparent,
                     ],
                   ),
@@ -82,8 +82,8 @@ class HomeMeshBackground extends StatelessWidget {
                   child: _blob(
                     diameter: 260,
                     colors: [
-                      p.blobPinkMist.withValues(alpha: 0.48),
-                      p.blobLavender.withValues(alpha: 0.35),
+                      p.blobPinkMist.withValues(alpha: 0.36),
+                      p.blobLavender.withValues(alpha: 0.26),
                       Colors.transparent,
                     ],
                   ),
@@ -94,8 +94,8 @@ class HomeMeshBackground extends StatelessWidget {
                   child: _blob(
                     diameter: 220,
                     colors: [
-                      p.blobPinkMist.withValues(alpha: 0.45),
-                      p.blobPeach.withValues(alpha: 0.22),
+                      p.blobPinkMist.withValues(alpha: 0.34),
+                      p.blobPeach.withValues(alpha: 0.16),
                       Colors.transparent,
                     ],
                   ),

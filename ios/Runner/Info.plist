@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>錯題解析助手</string>
+	<string>LuckLab</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>luck_builder</string>
+	<string>LuckLab</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,13 +28,23 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>luckbuilder</string>
+			<string>lucklab</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>luckbuilder</string>
+				<string>lucklab</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.814867629025-fpsph5oaco91040fkt42ehangugtvh65</string>
 			</array>
 		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>814867629025-fpsph5oaco91040fkt42ehangugtvh65.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>

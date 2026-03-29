@@ -7,8 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/models/mistake.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
+import '../../../core/widgets/feature_setup_chrome.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/widgets/premium_image_viewer.dart';
 import '../../mistakes/providers/mistakes_provider.dart';
@@ -34,6 +36,9 @@ class MockExamPage extends ConsumerStatefulWidget {
 }
 
 class _MockExamPageState extends ConsumerState<MockExamPage> {
+  /// 與首頁六張小卡同序；頂部橫幅用 [HomeCompactCardPalette.compactGradientByIndex]。
+  late final int _setupHeroPaletteIndex;
+
   _MockExamStage _stage = _MockExamStage.setup;
   String _selectedSubject = '全部';
   int _questionCount = 5;
@@ -49,6 +54,13 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
   Timer? _timer;
 
   @override
+  void initState() {
+    super.initState();
+    _setupHeroPaletteIndex =
+        Random().nextInt(HomeCompactCardPalette.solidColors.length);
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
@@ -59,7 +71,7 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
     final mistakesAsync = ref.watch(allMistakesRawProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(_titleForStage()),
         backgroundColor: Colors.transparent,
@@ -110,74 +122,54 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF5B6CFF), Color(0xFF7B61FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '把錯題庫變成一場小考',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                '依科目、題數與時間快速組卷，先用自我評估找出會與不會，再點進詳解補洞。',
-                style: TextStyle(
-                  color: Colors.white70,
-                  height: 1.6,
-                ),
-              ),
-            ],
-          ),
+        FeatureSetupHero(
+          paletteIndex: _setupHeroPaletteIndex,
+          title: '把錯題庫變成一場小考',
+          subtitle:
+              '依科目、題數與時間快速組卷，先用自我評估找出會與不會，再點進詳解補洞。',
         ),
         const SizedBox(height: 24),
-        const _ExamSectionTitle('出題範圍'),
+        const FeatureSectionTitle('出題範圍'),
         const SizedBox(height: 12),
         PremiumCard(
+          backgroundOpacity: 0.52,
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: subjects
-                  .map(
-                    (subject) => _ChoiceChipButton(
-                      label: subject,
-                      selected: _selectedSubject == subject,
-                      onTap: () => setState(() => _selectedSubject = subject),
+              children: subjects.toList().asMap().entries.map(
+                    (e) => FeaturePaletteChipButton(
+                      sectionIndex: 0,
+                      chipIndex: e.key,
+                      label: e.value,
+                      selected: _selectedSubject == e.value,
+                      onTap: () => setState(() => _selectedSubject = e.value),
                     ),
-                  )
-                  .toList(),
+                  ).toList(),
             ),
           ),
         ),
         const SizedBox(height: 20),
-        const _ExamSectionTitle('題數'),
+        const FeatureSectionTitle('題數'),
         const SizedBox(height: 12),
         PremiumCard(
+          backgroundOpacity: 0.52,
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Wrap(
               spacing: 10,
               runSpacing: 10,
               children: [5, 10, 15, 20]
+                  .asMap()
+                  .entries
                   .map(
-                    (count) => _ChoiceChipButton(
-                      label: '$count 題',
-                      selected: _questionCount == count,
-                      onTap: () => setState(() => _questionCount = count),
+                    (e) => FeaturePaletteChipButton(
+                      sectionIndex: 1,
+                      chipIndex: e.key,
+                      label: '${e.value} 題',
+                      selected: _questionCount == e.value,
+                      onTap: () => setState(() => _questionCount = e.value),
                     ),
                   )
                   .toList(),
@@ -185,20 +177,25 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
           ),
         ),
         const SizedBox(height: 20),
-        const _ExamSectionTitle('時間限制'),
+        const FeatureSectionTitle('時間限制'),
         const SizedBox(height: 12),
         PremiumCard(
+          backgroundOpacity: 0.52,
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Wrap(
               spacing: 10,
               runSpacing: 10,
               children: [10, 15, 20, 30]
+                  .asMap()
+                  .entries
                   .map(
-                    (minutes) => _ChoiceChipButton(
-                      label: '$minutes 分鐘',
-                      selected: _durationMinutes == minutes,
-                      onTap: () => setState(() => _durationMinutes = minutes),
+                    (e) => FeaturePaletteChipButton(
+                      sectionIndex: 2,
+                      chipIndex: e.key,
+                      label: '${e.value} 分鐘',
+                      selected: _durationMinutes == e.value,
+                      onTap: () => setState(() => _durationMinutes = e.value),
                     ),
                   )
                   .toList(),
@@ -206,9 +203,10 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
           ),
         ),
         const SizedBox(height: 20),
-        const _ExamSectionTitle('進階條件'),
+        const FeatureSectionTitle('進階條件'),
         const SizedBox(height: 12),
         PremiumCard(
+          backgroundOpacity: 0.52,
           child: Column(
             children: [
               SwitchListTile(
@@ -237,6 +235,7 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
         ),
         const SizedBox(height: 20),
         PremiumCard(
+          backgroundOpacity: 0.52,
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Row(
@@ -632,7 +631,7 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
           ],
         ),
         const SizedBox(height: 24),
-        const _ExamSectionTitle('逐題回看'),
+        const FeatureSectionTitle('逐題回看'),
         const SizedBox(height: 12),
         ..._examQueue.asMap().entries.map((entry) {
           final index = entry.key;
@@ -858,60 +857,6 @@ class _MockExamPageState extends ConsumerState<MockExamPage> {
       return '這次有幾題明顯卡住，建議先點進詳解，把不會的觀念各補一輪。';
     }
     return '整體有基礎，但還有幾題不夠穩，回看解析後再做一次會更有效。';
-  }
-}
-
-class _ExamSectionTitle extends StatelessWidget {
-  const _ExamSectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimary,
-      ),
-    );
-  }
-}
-
-class _ChoiceChipButton extends StatelessWidget {
-  const _ChoiceChipButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.textPrimary : AppColors.surface,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? AppColors.textPrimary : AppColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : AppColors.textSecondary,
-            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
   }
 }
 

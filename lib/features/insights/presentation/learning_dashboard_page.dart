@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../providers/learning_insights_provider.dart';
 
@@ -16,7 +17,7 @@ class LearningDashboardPage extends ConsumerWidget {
     final insightsAsync = ref.watch(learningInsightsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('學習儀表板'),
         backgroundColor: Colors.transparent,
@@ -45,31 +46,31 @@ class LearningDashboardPage extends ConsumerWidget {
 
                   final metrics = [
                     _MetricCard(
+                      chipIndex: 0,
                       label: '累積錯題',
                       value: '${insights.totalMistakes}',
                       hint: '你已經整理出的題目',
-                      color: const Color(0xFF007AFF),
                       style: style,
                     ),
                     _MetricCard(
+                      chipIndex: 1,
                       label: '待複習',
                       value: '${insights.dueCount}',
                       hint: '現在最該回頭看的題目',
-                      color: const Color(0xFF7B61FF),
                       style: style,
                     ),
                     _MetricCard(
+                      chipIndex: 2,
                       label: '已掌握',
                       value: '${insights.masteredCount}',
                       hint: '掌握度 2 以上',
-                      color: const Color(0xFF22C55E),
                       style: style,
                     ),
                     _MetricCard(
+                      chipIndex: 3,
                       label: '本週新增',
                       value: '${insights.newThisWeekCount}',
                       hint: '最近 7 天加入的題目',
-                      color: const Color(0xFFFF8A00),
                       style: style,
                     ),
                   ];
@@ -113,6 +114,7 @@ class LearningDashboardPage extends ConsumerWidget {
               const SizedBox(height: 12),
               if (insights.weakCategories.isEmpty)
                 const PremiumCard(
+                  backgroundOpacity: 0.52,
                   child: Padding(
                     padding: EdgeInsets.all(18),
                     child: Text(
@@ -141,13 +143,24 @@ class LearningDashboardPage extends ConsumerWidget {
   }
 }
 
-class _OverviewCard extends StatelessWidget {
+class _OverviewCard extends StatefulWidget {
   const _OverviewCard({required this.insights});
 
   final LearningInsightsData insights;
 
   @override
+  State<_OverviewCard> createState() => _OverviewCardState();
+}
+
+class _OverviewCardState extends State<_OverviewCard> {
+  static const int _heroPaletteIndex = HomeFeatureCardPaletteIndex.learningDashboard;
+
+  Color get _heroSample =>
+      HomeCompactCardPalette.solidColors[_heroPaletteIndex];
+
+  @override
   Widget build(BuildContext context) {
+    final insights = widget.insights;
     final masteredRate = insights.totalMistakes == 0
         ? 0
         : insights.masteredCount / insights.totalMistakes;
@@ -160,20 +173,16 @@ class _OverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF111827), Color(0xFF374151)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: HomeCompactCardPalette.compactGradientByIndex(_heroPaletteIndex),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '你的學習全貌',
             style: TextStyle(
-              color: Colors.white,
+              color: HomeCompactCardPalette.onAccent(_heroSample),
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
@@ -181,8 +190,8 @@ class _OverviewCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             '已掌握 ${(masteredRate * 100).round()}% 的錯題，$averageMasteryText。',
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: HomeCompactCardPalette.onAccentSecondary(_heroSample),
               fontSize: 14,
               height: 1.6,
             ),
@@ -191,11 +200,13 @@ class _OverviewCard extends StatelessWidget {
           Row(
             children: [
               _OverviewPill(
+                hero: _heroSample,
                 label: '掌握中',
                 value: '${insights.learningCount} 題',
               ),
               const SizedBox(width: 10),
               _OverviewPill(
+                hero: _heroSample,
                 label: '平均掌握',
                 value: insights.averageMastery.toStringAsFixed(1),
               ),
@@ -209,38 +220,47 @@ class _OverviewCard extends StatelessWidget {
 
 class _OverviewPill extends StatelessWidget {
   const _OverviewPill({
+    required this.hero,
     required this.label,
     required this.value,
   });
 
+  final Color hero;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
+    final onDarkHero = hero.computeLuminance() <= 0.62;
+    final pillBg = onDarkHero
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.black.withValues(alpha: 0.06);
+    final pillBorder = onDarkHero
+        ? Colors.white.withValues(alpha: 0.14)
+        : Colors.black.withValues(alpha: 0.08);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: pillBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: pillBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: HomeCompactCardPalette.onAccentSecondary(hero),
                 fontSize: 12,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: HomeCompactCardPalette.onAccent(hero),
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -254,22 +274,30 @@ class _OverviewPill extends StatelessWidget {
 
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
+    required this.chipIndex,
     required this.label,
     required this.value,
     required this.hint,
-    required this.color,
     required this.style,
   });
 
+  final int chipIndex;
   final String label;
   final String value;
   final String hint;
-  final Color color;
   final _MetricGridStyle style;
 
   @override
   Widget build(BuildContext context) {
+    final accent = HomeCompactCardPalette.chipColor(
+      sectionIndex: 3,
+      index: chipIndex,
+    );
+    final valueColor =
+        Color.lerp(accent, const Color(0xFF1A1A1A), 0.38)!;
     return PremiumCard(
+      backgroundOpacity: 0.52,
+      surfaceTint: accent,
       padding: style.cardPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +321,7 @@ class _MetricCard extends StatelessWidget {
                 child: Text(
                   value,
                   style: TextStyle(
-                    color: color,
+                    color: valueColor,
                     fontSize: style.valueFontSize,
                     fontWeight: FontWeight.bold,
                   ),
@@ -400,6 +428,7 @@ class _RecentActivityCard extends StatelessWidget {
         : const Color(0xFFDC2626);
 
     return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
         child: Column(
@@ -620,6 +649,7 @@ class _MasteryDistributionCard extends StatelessWidget {
         : insights.masteredCount / insights.totalMistakes;
 
     return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -750,6 +780,7 @@ class _SubjectInsightTile extends StatelessWidget {
         insight.totalCount == 0 ? 0.0 : insight.dueCount / insight.totalCount;
 
     return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -915,6 +946,7 @@ class _WeakCategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(

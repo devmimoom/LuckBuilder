@@ -6,12 +6,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/gemini_service.dart';
 import '../../../core/services/image_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
+import '../../../core/widgets/feature_setup_chrome.dart';
+import '../../../core/widgets/premium_card.dart';
 import '../../../core/utils/ai_practice_image_helper.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
+import '../../../core/utils/paywall_gate.dart';
 import '../../camera/presentation/multi_crop_screen.dart';
 import '../../camera/utils/crop_image_helper.dart';
 import '../../mistakes/providers/mistakes_provider.dart';
+import '../../subscription/providers/feature_trial_provider.dart';
 
 class SimilarPracticePage extends ConsumerStatefulWidget {
   const SimilarPracticePage({
@@ -63,102 +68,58 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('AI 相似題練習'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildIntroCard(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const FeatureSetupHero(
+              paletteIndex: HomeFeatureCardPaletteIndex.similarPractice,
+              title: '輸入一題錯題，AI 幫你出一題相似練習',
+              subtitle:
+                  '你可以直接輸入題目，也可以用拍照或相簿匯入，再用和拍照解題相同的框選方式選出題目範圍。',
+            ),
+            const SizedBox(height: 24),
+            _buildInputCard(),
+            const SizedBox(height: 16),
+            _buildGenerateButton(),
+            if (_isRecognizingImage) ...[
               const SizedBox(height: 16),
-              _buildInputCard(),
-              const SizedBox(height: 16),
-              _buildGenerateButton(),
-              if (_isRecognizingImage) ...[
-                const SizedBox(height: 16),
-                _buildRecognizingImageCard(),
-              ],
-              if (_isGenerating) ...[
-                const SizedBox(height: 16),
-                _buildLoadingCard(),
-              ],
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                _buildErrorCard(_errorMessage!),
-              ],
-              if (_result != null) ...[
-                const SizedBox(height: 16),
-                _buildResultCard(_result!),
-              ],
-              const SizedBox(height: 24),
+              _buildRecognizingImageCard(),
             ],
-          ),
+            if (_isGenerating) ...[
+              const SizedBox(height: 16),
+              _buildLoadingCard(),
+            ],
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              _buildErrorCard(_errorMessage!),
+            ],
+            if (_result != null) ...[
+              const SizedBox(height: 16),
+              _buildResultCard(_result!),
+            ],
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildIntroCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.textPrimary,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '輸入一題錯題，AI 幫你出一題相似練習',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              height: 1.35,
-            ),
-          ),
-          SizedBox(height: 10),
-          Text(
-            '你可以直接輸入題目，也可以用拍照或相簿匯入，再用和拍照解題相同的框選方式選出題目範圍。',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              height: 1.6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildInputCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
+    return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '輸入錯題',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          const FeatureSectionTitle('輸入錯題'),
           const SizedBox(height: 8),
           const Text(
             '輸入文字可直接出題；如果使用圖片，系統會先 OCR 辨識題目，你也可以再手動修正。',
@@ -269,7 +230,10 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.textPrimary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 15),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
         child: Text(_isGenerating ? 'AI 出題中...' : '產生相似題'),
       ),
@@ -277,14 +241,8 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
   }
 
   Widget _buildLoadingCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
+    return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -325,15 +283,9 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
   }
 
   Widget _buildRecognizingImageCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Row(
+    return const PremiumCard(
+      backgroundOpacity: 0.52,
+      child: Row(
         children: [
           SizedBox(
             width: 20,
@@ -356,14 +308,8 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
   }
 
   Widget _buildErrorCard(String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.red[50],
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.red.shade100),
-      ),
+    return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Text(
         message,
         style: TextStyle(
@@ -375,14 +321,8 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
   }
 
   Widget _buildResultCard(_SimilarPracticeResult result) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
+    return PremiumCard(
+      backgroundOpacity: 0.52,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -689,6 +629,14 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
     final questionText = _questionController.text.trim();
     if (questionText.isEmpty) {
       AppUX.showSnackBar(context, '請先輸入錯題內容', isError: true);
+      return;
+    }
+
+    if (!await PaywallGate.consumeTrialIfNeeded(
+      context,
+      ref,
+      TrialFeature.similarPractice,
+    )) {
       return;
     }
 

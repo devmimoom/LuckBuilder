@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/app_fonts.dart';
+
 /// 集中管理 App 的 UX 互動細節
 /// 包含：觸覺回饋、轉場動畫、全域提示
 class AppUX {
@@ -63,10 +65,13 @@ class AppUX {
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(
+          style: AppFonts.resolve(
+            const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.5),
+              letterSpacing: 0.5,
+            ),
+          ),
           textAlign: TextAlign.center,
         ),
         backgroundColor:

@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
+import '../../../core/utils/paywall_gate.dart';
 import '../../../core/services/gemini_service.dart' hide debugPrint;
 import '../../../core/services/image_service.dart';
 import '../../../core/utils/image_path_helper.dart';
 import '../../../core/widgets/premium_image_viewer.dart';
 import '../../camera/presentation/multi_crop_screen.dart';
 import '../../mistakes/providers/mistakes_provider.dart';
+import '../../subscription/providers/feature_trial_provider.dart';
 import '../providers/solver_provider.dart' hide debugPrint;
 
 /// 解題分析頁面
@@ -398,7 +400,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
         _saveAllTagsToDatabase();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFFAFAFA),
+        backgroundColor: Colors.transparent,
         // 空狀態時隱藏 AppBar
         appBar: isEmptyState
             ? null
@@ -2690,6 +2692,14 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                 subtitle: "拍攝考卷上的題目",
                 color: const Color(0xFF007AFF),
                 onTap: () async {
+                  if (!await PaywallGate.guardFeatureAccess(
+                    context,
+                    ref,
+                    TrialFeature.cameraSolve,
+                  )) {
+                    return;
+                  }
+                  if (!mounted) return;
                   AppUX.feedbackClick();
                   final image = await ImageService().pickAndCompressImage(
                     context,
@@ -2711,6 +2721,14 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                 subtitle: "從相簿選擇題目",
                 color: const Color(0xFF34C759),
                 onTap: () async {
+                  if (!await PaywallGate.guardFeatureAccess(
+                    context,
+                    ref,
+                    TrialFeature.cameraSolve,
+                  )) {
+                    return;
+                  }
+                  if (!mounted) return;
                   AppUX.feedbackClick();
                   final image = await ImageService().pickAndCompressImage(
                     context,

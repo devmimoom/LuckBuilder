@@ -1,6 +1,6 @@
 {
-    "name": "luck_builder",
-    "short_name": "luck_builder",
+    "name": "LuckLab",
+    "short_name": "LuckLab",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

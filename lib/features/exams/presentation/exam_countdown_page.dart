@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../providers/exam_countdown_provider.dart';
@@ -28,7 +29,7 @@ class _ExamCountdownPageState extends ConsumerState<ExamCountdownPage> {
     final examsAsync = ref.watch(examCountdownProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showExamEditor(context),
         backgroundColor: AppColors.textPrimary,
@@ -41,7 +42,7 @@ class _ExamCountdownPageState extends ConsumerState<ExamCountdownPage> {
           slivers: [
             const SliverAppBar(
               floating: true,
-              backgroundColor: Color(0xFFFAFAFA),
+              backgroundColor: Colors.transparent,
               elevation: 0,
               title: Text('考試倒數'),
             ),
@@ -335,29 +336,32 @@ class _NextExamHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final exam = nextExam;
+    const i = HomeFeatureCardPaletteIndex.examCountdown;
+    final sample = HomeCompactCardPalette.solidColors[i];
+    final on = HomeCompactCardPalette.onAccent(sample);
+    final onSub = HomeCompactCardPalette.onAccentSecondary(sample);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF312E81), Color(0xFF6366F1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: HomeCompactCardPalette.compactGradientByIndex(i),
         borderRadius: BorderRadius.circular(24),
       ),
       child: exam == null
-          ? const Column(
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('還沒設定考試',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
+                Text(
+                  '還沒設定考試',
+                  style: TextStyle(
+                    color: on,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   '加上段考、學測或會考日期，\n首頁和桌面 Widget 就會自動開始倒數。',
-                  style: TextStyle(color: Colors.white70, height: 1.6),
+                  style: TextStyle(color: onSub, height: 1.6),
                 ),
               ],
             )
@@ -367,17 +371,18 @@ class _NextExamHero extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(exam.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          )),
+                      Text(
+                        exam.name,
+                        style: TextStyle(
+                          color: on,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         DateFormat('yyyy/MM/dd').format(exam.examDate),
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 14),
+                        style: TextStyle(color: onSub, fontSize: 14),
                       ),
                     ],
                   ),
@@ -387,13 +392,13 @@ class _NextExamHero extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: on.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Text(
                     examCountdownLabel(exam),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: on,
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                     ),
@@ -429,6 +434,7 @@ class _ExamCard extends StatelessWidget {
     final accent = isPast ? AppColors.textTertiary : const Color(0xFF6366F1);
 
     return PremiumCard(
+      backgroundOpacity: 0.52,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
@@ -519,6 +525,7 @@ class _WidgetHintCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const PremiumCard(
+      backgroundOpacity: 0.52,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -558,6 +565,7 @@ class _EmptyExams extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 32),
       child: PremiumCard(
+        backgroundOpacity: 0.52,
         child: Column(
           children: [
             Icon(Icons.event_note_outlined,

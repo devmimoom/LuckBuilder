@@ -1,16 +1,62 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:app_links/app_links.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 import 'core/theme/app_theme.dart';
+import 'core/services/banner_notification_service.dart';
 import 'core/services/gemini_service.dart' hide debugPrint;
 import 'features/home/presentation/main_tab_screen.dart';
+import 'features/home/presentation/widgets/home_mesh_background.dart';
 import 'features/review/presentation/review_page.dart';
+import 'features/settings/providers/home_background_preset_provider.dart';
+
+Future<void> _initRevenueCat() async {
+  try {
+    await Purchases.setLogLevel(LogLevel.debug);
+    final iosKey = dotenv.get('REVENUECAT_IOS_API_KEY', fallback: '');
+    final androidKey = dotenv.get('REVENUECAT_ANDROID_API_KEY', fallback: '');
+    final apiKey = Platform.isIOS
+        ? iosKey
+        : (Platform.isAndroid ? androidKey : '');
+    if (apiKey.isEmpty) {
+      debugPrint('⚠️ RevenueCat API Key 未設定，略過初始化');
+      return;
+    }
+    await Purchases.configure(PurchasesConfiguration(apiKey));
+    debugPrint('✅ RevenueCat 初始化完成');
+  } catch (e) {
+    debugPrint('❌ RevenueCat 初始化失敗: $e');
+  }
+}
+
+Future<void> _initFirebase() async {
+  try {
+    await Firebase.initializeApp();
+    debugPrint('✅ Firebase 初始化完成');
+  } catch (e) {
+    debugPrint('⚠️ Firebase 初始化失敗: $e');
+    debugPrint(
+      '   請在 Android 加入 google-services.json、在 iOS 加入 GoogleService-Info.plist',
+    );
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    tz_data.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Taipei'));
+  } catch (_) {
+    tz.setLocalLocation(tz.UTC);
+  }
 
   // 1. 載入環境變數（使用 try-catch 確保不會阻塞啟動）
   try {
@@ -44,6 +90,20 @@ void main() async {
     debugPrint("   應用將繼續運行，但 AI 功能可能無法使用");
   }
 
+  try {
+    await BannerNotificationService.instance.init();
+  } catch (e) {
+    debugPrint("⚠️ 本地通知初始化失敗: $e");
+  }
+
+  await _initFirebase();
+
+  try {
+    await _initRevenueCat();
+  } catch (e) {
+    debugPrint("⚠️ RevenueCat 初始化流程失敗: $e");
+  }
+
   // 3. 啟動應用（確保一定會執行）
   runApp(
     const ProviderScope(
@@ -52,14 +112,14 @@ void main() async {
   );
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSub;
@@ -84,7 +144,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _handleIncomingUri(Uri uri) {
-    if (uri.scheme != 'luckbuilder') return;
+    if (uri.scheme != 'lucklab') return;
 
     final path = uri.host.isNotEmpty ? uri.host : uri.path.replaceAll('/', '');
     if (path != 'review') return;
@@ -108,10 +168,20 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '錯題解析助手',
+      title: 'LuckLab',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       navigatorKey: _navigatorKey,
+      builder: (context, child) {
+        final preset = ref.watch(homeBackgroundPresetProvider);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(child: HomeMeshBackground(preset: preset)),
+            if (child != null) child,
+          ],
+        );
+      },
       home: const MainTabScreen(),
     );
   }

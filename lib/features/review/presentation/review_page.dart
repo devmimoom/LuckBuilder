@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/models/mistake.dart';
 import '../../../core/services/gemini_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/home_mesh_reference_colors.dart';
+import '../../../core/widgets/feature_setup_chrome.dart';
+import '../../../core/widgets/premium_card.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
 import '../../mistakes/providers/mistakes_provider.dart';
@@ -37,7 +40,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     final sessionController = ref.read(reviewSessionProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(session.hasStarted ? '錯題複習中' : '錯題複習'),
         backgroundColor: Colors.transparent,
@@ -136,41 +139,22 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   }
 
   Widget _buildHeaderCard(AsyncValue<ReviewSummary> summaryAsync) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.textPrimary,
-        borderRadius: BorderRadius.circular(20),
+    return summaryAsync.when(
+      data: (summary) => FeatureSetupHero(
+        paletteIndex: HomeFeatureCardPaletteIndex.review,
+        title: '每一次複習，都在鞏固你的實力',
+        subtitle:
+            '待複習 ${summary.dueCount} 題，今天已完成 ${summary.reviewedTodayCount} 題',
       ),
-      child: summaryAsync.when(
-        data: (summary) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '每一次複習，都在鞏固你的實力',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '待複習 ${summary.dueCount} 題，今天已完成 ${summary.reviewedTodayCount} 題',
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 14, height: 1.5),
-            ),
-          ],
-        ),
-        loading: () => const SizedBox(
-          height: 72,
-          child: Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          ),
-        ),
-        error: (_, __) => const Text(
+      loading: () => const SizedBox(
+        height: 72,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => const Padding(
+        padding: EdgeInsets.all(8),
+        child: Text(
           '暫時無法取得複習摘要',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
       ),
     );
@@ -182,59 +166,52 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     required String badge,
     required VoidCallback? onTap,
   }) {
-    return InkWell(
+    return PremiumCard(
+      backgroundOpacity: 0.52,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.highlight.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                badge,
-                style: const TextStyle(
-                  color: AppColors.highlight,
-                  fontWeight: FontWeight.w700,
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.highlight.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              badge,
+              style: const TextStyle(
+                color: AppColors.highlight,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

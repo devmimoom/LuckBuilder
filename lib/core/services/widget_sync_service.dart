@@ -4,8 +4,8 @@ import 'package:glance_widget/glance_widget.dart';
 class WidgetSyncService {
   WidgetSyncService._();
 
-  static const String reviewWidgetId = 'luckbuilder_review_widget';
-  static const String reviewDeepLink = 'luckbuilder://review';
+  static const String reviewWidgetId = 'lucklab_review_widget';
+  static const String reviewDeepLink = 'lucklab://review';
 
   static Future<void> syncExamCountdownWidget({
     required String title,
@@ -28,7 +28,7 @@ class WidgetSyncService {
 
   static Future<void> syncEmptyWidget() async {
     await syncExamCountdownWidget(
-      title: 'LuckBuilder',
+      title: 'LuckLab',
       value: '開始複習',
       subtitle: '點一下直接進入複習',
     );
