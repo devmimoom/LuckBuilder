@@ -8,6 +8,7 @@ import '../../../core/utils/latex_helper.dart';
 import '../../../core/utils/paywall_gate.dart';
 import '../../../core/services/gemini_service.dart' hide debugPrint;
 import '../../../core/services/image_service.dart';
+import '../../../core/services/math_ocr_service.dart';
 import '../../../core/utils/image_path_helper.dart';
 import '../../../core/widgets/premium_image_viewer.dart';
 import '../../camera/presentation/multi_crop_screen.dart';
@@ -212,7 +213,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
     _isRecoveringFullQuestionText = true;
     try {
       final fullQuestionText =
-          await GeminiService().recognizeImage(widget.originalImage!);
+          await MathOcrService().recognizeImage(widget.originalImage!);
       if (!mounted ||
           fullQuestionText == null ||
           fullQuestionText.trim().isEmpty) {

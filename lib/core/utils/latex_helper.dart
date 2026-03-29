@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import '../theme/app_fonts.dart';
 
@@ -1115,14 +1116,12 @@ class LatexHelper {
   }
 }
 
-/// LaTeX 文字渲染組件（使用 gpt_markdown 渲染）
-/// 原生支援 Markdown + 文字 + LaTeX 混合內容
-/// 自動處理 \( ... \) 和 \[ ... \] 格式的 LaTeX 公式
+/// LaTeX 文字渲染組件
 ///
-/// 渲染策略：
-/// - 純文字行 → GptMarkdown（自動換行）
-/// - 含 LaTeX 公式行 → FittedBox(scaleDown) 自動縮放至螢幕寬度
-///   → 點擊可彈出 BottomSheet 顯示原尺寸可捲動公式
+/// 核心策略：
+/// - 純文字段落：維持 `GptMarkdown` 換行能力
+/// - 混合文字 + 公式：拆成文字 / inline math / display math 片段後分別渲染
+/// - 長公式：改為橫向捲動，不再降級成 Unicode 近似字
 class LatexText extends StatelessWidget {
   final String text;
   final double? fontSize;
@@ -1136,6 +1135,11 @@ class LatexText extends StatelessWidget {
     this.textColor,
     this.lineHeight,
   });
+
+  static final RegExp _mathPattern = RegExp(
+    r'(\\\[(.*?)\\\]|\\\((.*?)\\\)|\$\$(.*?)\$\$|(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$))',
+    dotAll: true,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -1182,72 +1186,194 @@ class LatexText extends StatelessWidget {
       return SizedBox(height: (textStyle.fontSize ?? 15) * 0.6);
     }
 
-    if (_isStandaloneFormula(trimmed)) {
-      return GestureDetector(
-        onTap: () => _showFormulaDetail(context, trimmed, textStyle),
-        child: SizedBox(
-          width: viewportWidth,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: GptMarkdown(trimmed, style: textStyle),
-          ),
-        ),
-      );
+    final segments = _parseSegments(trimmed);
+    final hasMath =
+        segments.any((segment) => segment.type != _LatexSegmentType.text);
+    if (!hasMath) {
+      return GptMarkdown(trimmed, style: textStyle);
     }
 
-    // 文字為主的行：先將 inline 數學轉成 Unicode 純文字，
-    // 避免 GptMarkdown 觸發 flutter_math_fork 造成 RenderLine overflow
-    final safeText = _flattenInlineMath(trimmed);
-    return GptMarkdown(safeText, style: textStyle);
+    final blocks = <Widget>[];
+    final inlineChildren = <Widget>[];
+
+    void flushInline() {
+      if (inlineChildren.isEmpty) return;
+      blocks.add(
+        Wrap(
+          spacing: 4,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: List<Widget>.from(inlineChildren),
+        ),
+      );
+      inlineChildren.clear();
+    }
+
+    for (final segment in segments) {
+      switch (segment.type) {
+        case _LatexSegmentType.text:
+          if (segment.content.isNotEmpty) {
+            inlineChildren.add(
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: viewportWidth),
+                child: Text(
+                  segment.content,
+                  style: textStyle,
+                  softWrap: true,
+                ),
+              ),
+            );
+          }
+          break;
+        case _LatexSegmentType.inlineMath:
+          inlineChildren.add(
+            _buildInlineMath(
+              context,
+              segment.content,
+              textStyle,
+              viewportWidth,
+            ),
+          );
+          break;
+        case _LatexSegmentType.displayMath:
+          flushInline();
+          blocks.add(
+            _buildDisplayMath(
+              context,
+              segment.content,
+              textStyle,
+              viewportWidth,
+            ),
+          );
+          break;
+      }
+    }
+
+    flushInline();
+
+    if (blocks.length == 1) {
+      return blocks.first;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < blocks.length; i++) ...[
+          blocks[i],
+          if (i < blocks.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
   }
 
-  /// 將 inline LaTeX 公式（\(...\) 和 $...$）轉成 Unicode 可讀文字，
-  /// 讓 GptMarkdown 以普通文字渲染而非調用 flutter_math_fork
-  static String _flattenInlineMath(String text) {
-    var result = text.replaceAllMapped(
-      RegExp(r'\\\((.+?)\\\)'),
-      (m) => LatexHelper.toReadableText(m.group(1) ?? '',
-          fallback: m.group(0) ?? ''),
-    );
-    result = result.replaceAllMapped(
-      RegExp(r'(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)'),
-      (m) => LatexHelper.toReadableText(m.group(1) ?? '',
-          fallback: m.group(0) ?? ''),
-    );
-    // display math \[...\] 也轉換
-    result = result.replaceAllMapped(
-      RegExp(r'\\\[(.+?)\\\]'),
-      (m) => LatexHelper.toReadableText(m.group(1) ?? '',
-          fallback: m.group(0) ?? ''),
-    );
-    // 裸露的 x^2 / a_n / \times 若仍留在文字行中，轉成較直觀的可讀樣式。
-    return LatexHelper.toReadableText(result, fallback: result);
+  List<_LatexSegment> _parseSegments(String text) {
+    final segments = <_LatexSegment>[];
+    var currentIndex = 0;
+
+    for (final match in _mathPattern.allMatches(text)) {
+      if (match.start > currentIndex) {
+        segments.add(
+          _LatexSegment.text(text.substring(currentIndex, match.start)),
+        );
+      }
+
+      final token = match.group(0) ?? '';
+      if (token.startsWith(r'\[') || token.startsWith(r'$$')) {
+        segments.add(_LatexSegment.displayMath(_stripMathDelimiters(token)));
+      } else {
+        segments.add(_LatexSegment.inlineMath(_stripMathDelimiters(token)));
+      }
+
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < text.length) {
+      segments.add(_LatexSegment.text(text.substring(currentIndex)));
+    }
+
+    return segments;
   }
 
-  static final _latexCommandPattern = RegExp(
-    r'\\\(|\\\)|\\\[|\\\]|\\frac|\\sqrt|\\sum|\\int|\\overline|\\vec|'
-    r'\\angle|\\begin|\\end|\\pm|\\times|\\div|\\cdot|\\leq|\\geq|'
-    r'\\neq|\\text\{|\\mathrm\{|\\mathbf\{|\\left|\\right',
-  );
+  String _stripMathDelimiters(String token) {
+    if (token.startsWith(r'\(') && token.endsWith(r'\)')) {
+      return token.substring(2, token.length - 2).trim();
+    }
+    if (token.startsWith(r'\[') && token.endsWith(r'\]')) {
+      return token.substring(2, token.length - 2).trim();
+    }
+    if (token.startsWith(r'$$') && token.endsWith(r'$$')) {
+      return token.substring(2, token.length - 2).trim();
+    }
+    if (token.startsWith(r'$') && token.endsWith(r'$')) {
+      return token.substring(1, token.length - 1).trim();
+    }
+    return token.trim();
+  }
 
-  static final _cjkPattern = RegExp(r'[\u4E00-\u9FFF\u3000-\u303F]');
+  Widget _buildInlineMath(
+    BuildContext context,
+    String tex,
+    TextStyle textStyle,
+    double viewportWidth,
+  ) {
+    return GestureDetector(
+      onTap: () =>
+          _showFormulaDetail(context, tex, textStyle, isDisplay: false),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: viewportWidth),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Math.tex(
+            tex,
+            mathStyle: MathStyle.text,
+            textStyle: textStyle,
+            onErrorFallback: (error) => Text(
+              LatexHelper.toReadableText(tex, fallback: tex),
+              style: textStyle,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-  bool _isStandaloneFormula(String line) {
-    if (!_latexCommandPattern.hasMatch(line)) return false;
-
-    // 含有大量中日韓文字 → 文字段落（帶 inline 數學），應正常換行
-    final cjkCount = _cjkPattern.allMatches(line).length;
-    if (cjkCount > 6) return false;
-
-    return true;
+  Widget _buildDisplayMath(
+    BuildContext context,
+    String tex,
+    TextStyle textStyle,
+    double viewportWidth,
+  ) {
+    return GestureDetector(
+      onTap: () => _showFormulaDetail(context, tex, textStyle, isDisplay: true),
+      child: SizedBox(
+        width: viewportWidth,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Math.tex(
+              tex,
+              mathStyle: MathStyle.display,
+              textStyle: textStyle,
+              onErrorFallback: (error) => Text(
+                LatexHelper.toReadableText(tex, fallback: tex),
+                style: textStyle,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showFormulaDetail(
     BuildContext context,
     String formula,
-    TextStyle textStyle,
-  ) {
+    TextStyle textStyle, {
+    required bool isDisplay,
+  }) {
     final enlargedStyle = textStyle.copyWith(
       fontSize: (textStyle.fontSize ?? 15) + 4,
     );
@@ -1280,7 +1406,7 @@ class LatexText extends StatelessWidget {
                   const Icon(Icons.functions, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    '公式詳情',
+                    isDisplay ? '區塊公式詳情' : '行內公式詳情',
                     style: textStyle.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -1300,7 +1426,15 @@ class LatexText extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                child: GptMarkdown(formula, style: enlargedStyle),
+                child: Math.tex(
+                  formula,
+                  mathStyle: isDisplay ? MathStyle.display : MathStyle.text,
+                  textStyle: enlargedStyle,
+                  onErrorFallback: (error) => Text(
+                    LatexHelper.toReadableText(formula, fallback: formula),
+                    style: enlargedStyle,
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
             ],
@@ -1309,6 +1443,24 @@ class LatexText extends StatelessWidget {
       ),
     );
   }
+}
+
+enum _LatexSegmentType { text, inlineMath, displayMath }
+
+class _LatexSegment {
+  final _LatexSegmentType type;
+  final String content;
+
+  const _LatexSegment._(this.type, this.content);
+
+  factory _LatexSegment.text(String content) =>
+      _LatexSegment._(_LatexSegmentType.text, content);
+
+  factory _LatexSegment.inlineMath(String content) =>
+      _LatexSegment._(_LatexSegmentType.inlineMath, content);
+
+  factory _LatexSegment.displayMath(String content) =>
+      _LatexSegment._(_LatexSegmentType.displayMath, content);
 }
 
 /// 帶錯誤處理的安全版本（進階使用）

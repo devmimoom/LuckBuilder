@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' as foundation;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/services/gemini_service.dart' hide debugPrint;
+import '../../../core/services/math_ocr_service.dart';
 
 part 'solver_provider.g.dart';
 
@@ -148,14 +149,14 @@ class SolverNotifier extends _$SolverNotifier {
       return;
     }
 
-    // 步驟 1：使用 Gemini 進行 OCR 辨識（替代 Mathpix）
-    debugPrint("📷 開始 Gemini OCR 辨識...");
+    // 步驟 1：使用可切換的數學 OCR 服務
+    debugPrint("📷 開始數學 OCR 辨識...");
     state = state.copyWith(status: SolverStatus.ocr);
 
-    final latex = await GeminiService().recognizeImage(imageFile);
+    final latex = await MathOcrService().recognizeImage(imageFile);
 
     if (latex == null || latex.isEmpty) {
-      debugPrint("❌ Gemini OCR 失敗");
+      debugPrint("❌ 數學 OCR 失敗");
       state = state.copyWith(
         status: SolverStatus.failed,
         errorMessage: "文字辨識失敗，請確認圖片清晰",
@@ -164,7 +165,7 @@ class SolverNotifier extends _$SolverNotifier {
     }
 
     debugPrint(
-        "✅ Gemini OCR 完成: ${latex.substring(0, math.min(50, latex.length))}...");
+        "✅ 數學 OCR 完成: ${latex.substring(0, math.min(50, latex.length))}...");
     state = state.copyWith(
       status: SolverStatus.thinking,
       recognizedLatex: latex,

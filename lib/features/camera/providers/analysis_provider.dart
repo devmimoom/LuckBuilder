@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import '../../../core/services/gemini_service.dart' hide debugPrint;
+import '../../../core/services/math_ocr_service.dart';
 import '../utils/crop_image_helper.dart';
 
 part 'analysis_provider.g.dart';
@@ -166,12 +167,12 @@ class AnalysisQueue extends _$AnalysisQueue {
         debugPrint("裁切圖片已儲存: $cropPath");
 
         _updateTask(i,
-            progress: 0.3, cropPath: cropPath, title: '正在 Gemini OCR 辨識題目...');
+            progress: 0.3, cropPath: cropPath, title: '正在數學 OCR 辨識題目...');
 
-        // 3. 使用 Gemini 進行 OCR（替代 Mathpix）
-        debugPrint("=== 呼叫 GeminiService OCR ===");
-        final latex = await GeminiService().recognizeImage(File(cropPath));
-        debugPrint("Gemini OCR 結果: $latex");
+        // 3. 使用可切換的數學 OCR 服務
+        debugPrint("=== 呼叫 MathOcrService OCR ===");
+        final latex = await MathOcrService().recognizeImage(File(cropPath));
+        debugPrint("Math OCR 結果: $latex");
 
         if (latex == null || latex.isEmpty) {
           _updateTask(i, status: AnalysisStatus.failed, title: 'OCR 辨識失敗');
@@ -319,10 +320,10 @@ class AnalysisQueue extends _$AnalysisQueue {
       }
 
       _updateTask(taskIndex,
-          progress: 0.3, cropPath: cropPath, title: '正在 Gemini OCR 辨識題目...');
+          progress: 0.3, cropPath: cropPath, title: '正在數學 OCR 辨識題目...');
 
-      // 使用 Gemini 進行 OCR
-      final latex = await GeminiService().recognizeImage(File(cropPath));
+      // 使用可切換的數學 OCR 服務
+      final latex = await MathOcrService().recognizeImage(File(cropPath));
 
       if (latex == null || latex.isEmpty) {
         _updateTask(taskIndex,

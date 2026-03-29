@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/models/mistake.dart';
-import '../../../core/services/gemini_service.dart';
+import '../../../core/services/math_ocr_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/widgets/feature_setup_chrome.dart';
@@ -386,7 +386,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
       final imageFile = File(mistake.imagePath);
       if (!await imageFile.exists()) return;
 
-      final recognized = await GeminiService().recognizeImage(imageFile);
+      final recognized = await MathOcrService().recognizeImage(imageFile);
       final recovered = (recognized ?? '').trim();
       if (recovered.isEmpty || recovered == mistake.title) return;
 

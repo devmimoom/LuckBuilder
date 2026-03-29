@@ -22,7 +22,6 @@ import '../providers/print_provider.dart';
 import '../../../core/database/models/mistake.dart';
 import '../../solver/presentation/solver_page.dart';
 import 'print_settings_sheet.dart';
-import 'glyph_test_page.dart';
 import '../../settings/presentation/settings_page.dart';
 
 class MistakesListPage extends ConsumerStatefulWidget {
@@ -294,16 +293,6 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
       ];
     }
     return [
-      IconButton(
-        icon: const Icon(Icons.text_fields),
-        tooltip: '缺字測試',
-        onPressed: () {
-          AppUX.feedbackClick();
-          Navigator.of(context).push(
-            AppUX.fadeRoute(const GlyphTestPage()),
-          );
-        },
-      ),
       IconButton(
         icon: const Icon(Icons.search),
         onPressed: () {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/gemini_service.dart';
+import '../../../core/services/math_ocr_service.dart';
 import '../../../core/services/image_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/home_mesh_reference_colors.dart';
@@ -83,8 +84,7 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
             const FeatureSetupHero(
               paletteIndex: HomeFeatureCardPaletteIndex.similarPractice,
               title: '輸入一題錯題，AI 幫你出一題相似練習',
-              subtitle:
-                  '你可以直接輸入題目，也可以用拍照或相簿匯入，再用和拍照解題相同的框選方式選出題目範圍。',
+              subtitle: '你可以直接輸入題目，也可以用拍照或相簿匯入，再用和拍照解題相同的框選方式選出題目範圍。',
             ),
             const SizedBox(height: 24),
             _buildInputCard(),
@@ -603,7 +603,7 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
     });
 
     try {
-      final recognizedText = await GeminiService().recognizeImage(imageFile);
+      final recognizedText = await MathOcrService().recognizeImage(imageFile);
       if (!mounted) return;
 
       if (recognizedText == null || recognizedText.trim().isEmpty) {
