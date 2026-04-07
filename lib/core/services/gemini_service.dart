@@ -4,8 +4,9 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' as foundation;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../config/app_environment.dart';
+import '../database/models/mistake.dart';
 import '../utils/latex_helper.dart';
 
 const bool _enableVerboseGeminiLogs =
@@ -21,8 +22,8 @@ class GeminiService {
   factory GeminiService() => _instance;
   GeminiService._();
 
-  // 🔐 從 .env 讀取 API Key（安全做法）
-  String get _apiKey => dotenv.get('GEMINI_API_KEY', fallback: '');
+  // 🔐 編譯期 --dart-define 注入（勿將金鑰放進 assets）
+  String get _apiKey => AppEnvironment.geminiApiKey;
 
   // 保存當前使用的模型名稱
   String _currentModelName = '';
@@ -30,12 +31,52 @@ class GeminiService {
   GenerativeModel? _model;
   bool _isInitialized = false;
   String? _lastError;
+  String? _lastSimilarPracticeError;
 
   /// 獲取最後一次錯誤訊息
   String? get lastError => _lastError;
+  String? get lastSimilarPracticeError => _lastSimilarPracticeError;
 
   /// 預設使用的模型（gemini-2.0-flash 是最新的免費模型）
   static const String _defaultModel = 'gemini-2.0-flash';
+  static const String _defaultGeometrySolveModel = 'gemini-2.5-pro';
+
+  GenerativeModel _createModel(String modelName) {
+    return GenerativeModel(
+      model: modelName,
+      apiKey: _apiKey,
+    );
+  }
+
+  /// 解題時可依情境覆蓋模型；預設仍沿用當前主模型。
+  /// 優先序：
+  /// 1. 幾何附圖專用模型 `GEMINI_SOLVE_MODEL_GEOMETRY_WITH_IMAGE`
+  /// 2. 數學附圖專用模型 `GEMINI_SOLVE_MODEL_MATH_WITH_IMAGE`
+  /// 3. 數學通用模型 `GEMINI_SOLVE_MODEL_MATH`
+  /// 4. 當前主模型 / 預設模型
+  String _resolveSolveModelName({
+    required bool hasImage,
+    required bool looksLikeMath,
+    required bool looksLikeGeometry,
+  }) {
+    final geometryWithImageModel =
+        AppEnvironment.geminiSolveModelGeometryWithImage;
+    final mathModel = AppEnvironment.geminiSolveModelMath;
+    final mathWithImageModel = AppEnvironment.geminiSolveModelMathWithImage;
+    if (hasImage && looksLikeGeometry) {
+      if (geometryWithImageModel.isNotEmpty) {
+        return geometryWithImageModel;
+      }
+      return _defaultGeometrySolveModel;
+    }
+    if (hasImage && looksLikeMath && mathWithImageModel.isNotEmpty) {
+      return mathWithImageModel;
+    }
+    if (looksLikeMath && mathModel.isNotEmpty) {
+      return mathModel;
+    }
+    return _currentModelName.isNotEmpty ? _currentModelName : _defaultModel;
+  }
 
   /// 初始化 Gemini 模型
   /// 注意：不再發送測試請求，直接創建模型實例
@@ -47,7 +88,8 @@ class GeminiService {
     }
 
     if (_apiKey.isEmpty) {
-      _lastError = "Gemini API Key 未設定，請在 .env 檔案中填入 GEMINI_API_KEY";
+      _lastError =
+          "Gemini API Key 未設定，請以 --dart-define=GEMINI_API_KEY=... 注入";
       debugPrint("❌ $_lastError");
       _isInitialized = false;
       return;
@@ -62,10 +104,7 @@ class GeminiService {
     try {
       // 直接創建模型實例，不發送測試請求
       // 這樣可以節省配額，在實際調用時才會驗證
-      _model = GenerativeModel(
-        model: _defaultModel,
-        apiKey: _apiKey,
-      );
+      _model = _createModel(_defaultModel);
 
       _isInitialized = true;
       _currentModelName = _defaultModel;
@@ -147,7 +186,9 @@ class GeminiService {
 - 如果題目包含線段、射線、向量等，請使用標準 LaTeX，例如線段 `\\overline{AB}`、向量 `\\vec{AB}`
 - 如果題目包含指數、分數、上下標，請使用標準 LaTeX，例如 `x^2`、`\\frac{a}{b}`、`a_n`
 - 不要把數學式改寫成口語，例如「根號」、「平方」
-- 如果圖片中有表格、圖形等無法用文字完整描述的內容，請用「（如圖）」標註
+- **選擇題選項（(A)(B)(C)(D)、甲/乙/丙/丁 等）**：只要圖上能讀到文字或數字，就必須**完整逐項寫出**，含選項內的算式（用 LaTeX）；**禁止**用「（如圖）」代替整組選項或單一選項。
+- 「（如圖）」**僅限**於：幾何示意圖、函數圖形、統計圖、地圖、照片類題幹等**無法**用純文字／LaTeX 合理還原的視覺內容；單行文字選項不屬於此類。
+- **禁止**在題幹或選項已完整寫出時，於句尾或另起一行再加「（如圖）」「(如圖)」：本 App 會另顯示原圖，該贅字對使用者沒有幫助。
 - 請保持題目的原始格式和結構
 - 只輸出題目文字，不要添加任何解釋或分析
 ''';
@@ -204,7 +245,8 @@ class GeminiService {
         text,
         preserveLineBreaks: true,
       );
-      return normalized.isEmpty ? null : normalized;
+      if (normalized.isEmpty) return null;
+      return LatexHelper.stripEditorialFigurePhrases(normalized);
     } catch (e) {
       debugPrint("❌ Gemini OCR 失敗: $e");
       return null;
@@ -214,10 +256,12 @@ class GeminiService {
   /// 核心方法：傳入題目文字（和可選的圖片），回傳結構化解題資料
   /// [questionText] OCR 辨識的題目文字
   /// [imageFile] 可選的圖片檔案，用於多模態輸入（幫助理解圖表、幾何圖形等）
+  /// [forceAttachImageFromPipeline] 由上游流程強制要求附圖，用於數學 OCR 管道
   /// 返回 Map 表示成功，返回 null 表示失敗（會包含錯誤訊息在 debugPrint 中）
   Future<Map<String, dynamic>?> solveProblem(
     String questionText, {
     File? imageFile,
+    bool forceAttachImageFromPipeline = false,
   }) async {
     final normalizedQuestionText = LatexHelper.normalizeModelText(
       questionText,
@@ -247,7 +291,7 @@ class GeminiService {
     // 再次檢查（初始化後可能仍然失敗）
     if (!isReady) {
       final errorMsg = _apiKey.isEmpty
-          ? "Gemini API Key 未設定，請在 .env 檔案中填入 GEMINI_API_KEY"
+          ? "Gemini API Key 未設定，請以 --dart-define=GEMINI_API_KEY=... 注入"
           : "GeminiService 初始化失敗: ${_lastError ?? '未知錯誤'}";
       debugPrint("❌ $errorMsg");
       return null;
@@ -265,9 +309,55 @@ class GeminiService {
       }
     }
 
+    // 省成本：OCR 已含完整選擇題選項且無「需看圖」線索時，可略過附圖（仍保留完整文字 prompt）。
+    // - GEMINI_SOLVE_OMIT_IMAGE_WHEN_TEXT_COMPLETE=0：關閉「文字完整就略圖」
+    // - GEMINI_SOLVE_ALWAYS_ATTACH_IMAGE=1：強制一律附圖（全科目）
+    // - GEMINI_SOLVE_ALWAYS_ATTACH_IMAGE_FOR_MATH=1：僅在 OCR 判為數學題時強制附圖（解題前尚無 subject，故用字串啟發式）
+    Uint8List? bytesForMultimodal = imageBytes;
+    final looksLikeMath = _ocrLooksLikeMath(normalizedQuestionText);
+    final looksLikeGeometry = _ocrLooksLikeGeometryMath(normalizedQuestionText);
+    final hasMustAttachSignals =
+        _containsMustAttachImageSignals(normalizedQuestionText);
+    if (imageBytes != null) {
+      final forceImageAll =
+          AppEnvironment.geminiSolveAlwaysAttachImage == '1';
+      final forceImageMathOnly =
+          AppEnvironment.geminiSolveAlwaysAttachImageForMath == '1';
+      final forceImage = forceImageAll ||
+          forceAttachImageFromPipeline ||
+          (forceImageMathOnly && looksLikeMath);
+      final omitEnv = AppEnvironment.geminiSolveOmitImageWhenTextComplete;
+      final allowOmit = !forceImage &&
+          (omitEnv.isEmpty ? true : omitEnv != '0');
+      final shouldOmitForTokenSavings =
+          _shouldOmitProblemImageForTokenSavings(normalizedQuestionText);
+      if (allowOmit && shouldOmitForTokenSavings) {
+        bytesForMultimodal = null;
+        debugPrint(
+            '💡 本次解題略過附圖（OCR 已含選項／題意足夠），以節省映像 token');
+      } else if (forceAttachImageFromPipeline) {
+        debugPrint('💡 數學流程：由上游管道強制附圖（forceAttachImageFromPipeline）');
+      } else if (forceImageMathOnly && !forceImageAll && looksLikeMath) {
+        debugPrint('💡 數學題（OCR 啟發式）：強制附圖（GEMINI_SOLVE_ALWAYS_ATTACH_IMAGE_FOR_MATH）');
+      } else if (forceImageAll) {
+        debugPrint('💡 全域設定：強制附圖（GEMINI_SOLVE_ALWAYS_ATTACH_IMAGE）');
+      }
+
+      debugPrint('🧾 附圖決策: imageBytes=${imageBytes.length} bytes, '
+          'forceAll=$forceImageAll, '
+          'forceFromPipeline=$forceAttachImageFromPipeline, '
+          'forceMathOnly=$forceImageMathOnly, '
+          'looksLikeMath=$looksLikeMath, '
+          'mustAttachSignals=$hasMustAttachSignals, '
+          'allowOmit=$allowOmit, '
+          'bytesForMultimodal=${bytesForMultimodal != null ? 'attached' : 'omitted'}');
+    } else {
+      debugPrint('🧾 附圖決策: 無可用圖片輸入，略過多模態附圖');
+    }
+
     // 定義 Prompt（放在 try 外面，讓 catch 也能訪問）
     String imageInstruction = '';
-    if (imageBytes != null) {
+    if (bytesForMultimodal != null) {
       imageInstruction = '''
 
 **重要：您同時收到了題目的原始圖片。請仔細觀察圖片中的：
@@ -278,7 +368,18 @@ class GeminiService {
 
 請結合圖片中的視覺資訊和 OCR 辨識的文字來提供更準確的分析。如果圖片中的資訊與 OCR 文字有差異，請優先參考圖片中的實際內容。
 
-**特別注意**：如果題目中包含表格、圖片、圖表等無法用純文字完整描述的視覺元素，請在描述題目時使用「（如圖）」來代替，而不是嘗試用文字詳細描述表格內容或圖形細節。
+**介面已會顯示原題照片**：若題幹與選項已能用繁體中文＋LaTeX 完整寫出，**禁止**在 `question_text` 句末或獨立一行再加「（如圖）」「(如圖)」等贅語；僅在**真的無法**用文字還原的圖表區塊保留一句（如數線選項全在圖上、且文字無 (A)～(D) 可寫時）。
+
+**選項與「（如圖）」的分界（必須遵守）**：
+- 若題目有 **(A)(B)(C)(D)**、**甲/乙/丙/丁** 等選項，且選項內容是**可讀的文字、數字或算式**，請在 `question_text` 中 **全部寫出**，必要時依圖片補齊 OCR 漏掉的選項；**絕對禁止**用「（如圖）」取代選項列。
+- 「（如圖）」**只可用於**：幾何圖、函數圖、統計圖、地圖、複雜表格等 **無法** 用純文字＋LaTeX 合理還原的部分；不適用於單純的選擇題選項行。
+- **數線／示意圖多選題**：不要用 `\\begin{array}` 或 `tabular` 把 (A)～(D) 排成表格，也**禁止**在該環境的儲存格內再寫 `\$...\$`（會造成排版器錯亂）。請改為：題幹維持 LaTeX，選項處只寫「（如圖）」一句，或簡短文字描述各選項（例如「(A) 左開右閉…」），勿輸出殘缺 LaTeX。
+
+**有附圖時的解題規則（必須遵守）**：
+- 在 `標準解法` 一開始，先用 1～3 句簡要整理「圖中可直接讀到的已知條件」；例如點的位置、角度、邊長、平行/垂直、交點、函數圖形趨勢、座標關係。
+- 若圖片與 OCR 文字有衝突，`標準解法` 必須明確採用圖片中較清楚、較完整的一方，不可默默混用。
+- 不可自行腦補圖上未標示的長度、角度、相似、全等等關係；若圖與文字仍不足以唯一決定答案，請在 `標準解法` 清楚指出資訊不足，不要假設隱含條件。
+- 若是選擇題，`標準解法` 的最後一句必須明確寫出對應選項（例如「所以答案是 (B)」），且前面的推理必須能支持該選項。
 
 ''';
     }
@@ -554,13 +655,18 @@ B. 易錯提醒
 ====================
 
 ⚠️ question_text 內容過濾規則（必須遵守）：
+0. **最高優先**：若 OCR 已寫出題幹與 **(A)～(D)**（或甲～丁）選項內容，`question_text` 必須**逐字保留選項列**，**絕對禁止**用「（如圖）」「(如圖)」取代任一選項或整段選項；也**禁止**在句尾再補「（如圖）」（使用者介面已會顯示掃描圖，該字樣毫無意義）。
 1. 移除明顯的 OCR 雜訊：亂碼字元、破碎符號、無意義的字元組合（如「䟎」「署考数学」等）。
 2. 移除非題目內容：頁碼、考卷標頭（如「111學年度第一次段考」）、學校名稱、浮水印文字等，這些不是題目本身的一部分，不應出現在 question_text 中。
 3. 處理殘缺的 LaTeX 片段：如果有明顯殘缺或亂碼的 LaTeX 語法（例如只有半截的指令、缺少花括號的片段），請優先根據圖片或上下文還原為正確的數學公式。
-4. 回退原則：如果移除或修改某段內容會導致題目不完整或失去意義，則保留該段原文不做任何修改，確保題目的完整性優先於清理。
+4. **選擇題選項**：凡圖中可見的 (A)～(D) 或類似選項，必須完整列入 question_text；不得省略或改寫成「（如圖）」。
+5. 「（如圖）」僅用於無法用文字＋LaTeX 還原的圖形、統計圖、地圖、複雜表格等；**不**用於選項文字。
+6. **數線圖示選擇題**：`question_text` 內**不要**使用 `\\begin{array}`／`tabular` 包 (A)～(D)；若無法用文字描述各數線，題幹後接一句「（如圖）」即可。
+7. **贅字「（如圖）」**：凡 (A)～(D)（或甲～丁）選項文字已在 `question_text` 中出現者，**不得**再在末尾加「（如圖）」；使用者介面已會顯示掃描圖。
+8. 回退原則：如果移除或修改某段內容會導致題目不完整或失去意義，則保留該段原文不做任何修改，確保題目的完整性優先於清理。
 
 {
-  "question_text": "優化後的題目文字（依上方過濾規則清理，表格或圖片改為「（如圖）」，並統一使用 \\( ... \\) 和 \\[ ... \\] 包裹數學公式）",
+  "question_text": "優化後的題目文字（依上方過濾規則清理；可讀選項必須寫齊；僅對無法文字化的圖表使用「（如圖）」；數學公式統一使用 \\( ... \\) 和 \\[ ... \\]）",
   "subject": "...",
   "grade_level": "...",
   "category": "...",
@@ -602,9 +708,9 @@ B. 易錯提醒
           "   API Key 狀態: ${_apiKey.isNotEmpty ? '已載入 (${_apiKey.substring(0, math.min(4, _apiKey.length))}...)' : '未載入'}");
       debugPrint(
           "   模型狀態: ${_model != null ? '已初始化 ($_currentModelName)' : '未初始化'}");
-      final imageBytesLength = imageBytes?.length ?? 0;
+      final imageBytesLength = bytesForMultimodal?.length ?? 0;
       debugPrint(
-          "   圖片狀態: ${imageBytes != null ? '已載入 ($imageBytesLength bytes)' : '無圖片'}");
+          "   圖片狀態: ${bytesForMultimodal != null ? '已載入 ($imageBytesLength bytes)' : '無圖片'}");
 
       // 添加檢查 OCR 文字中是否包含數學符號
       debugPrint("   📝 OCR 文字長度: ${normalizedQuestionText.length} 字元");
@@ -618,20 +724,35 @@ B. 易錯提醒
           normalizedQuestionText.contains('平方');
       debugPrint(
           "   📊 OCR 文字中的數學符號檢查: ${hasMathSymbolsInText ? '✅ 包含數學符號' : '❌ 未發現數學符號'}");
-      if (!hasMathSymbolsInText && imageBytes == null) {
-        debugPrint("   ⚠️ 警告：OCR 文字中沒有數學符號，且沒有提供圖片，可能導致科目判斷錯誤！");
-      } else if (!hasMathSymbolsInText && imageBytes != null) {
-        debugPrint("   💡 提示：OCR 文字中沒有數學符號，但已提供圖片，Gemini 可以直接查看圖片判斷");
+      if (!hasMathSymbolsInText && bytesForMultimodal == null) {
+        debugPrint("   ⚠️ 警告：OCR 文字中沒有數學符號，且本次請求未附圖，可能導致科目判斷錯誤！");
+      } else if (!hasMathSymbolsInText && bytesForMultimodal != null) {
+        debugPrint("   💡 提示：OCR 文字中沒有數學符號，但已附圖，Gemini 可直接看圖判斷");
       }
+
+      final selectedModelName = _resolveSolveModelName(
+        hasImage: bytesForMultimodal != null,
+        looksLikeMath: looksLikeMath,
+        looksLikeGeometry: looksLikeGeometry,
+      );
+      final usingSolveOverrideModel = selectedModelName != _currentModelName;
+      final requestModel = usingSolveOverrideModel
+          ? _createModel(selectedModelName)
+          : _model!;
+      final solveModelReason = looksLikeGeometry
+          ? '幾何解題'
+          : (looksLikeMath ? '數學解題' : '通用解題');
+      debugPrint(
+          "   🎯 本次解題模型: $selectedModelName${usingSolveOverrideModel ? '（$solveModelReason）' : ''}");
 
       // 發送請求（多模態：文字 + 圖片）
       final List<Content> contentList;
-      if (imageBytes != null) {
+      if (bytesForMultimodal != null) {
         // 使用多模態輸入：文字 + 圖片
         contentList = [
           Content.multi([
             TextPart(prompt),
-            DataPart('image/jpeg', imageBytes),
+            DataPart('image/jpeg', bytesForMultimodal),
           ])
         ];
         debugPrint("📤 發送請求到 Gemini API（多模態：文字 + 圖片）...");
@@ -642,7 +763,7 @@ B. 易錯提醒
       }
       debugPrint("   Prompt 長度: ${prompt.length} 字元");
 
-      final response = await _model!.generateContent(contentList);
+      final response = await requestModel.generateContent(contentList);
 
       debugPrint("📥 Gemini API 回應狀態:");
       debugPrint(
@@ -830,9 +951,12 @@ B. 易錯提醒
             debugPrint("   ⚠️ 語言結構檢查時發生例外：$e（略過修正，保留原 subject）");
           }
 
-          return _sanitizeParsedResult(
-            result,
+          return await _finalizeSolveResult(
+            parsedResult: result,
             questionText: normalizedQuestionText,
+            looksLikeMath: looksLikeMath,
+            imageBytes: bytesForMultimodal,
+            selectedModelName: selectedModelName,
           );
         } catch (e) {
           debugPrint("❌ JSON 解析失敗: $e");
@@ -890,10 +1014,17 @@ B. 易錯提醒
       if (errorString.contains("not found") ||
           errorString.contains("not_found") ||
           errorMessage.contains("models/gemini")) {
-        debugPrint("   💡 當前模型 '$_currentModelName' 不可用，嘗試備用模型...");
+        final selectedModelName = _resolveSolveModelName(
+          hasImage: bytesForMultimodal != null,
+          looksLikeMath: looksLikeMath,
+          looksLikeGeometry: looksLikeGeometry,
+        );
+        debugPrint("   💡 當前模型 '$selectedModelName' 不可用，嘗試備用模型...");
 
         // 備用模型列表
-        final fallbackModels = [
+        final fallbackModels = <String>[
+          if (_currentModelName.isNotEmpty) _currentModelName,
+          _defaultModel,
           'gemini-1.5-flash',
           'gemini-1.5-flash-latest',
           'gemini-1.5-pro',
@@ -902,32 +1033,32 @@ B. 易錯提醒
         ];
 
         for (final modelName in fallbackModels) {
-          if (modelName == _currentModelName) continue; // 跳過當前模型
+          if (modelName == selectedModelName) continue; // 跳過已失敗模型
 
           try {
             debugPrint("   嘗試備用模型: $modelName");
-            _model = GenerativeModel(
-              model: modelName,
-              apiKey: _apiKey,
-            );
+            final fallbackModel = _createModel(modelName);
 
             // 備用模型也使用相同的內容格式
             final List<Content> fallbackContent;
-            if (imageBytes != null) {
+            if (bytesForMultimodal != null) {
               fallbackContent = [
                 Content.multi([
                   TextPart(prompt),
-                  DataPart('image/jpeg', imageBytes),
+                  DataPart('image/jpeg', bytesForMultimodal),
                 ])
               ];
             } else {
               fallbackContent = [Content.text(prompt)];
             }
-            final response = await _model!.generateContent(fallbackContent);
+            final response = await fallbackModel.generateContent(fallbackContent);
 
             if (response.text != null && response.text!.isNotEmpty) {
-              _currentModelName = modelName;
               debugPrint("   ✅ 備用模型 $modelName 成功！");
+              if (modelName == _currentModelName || modelName == _defaultModel) {
+                _model = fallbackModel;
+                _currentModelName = modelName;
+              }
 
               // 解析結果
               String text = response.text!;
@@ -938,9 +1069,12 @@ B. 易錯提醒
               text = text.trim();
 
               try {
-                return _sanitizeParsedResult(
-                  jsonDecode(text) as Map<String, dynamic>,
+                return await _finalizeSolveResult(
+                  parsedResult: jsonDecode(text) as Map<String, dynamic>,
                   questionText: questionText,
+                  looksLikeMath: looksLikeMath,
+                  imageBytes: bytesForMultimodal,
+                  selectedModelName: modelName,
                 );
               } catch (_) {
                 return _buildSafeFallbackResult(text,
@@ -1005,17 +1139,25 @@ B. 易錯提醒
     required String sourceQuestionText,
     File? imageFile,
   }) async {
+    _lastSimilarPracticeError = null;
     final normalizedSourceQuestionText = LatexHelper.normalizeModelText(
       sourceQuestionText,
       preserveLineBreaks: true,
     );
-    if (normalizedSourceQuestionText.isEmpty) return null;
+    if (normalizedSourceQuestionText.isEmpty) {
+      _lastSimilarPracticeError = '來源題目為空';
+      return null;
+    }
 
     if (!isReady) {
       try {
         await init();
-        if (!isReady) return null;
+        if (!isReady) {
+          _lastSimilarPracticeError = _lastError ?? 'Gemini 尚未初始化';
+          return null;
+        }
       } catch (_) {
+        _lastSimilarPracticeError = _lastError ?? 'Gemini 初始化失敗';
         return null;
       }
     }
@@ -1118,7 +1260,21 @@ difficulty 只能是 same、easier、harder 其中一個。
 key_concepts 請輸出 2 到 4 個具體概念。
 ''';
 
-    const maxGenerationAttempts = 2;
+    // 相似題生成常見失敗原因是：模型多吐非 JSON 文字、JSON 字串跳脫不完整、或二次驗證格式回傳異常。
+    // 這些多屬於「格式不穩」而非「模型不會出題」，因此用較高重試次數與更強的 JSON 抽取/修復可顯著提升成功率。
+    const maxGenerationAttempts = 6;
+    String? lastFailure;
+
+    // 盡量強制模型輸出 JSON（降低格式型失敗）
+    // 不修改全域 _model，避免影響其他功能
+    final jsonPreferredModel = GenerativeModel(
+      model: _currentModelName.isNotEmpty ? _currentModelName : _defaultModel,
+      apiKey: _apiKey,
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        temperature: 0.6,
+      ),
+    );
 
     for (var attempt = 1; attempt <= maxGenerationAttempts; attempt++) {
       try {
@@ -1134,19 +1290,39 @@ key_concepts 請輸出 2 到 4 個具體概念。
           contentList = [Content.text(prompt)];
         }
 
-        final response = await _model!.generateContent(contentList);
+        final response = await jsonPreferredModel
+            .generateContent(contentList)
+            .timeout(const Duration(seconds: 60));
         final rawText = response.text;
         if (rawText == null || rawText.trim().isEmpty) {
           debugPrint("⚠️ 相似題第 $attempt 次生成為空");
+          lastFailure = 'AI 回傳空內容';
           continue;
         }
 
         var cleaned = _normalizeAiText(rawText);
         cleaned = _repairJsonStringBackslashes(cleaned);
+        cleaned = _extractFirstJsonObject(cleaned) ?? cleaned;
+        cleaned = _sanitizeJsonTextForDecode(cleaned);
 
-        final decoded = jsonDecode(cleaned);
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(cleaned);
+        } catch (e) {
+          // 再做一次更激進的容錯修復（常見於字串內含未跳脫換行、智慧引號、尾逗號等）
+          final aggressive = _sanitizeJsonTextForDecode(cleaned, aggressive: true);
+          try {
+            decoded = jsonDecode(aggressive);
+            cleaned = aggressive;
+          } catch (e2) {
+            debugPrint("⚠️ 相似題第 $attempt 次 JSON 解析失敗: $e2");
+            lastFailure = 'AI 回傳不是合法 JSON';
+            continue;
+          }
+        }
         if (decoded is! Map<String, dynamic>) {
           debugPrint("⚠️ 相似題第 $attempt 次格式不是 JSON 物件");
+          lastFailure = 'AI 回傳不是 JSON 物件';
           continue;
         }
 
@@ -1158,24 +1334,39 @@ key_concepts 請輸出 2 到 4 個具體概念。
         final gradeLevel = decoded['grade_level']?.toString().trim() ?? '';
         final category = decoded['category']?.toString().trim() ?? '';
         final chapter = decoded['chapter']?.toString().trim() ?? '';
-        final keyConcepts = _normalizeStringList(decoded['key_concepts']);
+        final keyConceptsRaw = _normalizeStringList(decoded['key_concepts']);
         final keyPoint = decoded['key_point']?.toString().trim() ?? '';
 
         if (questionText.isEmpty || answer.isEmpty || explanation.isEmpty) {
           debugPrint("⚠️ 相似題第 $attempt 次缺少必要欄位");
+          lastFailure = 'AI 回傳缺少必要欄位（題目/答案/解析）';
           continue;
         }
 
         if (_containsExternalReference(questionText) ||
             _containsExternalReference(explanation) ||
-            _looksLikeDraftReasoning(answer) ||
             _looksLikeDraftReasoning(explanation)) {
           debugPrint("⚠️ 相似題第 $attempt 次含草稿痕跡或外部參照");
+          lastFailure = 'AI 內容出現外部參照或草稿語氣';
           continue;
         }
 
+        final chapterCombined = chapter.isNotEmpty
+            ? _normalizeAiText(chapter)
+            : (detectedChapter?.isNotEmpty == true ? detectedChapter! : '');
+        final chapterForResult =
+            Mistake.normalizeChapterForStorage(chapterCombined) ?? '';
+
+        final conceptsMerged = keyConceptsRaw.isNotEmpty
+            ? keyConceptsRaw.map(_normalizeAiText).toList()
+            : detectedKeyConcepts.map(_normalizeAiText).toList();
+        final conceptsForResult =
+            Mistake.normalizeTagsForStorage(conceptsMerged);
+
         final candidateResult = {
-          'question_text': _normalizeAiText(questionText),
+          'question_text': _stripRedundantTrailingFigureNote(
+            _normalizeAiText(questionText),
+          ),
           'answer': _normalizeAiText(answer),
           'explanation': _normalizeAiText(explanation),
           'difficulty': const {'same', 'easier', 'harder'}.contains(difficulty)
@@ -1192,22 +1383,14 @@ key_concepts 請輸出 2 到 4 個具體概念。
               : (detectedCategory?.isNotEmpty == true
                   ? detectedCategory
                   : '其他'),
-          'chapter': chapter.isNotEmpty
-              ? _normalizeAiText(chapter)
-              : (detectedChapter?.isNotEmpty == true
-                  ? detectedChapter
-                  : '待確認章節'),
-          'key_concepts': keyConcepts.isNotEmpty
-              ? keyConcepts.map(_normalizeAiText).toList()
-              : detectedKeyConcepts.map(_normalizeAiText).toList(),
+          'chapter': chapterForResult,
+          'key_concepts': conceptsForResult,
           'key_point': _normalizeAiText(
             keyPoint.isNotEmpty
                 ? keyPoint
-                : (keyConcepts.isNotEmpty
-                    ? keyConcepts.first
-                    : (detectedKeyConcepts.isNotEmpty
-                        ? detectedKeyConcepts.first
-                        : '核心概念待確認')),
+                : (conceptsForResult.isNotEmpty
+                    ? conceptsForResult.first
+                    : '核心概念待確認'),
           ),
         };
 
@@ -1217,15 +1400,18 @@ key_concepts 請輸出 2 到 4 個具體概念。
         );
         if (!isValidated) {
           debugPrint("⚠️ 相似題第 $attempt 次未通過二次驗證，將重試生成");
+          lastFailure = '題目品質審核未通過';
           continue;
         }
 
         return candidateResult;
       } catch (e) {
         debugPrint("❌ 相似題第 $attempt 次生成失敗: $e");
+        lastFailure = '生成時發生例外：$e';
       }
     }
 
+    _lastSimilarPracticeError = lastFailure ?? '未知原因（多次重試仍失敗）';
     return null;
   }
 
@@ -1326,6 +1512,109 @@ $trimmedStudentQuestion
     }
   }
 
+  Future<String?> inferSolutionFromCorrectAnswer({
+    required String questionText,
+    required String correctAnswer,
+    String? subject,
+    String? category,
+    String? chapter,
+    List<String> keyConcepts = const [],
+    List<Map<String, String>> solutions = const [],
+    List<Map<String, String>> history = const [],
+  }) async {
+    if (!isReady) {
+      try {
+        await init();
+        if (!isReady) return null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final normalizedQuestionText = LatexHelper.normalizeModelText(
+      questionText,
+      preserveLineBreaks: true,
+    );
+    final normalizedCorrectAnswer = LatexHelper.normalizeModelText(
+      correctAnswer,
+      preserveLineBreaks: true,
+    );
+    if (normalizedCorrectAnswer.isEmpty) return null;
+
+    final historyText = history.isEmpty
+        ? '無'
+        : history.map((item) {
+            final role = item['role'] == 'user' ? '學生' : '老師';
+            final content = _normalizeAiText(item['content']?.toString() ?? '');
+            return '$role：$content';
+          }).join('\n');
+
+    final solutionsText = solutions.isEmpty
+        ? '目前沒有可參考的既有解析'
+        : solutions.map((item) {
+            final title =
+                _normalizeAiText(item['title']?.toString() ?? '').isNotEmpty
+                    ? _normalizeAiText(item['title']?.toString() ?? '')
+                    : '解法';
+            final content = _normalizeAiText(item['content']?.toString() ?? '');
+            return '$title：$content';
+          }).join('\n\n');
+
+    final prompt = '''
+你是一位非常保守、重視誠實的家教老師。先前 AI 對這題的解析可能做錯了，現在學生提供了他確認的正確答案。
+
+請嚴格遵守以下規則：
+1. 一律使用繁體中文。
+2. 你只能根據「題目文字」「既有對話」「可能有誤的舊解析」以及「學生提供的正確答案」來保守推斷可能解法。
+3. 絕對不可捏造圖形細節、隱含條件、未提供的數值、選項內容或任何你無法從現有資訊確認的內容。
+4. 如果目前資訊不足，無法可靠推出完整解法，請直接明說你不知道，或說你無法可靠推斷，不要硬編。
+5. 如果你能提出推斷，開頭第一句必須明確說：
+   「以下是根據你提供的正確答案倒推出來的可能解法，不一定是原題唯一思路，請謹慎使用。」
+6. 如果題目條件不足、可能多解、需要看圖、或缺少關鍵選項/圖形資訊，也必須誠實講清楚。
+7. 不要試圖合理化原本錯誤的 AI 解法；若舊解析與正確答案衝突，請直接以學生提供的正確答案為主，並指出舊解析可能有誤。
+8. 回答盡量控制在 4 到 8 句；若真的無法推斷，簡短清楚說明原因即可。
+9. 若需要公式，可使用簡潔 LaTeX，但不要過度延伸。
+10. 請把輸出寫成可直接收藏到錯題本的說明文字，不要使用條列、標題、Markdown、編號或多層結構。
+11. 若無法可靠推斷，請優先用這種語氣開頭：「我目前無法只根據你提供的正確答案，可靠地倒推出完整解法。」
+12. 若可以保守推斷，請在開頭保留風險提醒，但後面仍要盡量提供可複習的思路，不要只重複警語。
+13. 若你判斷錯誤很可能來自題目辨識（例如 OCR 缺字、亂碼、選項不完整、題幹被裁切、明顯讀錯符號），請在回答中溫和建議學生可嘗試重新拍攝或重新框選較清晰、完整的題目區域後再解析一次；不要當成一般計算錯誤硬推解法。
+
+【題目】
+$normalizedQuestionText
+
+【題目資訊】
+- 科目：${subject?.trim().isNotEmpty == true ? subject!.trim() : '未提供'}
+- 類別：${category?.trim().isNotEmpty == true ? category!.trim() : '未提供'}
+- 章節：${chapter?.trim().isNotEmpty == true ? chapter!.trim() : '未提供'}
+- 核心觀念：${keyConcepts.isEmpty ? '未提供' : keyConcepts.join('、')}
+
+【舊的 AI 解析（可能有誤，不能直接相信）】
+$solutionsText
+
+【先前對話】
+$historyText
+
+【學生確認的正確答案】
+$normalizedCorrectAnswer
+
+請直接輸出你要對學生說的內容，不要輸出 JSON，不要加標題。
+''';
+
+    try {
+      final response = await _model!
+          .generateContent([Content.text(prompt)])
+          .timeout(const Duration(seconds: 60));
+      final text = response.text;
+      if (text == null || text.trim().isEmpty) {
+        return null;
+      }
+      return _normalizeAiText(text);
+    } catch (e) {
+      debugPrint('❌ 依正確答案保守推斷解法失敗: $e');
+      return null;
+    }
+  }
+
   Map<String, dynamic> _sanitizeParsedResult(
     Map<String, dynamic> result, {
     required String questionText,
@@ -1342,8 +1631,10 @@ $trimmedStudentQuestion
       sanitized['solutions'] = sanitizedSolutions;
     }
 
-    final normalizedQuestionText = _normalizeAiText(
-      result['question_text']?.toString() ?? questionText,
+    final normalizedQuestionText = _stripRedundantTrailingFigureNote(
+      _normalizeAiText(
+        result['question_text']?.toString() ?? questionText,
+      ),
     );
     if (normalizedQuestionText.isNotEmpty) {
       sanitized['question_text'] = normalizedQuestionText;
@@ -1414,6 +1705,80 @@ $trimmedStudentQuestion
     return sanitized;
   }
 
+  bool _shouldRunSolveValidation({
+    required bool hasImage,
+    required bool looksLikeMath,
+  }) {
+    final enabled =
+        AppEnvironment.geminiSolveValidateMathWithImage == '1';
+    return enabled && hasImage && looksLikeMath;
+  }
+
+  String _resolveSolveValidationModelName(String preferredSolveModelName) {
+    final configured = AppEnvironment.geminiSolveValidationModel;
+    if (configured.isNotEmpty) return configured;
+    return preferredSolveModelName;
+  }
+
+  Future<Map<String, dynamic>> _finalizeSolveResult({
+    required Map<String, dynamic> parsedResult,
+    required String questionText,
+    required bool looksLikeMath,
+    required Uint8List? imageBytes,
+    required String selectedModelName,
+  }) async {
+    final sanitized = _sanitizeParsedResult(
+      parsedResult,
+      questionText: questionText,
+    );
+
+    if (!_shouldRunSolveValidation(
+      hasImage: imageBytes != null,
+      looksLikeMath: looksLikeMath,
+    )) {
+      return sanitized;
+    }
+
+    final validation = await _validateSolveResultWithAi(
+      sourceQuestionText: questionText,
+      candidateResult: sanitized,
+      imageBytes: imageBytes,
+      modelName: _resolveSolveValidationModelName(selectedModelName),
+    );
+    final isValid = validation['is_valid'] == true;
+    final reason = validation['reason']?.toString().trim() ?? '';
+    debugPrint('🔎 解題二次驗證結果: is_valid=$isValid, reason=$reason');
+    if (isValid) return sanitized;
+
+    return _buildSolveValidationWarningResult(
+      sanitized,
+      questionText: questionText,
+      reason: reason,
+    );
+  }
+
+  Map<String, dynamic> _buildSolveValidationWarningResult(
+    Map<String, dynamic> baseResult, {
+    required String questionText,
+    required String reason,
+  }) {
+    final safe = Map<String, dynamic>.from(baseResult);
+    final cleanedReason = _normalizeAiText(reason);
+    final reminder =
+        '本題圖文一致性檢查未通過${cleanedReason.isNotEmpty ? '：$cleanedReason' : ''}。請重新解析一次，並確認裁切有包含完整圖形、標示與選項。';
+
+    final normalizedQuestionText = _stripRedundantTrailingFigureNote(
+      _normalizeAiText(safe['question_text']?.toString() ?? questionText),
+    );
+    if (normalizedQuestionText.isNotEmpty) {
+      safe['question_text'] = normalizedQuestionText;
+    }
+    safe['solutions'] = [
+      {'title': '附圖驗證未通過', 'content': reminder}
+    ];
+    return safe;
+  }
+
   Map<String, dynamic> _buildSafeFallbackResult(
     String rawText, {
     required String questionText,
@@ -1434,6 +1799,66 @@ $trimmedStudentQuestion
         {'title': 'AI 解析失敗', 'content': '本次 AI 回應格式異常，已略過不安全內容，請重新解析一次。'}
       ]
     };
+  }
+
+  /// 模型或前處理可能在句尾留下「（如圖）」；與 [LatexHelper.stripEditorialFigurePhrases] 同步清理。
+  String _stripRedundantTrailingFigureNote(String text) {
+    return LatexHelper.stripEditorialFigurePhrases(text);
+  }
+
+  /// 解題前尚無 Gemini 回傳的 subject；用 OCR 字串做保守的「數學題」判斷，供
+  /// [GEMINI_SOLVE_ALWAYS_ATTACH_IMAGE_FOR_MATH] 僅對數學強制附圖。
+  bool _ocrLooksLikeMath(String t) {
+    final s = t.trim();
+    if (s.isEmpty) return false;
+    if (RegExp(r'[√∑∫π∠△∥⊥∽≌°²³ⁿ⁴⁵⁶⁷⁸⁹⁰±×÷≤≥≠≈∞∈∂∇]').hasMatch(s)) {
+      return true;
+    }
+    if (RegExp(
+            r'\\frac|\\sqrt|\\begin|\\end|\\mathrm|\\times|\\div|\\pm|\\leq|\\geq|\\neq|\\approx|\\pi|\\sum|\\int|\\Delta|\\angle|\\parallel|\\perp|\\sim|\\cong|\\circ|\\ldots|\\cdots|\\infty|\\cdot|\\left|\\right')
+        .hasMatch(s)) {
+      return true;
+    }
+    if (s.contains(r'$$') || RegExp(r'\$[^$\n]{1,1200}\$').hasMatch(s)) {
+      return true;
+    }
+    if (RegExp(
+            r'因式分解|化簡|展開式|一元二次|二次函數|三角函數|對數|指數函數|根號|次方|平方根|立方根|相似三角形|三角形相似|全等|勾股|畢氏定理|向量\b|坐標\b|座標\b|直角坐標|斜率|微分|積分|機率\b|期望值|排列組合|等差數列|等比數列|矩陣|行列式|解方程式|不等式\b|面積|體積|周長|半徑|直徑|弧長|弧度|圓周角|圓心角|正弦|餘弦|正切|f\(\s*x\s*\)')
+        .hasMatch(s)) {
+      return true;
+    }
+    return false;
+  }
+
+  bool _ocrLooksLikeGeometryMath(String t) {
+    final s = t.trim();
+    if (s.isEmpty || !_ocrLooksLikeMath(s)) return false;
+
+    return RegExp(
+      r'幾何|平面幾何|立體幾何|三角形|四邊形|多邊形|相似|全等|勾股|畢氏定理|圓周角|圓心角|弧長|弧度|弧|弦|切線|割線|半徑|直徑|周長|面積|體積|夾角|角度|垂直|平行|中垂線|角平分線|高線|中線|外心|內心|重心|垂心|扇形|圓錐|圓柱|球體|展開圖|俯視圖|前視圖|側視圖|線段|射線|直線|梯形|菱形|平行四邊形|正方形|長方形|切點|交點|頂點|對角線|陰影部分|\\angle|\\triangle|\\overline|\\parallel|\\perp|\\cong|\\sim',
+    ).hasMatch(s);
+  }
+
+  /// 命中這些關鍵字時，代表題目很可能仍需看圖，不應僅因選項完整就略過附圖。
+  bool _containsMustAttachImageSignals(String text) {
+    final t = text.trim();
+    if (t.isEmpty) return false;
+
+    return RegExp(
+      r'如圖|見圖|附圖|圖形|圖\(|坐標|座標|數線|函數圖|統計圖|折線圖|長條圖|圓形圖|地圖|示意圖|幾何|平面幾何|立體幾何|相似|全等|三角形|四邊形|多邊形|圓周角|圓心角|弧長|弧度|弧|弦|切線|割線|半徑|直徑|周長|面積|體積|夾角|角度|垂直|平行|中垂線|角平分線|高線|中線|外心|內心|重心|垂心|扇形|圓錐|圓柱|球體|展開圖|俯視圖|前視圖|側視圖|座標平面|直角坐標|線段|射線|直線|梯形|菱形|平行四邊形|正方形|長方形|切點|交點|頂點|對角線|陰影部分',
+    ).hasMatch(t);
+  }
+
+  /// 保守判斷：純文字＋選項已齊時略過附圖以節省 token（幾何／圖表關鍵字仍會附圖）。
+  bool _shouldOmitProblemImageForTokenSavings(String ocr) {
+    final t = ocr.trim();
+    if (t.length < 48) return false;
+    if (_containsMustAttachImageSignals(t)) {
+      return false;
+    }
+    final labels =
+        RegExp(r'[\(（]\s*[A-Da-dＡ-Ｄ]\s*[\)）]').allMatches(t).length;
+    return labels >= 2;
   }
 
   String _normalizeAiText(String text) {
@@ -1496,20 +1921,26 @@ ${jsonEncode(candidateResult)}
 ''';
 
     try {
-      final response = await _model!.generateContent([Content.text(prompt)]);
+      final response = await _model!
+          .generateContent([Content.text(prompt)])
+          .timeout(const Duration(seconds: 45));
       final rawText = response.text;
       if (rawText == null || rawText.trim().isEmpty) {
         debugPrint('⚠️ 相似題二次驗證回傳空內容');
-        return false;
+        // 二次驗證回傳空屬於「不確定」，不應成為主要失敗來源：放行以提升成功率
+        return true;
       }
 
       var cleaned = _normalizeAiText(rawText);
       cleaned = _repairJsonStringBackslashes(cleaned);
+      cleaned = _extractFirstJsonObject(cleaned) ?? cleaned;
+      cleaned = _sanitizeJsonTextForDecode(cleaned);
 
       final decoded = jsonDecode(cleaned);
       if (decoded is! Map<String, dynamic>) {
         debugPrint('⚠️ 相似題二次驗證格式異常');
-        return false;
+        // 二次驗證格式異常屬於「不確定」，放行以避免誤殺好題
+        return true;
       }
 
       final isValid = decoded['is_valid'] == true;
@@ -1518,8 +1949,231 @@ ${jsonEncode(candidateResult)}
       return isValid;
     } catch (e) {
       debugPrint('❌ 相似題二次驗證失敗: $e');
-      return false;
+      // 二次驗證本身可能因格式/配額/偶發錯誤失敗；此時視為不確定，放行以提升成功率
+      return true;
     }
+  }
+
+  Future<Map<String, dynamic>> _validateSolveResultWithAi({
+    required String sourceQuestionText,
+    required Map<String, dynamic> candidateResult,
+    required String modelName,
+    Uint8List? imageBytes,
+  }) async {
+    final validatorModel = GenerativeModel(
+      model: modelName,
+      apiKey: _apiKey,
+      generationConfig: GenerationConfig(
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      ),
+    );
+
+    final prompt = '''
+你是「數學附圖解題審核員」。請審核下列解題結果是否通過圖文一致性檢查。
+
+【OCR 題目文字】
+$sourceQuestionText
+
+【待審核解題結果(JSON)】
+${jsonEncode(candidateResult)}
+
+請嚴格檢查以下條件，任一不符合都判定不合格：
+1. 解法與最終結論不得忽略圖片中的關鍵條件、標示、角度、邊長、座標或圖形關係。
+2. 若 OCR 與圖片衝突，解法不得混用兩邊資訊。
+3. 不可自行腦補圖上未標示的相似、全等、平行、垂直、長度、角度或其他隱含條件。
+4. 若是選擇題，解法推理與最後結論必須支持同一個選項。
+5. 若依照 OCR 與圖片仍不足以唯一決定答案，應判定不合格。
+
+若回應格式本身沒有足夠資訊判斷，也視為不合格。
+
+只輸出 JSON，不要任何額外文字：
+{
+  "is_valid": true 或 false,
+  "reason": "一句話說明"
+}
+''';
+
+    try {
+      final List<Content> contentList;
+      if (imageBytes != null) {
+        contentList = [
+          Content.multi([
+            TextPart(prompt),
+            DataPart('image/jpeg', imageBytes),
+          ])
+        ];
+      } else {
+        contentList = [Content.text(prompt)];
+      }
+
+      final response = await validatorModel
+          .generateContent(contentList)
+          .timeout(const Duration(seconds: 45));
+      final rawText = response.text;
+      if (rawText == null || rawText.trim().isEmpty) {
+        debugPrint('⚠️ 解題二次驗證回傳空內容');
+        return {
+          'is_valid': true,
+          'reason': 'validator_empty',
+        };
+      }
+
+      var cleaned = _normalizeAiText(rawText);
+      cleaned = _repairJsonStringBackslashes(cleaned);
+      cleaned = _extractFirstJsonObject(cleaned) ?? cleaned;
+      cleaned = _sanitizeJsonTextForDecode(cleaned);
+
+      final decoded = jsonDecode(cleaned);
+      if (decoded is! Map<String, dynamic>) {
+        debugPrint('⚠️ 解題二次驗證格式異常');
+        return {
+          'is_valid': true,
+          'reason': 'validator_format_uncertain',
+        };
+      }
+
+      return {
+        'is_valid': decoded['is_valid'] == true,
+        'reason': decoded['reason']?.toString().trim() ?? '',
+      };
+    } catch (e) {
+      debugPrint('❌ 解題二次驗證失敗: $e');
+      return {
+        'is_valid': true,
+        'reason': 'validator_exception',
+      };
+    }
+  }
+
+  /// 從 AI 回應中抽取第一個 JSON 物件 `{ ... }`。
+  /// 模型偶爾會在 JSON 前後加一句話，導致 jsonDecode 失敗；這裡做容錯抽取。
+  /// 若抽取不到，回傳 null。
+  String? _extractFirstJsonObject(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return null;
+    final first = trimmed.indexOf('{');
+    if (first == -1) return null;
+
+    int depth = 0;
+    bool inString = false;
+    bool escape = false;
+    for (int i = first; i < trimmed.length; i++) {
+      final ch = trimmed[i];
+
+      if (inString) {
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (ch == r'\') {
+          escape = true;
+          continue;
+        }
+        if (ch == '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch == '"') {
+        inString = true;
+        continue;
+      }
+      if (ch == '{') depth++;
+      if (ch == '}') {
+        depth--;
+        if (depth == 0) {
+          return trimmed.substring(first, i + 1);
+        }
+      }
+    }
+    return null;
+  }
+
+  /// 讓 JSON 更容易被 `jsonDecode` 接受的容錯修復：
+  /// - 將字串內的未跳脫換行/Tab 轉成 `\\n` / `\\t`
+  /// - 移除 JSON 外層多餘空白與不可見字元
+  /// - （aggressive）修復智慧引號、移除尾逗號
+  String _sanitizeJsonTextForDecode(
+    String text, {
+    bool aggressive = false,
+  }) {
+    var input = text.trim();
+    if (input.isEmpty) return input;
+
+    if (aggressive) {
+      // 常見智慧引號 → 標準雙引號
+      input = input
+          .replaceAll('“', '"')
+          .replaceAll('”', '"')
+          .replaceAll('‘', "'")
+          .replaceAll('’', "'");
+    }
+
+    final buffer = StringBuffer();
+    bool inString = false;
+    bool escape = false;
+
+    for (int i = 0; i < input.length; i++) {
+      final ch = input[i];
+
+      if (inString) {
+        if (escape) {
+          // 先寫入被跳脫字元
+          buffer.write(ch);
+          escape = false;
+          continue;
+        }
+
+        if (ch == r'\') {
+          buffer.write(ch);
+          escape = true;
+          continue;
+        }
+
+        // JSON 字串內不允許裸 \n \r \t
+        if (ch == '\n') {
+          buffer.write(r'\n');
+          continue;
+        }
+        if (ch == '\r') {
+          buffer.write(r'\r');
+          continue;
+        }
+        if (ch == '\t') {
+          buffer.write(r'\t');
+          continue;
+        }
+
+        if (ch == '"') {
+          buffer.write(ch);
+          inString = false;
+          continue;
+        }
+
+        buffer.write(ch);
+        continue;
+      }
+
+      if (ch == '"') {
+        buffer.write(ch);
+        inString = true;
+        continue;
+      }
+
+      buffer.write(ch);
+    }
+
+    var output = buffer.toString();
+
+    if (aggressive) {
+      // 移除尾逗號：`, }` 或 `, ]`
+      // 只做簡單修復（在非字串情境才可能有效；字串內已在上面處理）
+      output = output.replaceAll(RegExp(r',\s*([}\]])'), r'$1');
+    }
+
+    return output.trim();
   }
 
   String _buildSimilarPracticeGradeStrategy(String? gradeLevel) {

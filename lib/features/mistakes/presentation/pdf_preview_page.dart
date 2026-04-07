@@ -15,16 +15,6 @@ class PdfPreviewPage extends StatelessWidget {
         title: const Text('預覽'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () async {
-              await Printing.sharePdf(
-                bytes: pdfBytes,
-                filename:
-                    '錯題本_${DateTime.now().toString().substring(0, 10)}.pdf',
-              );
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.print),
             onPressed: () async {
               await Printing.layoutPdf(onLayout: (_) => pdfBytes);

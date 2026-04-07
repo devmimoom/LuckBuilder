@@ -5,6 +5,106 @@ import '../theme/app_fonts.dart';
 
 /// LaTeX 和文字處理工具類
 class LatexHelper {
+  /// 移除模型／OCR 在句尾多加的「（如圖）」等贅字（介面已顯示掃描圖時不需要）。
+  static String stripEditorialFigurePhrases(String text) {
+    if (text.isEmpty) return text;
+    var s = text.trimRight();
+    final trailing = <RegExp>[
+      RegExp(r'\s*[（(]如[圖图][）)]\s*$'),
+      RegExp(r'\s*[（(][見见]圖[）)]\s*$'),
+      RegExp(r'\s*如下圖\s*$'),
+      RegExp(r'\s*如[左右上下]圖\s*$'),
+    ];
+    var prev = '';
+    while (prev != s) {
+      prev = s;
+      for (final re in trailing) {
+        final next = s.replaceFirst(re, '').trimRight();
+        if (next != s) s = next;
+      }
+    }
+    final onlyPh = RegExp(
+      r'^[（(]如[圖图][）)]$|^[「『]如[圖图][」』]$|^[（(][見见]圖[）)]$',
+    );
+    final lines = s.split('\n');
+    while (lines.isNotEmpty && lines.last.trim().isEmpty) {
+      lines.removeLast();
+    }
+    while (lines.isNotEmpty && onlyPh.hasMatch(lines.last.trim())) {
+      final rest = lines.sublist(0, lines.length - 1).join('\n');
+      if (rest.trim().length >= 8) {
+        lines.removeLast();
+        while (lines.isNotEmpty && lines.last.trim().isEmpty) {
+          lines.removeLast();
+        }
+      } else {
+        break;
+      }
+    }
+    s = lines.join('\n').trimRight();
+    return s.isEmpty ? text.trim() : s;
+  }
+
+  /// Mathpix 等常把 (A)～(D) 放在 `\begin{array}...\end{array}`；若整段替成「（如圖）」會讓選項憑空消失。
+  /// 僅在內容像選擇題選項時展開為多行文字，其餘仍交給後續折疊邏輯。
+  static String unwrapMultipleChoiceArrayEnvironments(String input) {
+    if (!input.contains(r'\begin{array}')) return input;
+    final re = RegExp(
+      r'\\begin\{array\}\s*\{[^}]*\}\s*(.*?)\\end\{array\}',
+      dotAll: true,
+    );
+    return input.replaceAllMapped(re, (m) {
+      final body = m.group(1) ?? '';
+      if (!_arrayBodyLooksLikeChoiceList(body)) {
+        return m.group(0)!;
+      }
+      return '\n${_flattenArrayBodyForChoices(body)}\n';
+    });
+  }
+
+  static bool _arrayBodyLooksLikeChoiceList(String body) {
+    final opt = RegExp(r'[\(（]\s*[A-Da-dＡ-Ｄ]\s*[\)）]').allMatches(body).length;
+    if (opt >= 2) return true;
+    if (body.contains(r'\\') &&
+        RegExp(r'[\(（]\s*[A-Da-dＡ-Ｄ]').hasMatch(body)) {
+      return true;
+    }
+    if (RegExp(r'[甲乙丙丁]').hasMatch(body) && body.contains(r'\\')) {
+      return true;
+    }
+    return false;
+  }
+
+  static String _flattenArrayBodyForChoices(String body) {
+    var t = body.replaceAll(RegExp(r'\\hline\s*'), '');
+    t = t.replaceAll(RegExp(r'\\cline\{[^}]*\}\s*'), '');
+    t = t.replaceAll('&', ' ');
+    t = t.replaceAll(RegExp(r'\s*\\\\\s*'), '\n');
+    t = t.replaceAll(RegExp(r'[ \t]+\n'), '\n');
+    return t.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).join('\n');
+  }
+
+  /// 先展開選項用 array，再把其餘 tabular／array 折成「（如圖）」（避免嵌套 $ 打亂排版）。
+  static String collapseNonMcArrayAndTabular(String input) {
+    var s = unwrapMultipleChoiceArrayEnvironments(input);
+    final paired = <RegExp>[
+      RegExp(r'\\begin\{tabular\}.*?\\end\{tabular\}', dotAll: true),
+      RegExp(r'\\begin\{array\}.*?\\end\{array\}', dotAll: true),
+    ];
+    for (final re in paired) {
+      String next;
+      do {
+        next = s.replaceAll(re, '（如圖）');
+        if (next == s) break;
+        s = next;
+      } while (true);
+    }
+    s = s.replaceAll(RegExp(r'\$1\s*array\b'), '（如圖）');
+    s = s.replaceAll(RegExp(r'\$1array\b'), '（如圖）');
+    s = s.replaceAll(RegExp(r'\\\(\s*1\s*array\b'), '（如圖）');
+    return s;
+  }
+
   /// 統一清理 AI / OCR 原始文字，優先修復反斜線被 JSON 轉義吃掉後的殘缺 LaTeX。
   static String normalizeModelText(
     String? text, {
@@ -48,18 +148,10 @@ class LatexHelper {
     // 3. 移除開頭的數字和特殊符號（題號）
     cleaned = cleaned.replaceAll(RegExp(r'^[\d\s．.\-]*'), '');
 
-    // 4. 處理表格：如果檢測到 LaTeX 表格（\begin{tabular} 等），用"（如圖）"代替
+    // 4. 表格／array：選擇題選項用的 array 改展開為多行；真表格或殘留 array 再折成「（如圖）」
     if (cleaned.contains(r'\begin{tabular}') ||
         cleaned.contains(r'\begin{array}')) {
-      // 匹配完整的表格環境（從 \begin 到對應的 \end）
-      cleaned = cleaned.replaceAllMapped(
-        RegExp(r'\\begin\{tabular\}.*?\\end\{tabular\}', dotAll: true),
-        (match) => '（如圖）',
-      );
-      cleaned = cleaned.replaceAllMapped(
-        RegExp(r'\\begin\{array\}.*?\\end\{array\}', dotAll: true),
-        (match) => '（如圖）',
-      );
+      cleaned = collapseNonMcArrayAndTabular(cleaned);
     }
 
     // 檢測其他表格相關的模式（如果沒有被上面的規則處理）
@@ -78,6 +170,8 @@ class LatexHelper {
 
     // 7. 根據 Gemini prompt 規則驗證和修復 LaTeX 格式
     cleaned = validateAndFixLatexFormat(cleaned);
+
+    cleaned = stripEditorialFigurePhrases(cleaned);
 
     return cleaned;
   }
@@ -788,6 +882,15 @@ class LatexHelper {
     return null; // 花括號不配對
   }
 
+  /// 將 `tabular` / `array` 環境整段換成「（如圖）」。
+  ///
+  /// AI 常用 `$\begin{array}...\end{array}$` 排版數線多選；儲存格內再出現
+  /// `$\frac{1}{3}$` 時，後續的 `$...$` 正則會**錯誤配對**外層 `$`，產生
+  /// `\(1array`、畫面上像 `$1array` 的殘段。先折疊整個環境可避免此問題。
+  static String _collapseLatexTabularBlocks(String input) {
+    return collapseNonMcArrayAndTabular(input);
+  }
+
   /// 統一的終極前處理函式（供 LatexText / SafeMathTextWidget 共用）
   /// 多階段清洗和轉換，解決各種 LaTeX 格式問題：
   /// 0. 處理 `1n` 問題
@@ -820,8 +923,10 @@ class LatexHelper {
         processed.replaceAll(RegExp(r'^\s*\\\s*$', multiLine: true), '');
 
     // 移除句末標點後面的 `\` (例如：「結果為 2。\」)，改為換行
-    processed =
-        processed.replaceAll(RegExp(r'([。，、；：！？])\s*\\\s*[\s\n]'), r'$1\n');
+    processed = processed.replaceAllMapped(
+      RegExp(r'([。，、；：！？])\s*\\\s*[\s\n]'),
+      (m) => '${m.group(1)}\n',
+    );
 
     // ========================================
     // 第二步：處理雙重括號 ((...))
@@ -836,6 +941,11 @@ class LatexHelper {
       RegExp(r'\(\(([^)]+)\)\)'),
       (match) => r'\(' + (match.group(1) ?? '') + r'\)',
     );
+
+    // ========================================
+    // 第二步半：折疊 tabular／array 環境（須早於 $...$ 轉換，見 _collapseLatexTabularBlocks 註解）
+    // ========================================
+    processed = _collapseLatexTabularBlocks(processed);
 
     // ========================================
     // 第三步：標準化 LaTeX 分隔符
@@ -976,8 +1086,26 @@ class LatexHelper {
         .replaceAll(RegExp(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]'), '')
         .replaceAll(RegExp(r'[\u0080-\u009F]'), '')
         // 處理 literal \n（字串中的 \n 而非換行符）
-        // ⚠️ 使用 regex 確保不會破壞 \neq, \nu, \nabla 等以 \n 開頭的 LaTeX 指令
-        // 只匹配 \n 後面不是字母的情況（即不是 LaTeX 指令的一部分）
+        // 需求：AI 常輸出 "\nA."、"\nB." 這類換行標記；若不轉換會直接顯示成 \nB. 的「亂碼」
+        // 但同時要避免誤傷 LaTeX 指令：\neq、\nabla、\nu、\notin、\ngtr... 等
+        //
+        // 策略：只在「高度像換行」的情境把 \n 轉成真正換行：
+        // - 後面接選項/列表：A./B./(A)/(B)、1./2.、-、• 等
+        // - 後面接中文（不可能是 LaTeX 指令）
+        .replaceAllMapped(
+          RegExp(
+            r'\\n(?=\s*(?:'
+            r'[A-Z][\.\)]' // A. / B) / C.
+            r'|\(\s*[A-Z]\s*\)' // (A) / (B)
+            r'|\d+[\.\)]' // 1. / 2)
+            r'|[-•]' // - / •
+            r'|[\u4e00-\u9fff]' // 中文
+            r'|$'
+            r'))',
+          ),
+          (_) => '\n',
+        )
+        // 其他情境下，如果 \n 後面不是字母，仍視為換行（避免殘留 \n, \n: 等）
         .replaceAll(RegExp(r'\\n(?![a-zA-Z])'), '\n')
         // 移除不可見字元
         .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '');

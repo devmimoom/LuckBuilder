@@ -1,7 +1,7 @@
 name: lucklab
 description: A new Flutter project.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.1+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -25,7 +25,6 @@ dependencies:
   flutter_animate: ^4.5.2
   image: ^4.1.3
   dio: ^5.9.0
-  flutter_dotenv: ^5.1.0
   google_generative_ai: ^0.4.7
   pdf: ^3.10.0
   printing: ^5.11.0
@@ -43,6 +42,10 @@ dependencies:
   google_sign_in: ^7.2.0
   sign_in_with_apple: ^7.0.1
   crypto: ^3.0.7
+  cloud_firestore: ^6.2.0
+  cloud_functions: ^6.1.0
+  app_settings: ^7.0.0
+  camera: ^0.12.0+1
 
 dev_dependencies:
   flutter_test:
@@ -50,18 +53,16 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   riverpod_generator: ^2.3.9
   build_runner: ^2.4.7
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
   assets:
-    - .env
     - assets/hi.png
-    - assets/note.png
     - assets/home.png
-    - "assets/learning tools.png"
+    - "assets/Learning tools.png"
     - assets/lucky.png
     - assets/sub.png
-    - assets/camera.png
     - assets/data/banner_catalog.json
   fonts:
     - family: NotoSansTC
@@ -73,3 +74,8 @@ flutter:
     - family: NotoSansSymbols2
       fonts:
         - asset: assets/fonts/NotoSansSymbols2-Regular.ttf
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/SUPER1.png

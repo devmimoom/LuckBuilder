@@ -14,7 +14,6 @@ import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/theme/home_page_fonts.dart';
 import '../../../core/widgets/glass_compact_card_shell.dart';
 import '../../../core/widgets/premium_image_viewer.dart';
-import '../../../core/services/mistake_share_service.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/latex_helper.dart';
 import '../providers/mistakes_provider.dart';
@@ -442,11 +441,9 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
       data: (mistakes) {
         final tagCount = <String, int>{};
         for (var mistake in mistakes) {
-          for (var tag in mistake.tags) {
-            // 排除「AI 解析」「AI 練習題」標籤和自訂標籤
-            if (tag != 'AI 解析' &&
-                tag != 'AI 練習題' &&
-                !customTagsSet.contains(tag)) {
+          for (var tag in mistake.tagsForDisplay) {
+            // 排除「AI 練習題」標籤和自訂標籤
+            if (tag != 'AI 練習題' && !customTagsSet.contains(tag)) {
               tagCount[tag] = (tagCount[tag] ?? 0) + 1;
             }
           }
@@ -633,8 +630,8 @@ class _MistakesListPageState extends ConsumerState<MistakesListPage> {
       data: (mistakes) {
         final tagSet = <String>{};
         for (var mistake in mistakes) {
-          for (var tag in mistake.tags) {
-            if (tag != 'AI 解析' && tag != 'AI 練習題') {
+          for (var tag in mistake.tagsForDisplay) {
+            if (tag != 'AI 練習題') {
               tagSet.add(tag);
             }
           }
@@ -1027,22 +1024,13 @@ class MistakeCard extends StatelessWidget {
                   spacing: AppSpacing.tight,
                   runSpacing: AppSpacing.tight,
                   children: [
+                    if (mistake.hasAiCorrection) _buildAiCorrectionBadge(),
                     _buildSmallTag(
                         mistake.subject, HomeMeshReferenceColors.peach),
                     _buildSmallTag(
                         mistake.category, HomeMeshReferenceColors.teal),
                   ],
                 ),
-              ),
-              IconButton(
-                onPressed: () async {
-                  AppUX.feedbackClick();
-                  await MistakeShareService.shareMistake(mistake);
-                },
-                icon: const Icon(Icons.ios_share_rounded, size: 20),
-                tooltip: '分享錯題',
-                color: AppColors.textSecondary,
-                visualDensity: VisualDensity.compact,
               ),
             ],
           ),
@@ -1054,24 +1042,29 @@ class MistakeCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _buildPreviewText(mistake.title),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: HomePageFonts.resolve(const TextStyle(
-                        fontSize: AppFonts.sizeBodySm,
-                        height: AppFonts.lineHeightBody,
-                        fontWeight: AppFonts.weightRegular,
-                        color: AppColors.textPrimary,
-                      )),
+                    SizedBox(
+                      height: AppFonts.sizeBodySm *
+                          AppFonts.lineHeightBody *
+                          3.2,
+                      child: ClipRect(
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: LatexText(
+                            text: LatexHelper.cleanOcrText(mistake.title),
+                            fontSize: AppFonts.sizeBodySm,
+                            lineHeight: AppFonts.lineHeightBody,
+                            textColor: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Wrap(
                       spacing: AppSpacing.sm,
                       runSpacing: AppSpacing.sm,
                       children: [
-                        ...mistake.tags
-                            .where((t) => t != 'AI 解析')
+                        ...mistake.tagsForDisplay
+                            .where((t) => t != Mistake.aiCorrectionTag)
                             .take(3)
                             .map((t) => _buildLabel(t)),
                         if (mistake.errorReason != null)
@@ -1125,6 +1118,40 @@ class MistakeCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiCorrectionBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFB91C1C).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+        border: Border.all(
+          color: const Color(0xFFB91C1C).withValues(alpha: 0.55),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.edit_note_rounded,
+            size: 16,
+            color: Color(0xFFB91C1C),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '已更正',
+            style: HomePageFonts.badge(const Color(0xFFB91C1C)).copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

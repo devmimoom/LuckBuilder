@@ -205,14 +205,17 @@ class Mistakes extends _$Mistakes {
       final persistentImagePath =
           await ImagePathHelper.ensurePersistentImagePath(imagePath);
 
+      final normalizedChapter = Mistake.normalizeChapterForStorage(chapter);
+      final normalizedTags = Mistake.normalizeTagsForStorage(tags);
+
       final mistake = Mistake(
         imagePath: persistentImagePath,
         title: title,
-        tags: tags,
+        tags: normalizedTags,
         solutions: solutions,
         subject: subject,
         category: category,
-        chapter: chapter,
+        chapter: normalizedChapter,
         errorReason: errorReason,
         errorType: errorReason,
         nextReviewAt: DateTime.now(),
@@ -352,11 +355,15 @@ class Mistakes extends _$Mistakes {
 
       debugPrint("   ✅ 找到錯題，開始更新");
 
+      final normalizedChapter = Mistake.normalizeChapterForStorage(chapter);
+      final normalizedTags = Mistake.normalizeTagsForStorage(tags);
+
       final updatedMistake = originalMistake.copyWith(
-        tags: tags,
+        tags: normalizedTags,
         subject: subject,
         category: category,
-        chapter: chapter,
+        chapter: normalizedChapter,
+        clearChapter: normalizedChapter == null,
       );
 
       final result = await _dbHelper.updateMistake(updatedMistake);

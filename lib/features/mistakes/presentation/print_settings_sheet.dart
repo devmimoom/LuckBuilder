@@ -199,9 +199,9 @@ class PrintSettingsSheet extends ConsumerWidget {
                       Expanded(
                         flex: 2,
                         child: ElevatedButton.icon(
-                          onPressed: () => _generateAndShare(context, ref),
-                          icon: const Icon(Icons.picture_as_pdf),
-                          label: const Text('產生 PDF'),
+                          onPressed: () => _generateAndPrint(context, ref),
+                          icon: const Icon(Icons.print),
+                          label: const Text('列印'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2196F3),
                             foregroundColor: Colors.white,
@@ -233,17 +233,7 @@ class PrintSettingsSheet extends ConsumerWidget {
 
   Future<void> _previewPdf(BuildContext context, WidgetRef ref) async {
     final settings = ref.read(printSettingsNotifierProvider);
-    final selectedIds = ref.read(selectionNotifierProvider).selectedIds;
-    final mistakesAsync = ref.read(mistakesProvider);
-
-    final mistakes = mistakesAsync.maybeWhen(
-      data: (allMistakes) {
-        return allMistakes
-            .where((m) => m.id != null && selectedIds.contains(m.id))
-            .toList();
-      },
-      orElse: () => <Mistake>[],
-    );
+    final mistakes = _collectSelectedMistakes(ref);
 
     if (mistakes.isEmpty) {
       if (context.mounted) {
@@ -253,7 +243,15 @@ class PrintSettingsSheet extends ConsumerWidget {
     }
 
     try {
-      final pdfBytes = await PrintPdfGenerator.generate(mistakes, settings);
+      final resolved = _resolvePrintRequest(mistakes, settings);
+      if (resolved.didAutoAdjust && context.mounted) {
+        AppUX.showSnackBar(
+          context,
+          '此設定內容較多，已自動調整為 1 題/頁，避免預覽空白或排版溢出。',
+        );
+      }
+      final pdfBytes =
+          await PrintPdfGenerator.generate(mistakes, resolved.settings);
 
       if (context.mounted) {
         Navigator.push(
@@ -271,19 +269,9 @@ class PrintSettingsSheet extends ConsumerWidget {
     }
   }
 
-  Future<void> _generateAndShare(BuildContext context, WidgetRef ref) async {
+  Future<void> _generateAndPrint(BuildContext context, WidgetRef ref) async {
     final settings = ref.read(printSettingsNotifierProvider);
-    final selectedIds = ref.read(selectionNotifierProvider).selectedIds;
-    final mistakesAsync = ref.read(mistakesProvider);
-
-    final mistakes = mistakesAsync.maybeWhen(
-      data: (allMistakes) {
-        return allMistakes
-            .where((m) => m.id != null && selectedIds.contains(m.id))
-            .toList();
-      },
-      orElse: () => <Mistake>[],
-    );
+    final mistakes = _collectSelectedMistakes(ref);
 
     if (mistakes.isEmpty) {
       if (context.mounted) {
@@ -293,26 +281,146 @@ class PrintSettingsSheet extends ConsumerWidget {
     }
 
     try {
-      final pdfBytes = await PrintPdfGenerator.generate(mistakes, settings);
+      final resolved = _resolvePrintRequest(mistakes, settings);
+      if (resolved.didAutoAdjust && context.mounted) {
+        AppUX.showSnackBar(
+          context,
+          '此設定內容較多，已自動調整為 1 題/頁後再列印。',
+        );
+      }
+      final pdfBytes =
+          await PrintPdfGenerator.generate(mistakes, resolved.settings);
 
       if (!context.mounted) return;
       final navigator = Navigator.of(context);
 
-      await Printing.sharePdf(
-        bytes: pdfBytes,
-        filename: '錯題本_${DateTime.now().toString().substring(0, 10)}.pdf',
-      );
+      await Printing.layoutPdf(onLayout: (_) => pdfBytes);
       navigator.pop(); // 關閉設定頁面
       ref
           .read(selectionNotifierProvider.notifier)
           .exitSelectionMode(); // 退出選取模式
     } catch (e) {
-      debugPrint('產生 PDF 失敗: $e');
+      debugPrint('列印失敗: $e');
       if (context.mounted) {
-        AppUX.showSnackBar(context, '產生 PDF 失敗，請重試', isError: true);
+        AppUX.showSnackBar(context, '列印失敗，請重試', isError: true);
       }
     }
   }
+
+  List<Mistake> _collectSelectedMistakes(WidgetRef ref) {
+    final selectedIds = ref.read(selectionNotifierProvider).selectedIds;
+    final mistakesAsync = ref.read(mistakesProvider);
+
+    return mistakesAsync.maybeWhen(
+      data: (allMistakes) {
+        return allMistakes
+            .where((m) => m.id != null && selectedIds.contains(m.id))
+            .toList();
+      },
+      orElse: () => <Mistake>[],
+    );
+  }
+
+  _ResolvedPrintRequest _resolvePrintRequest(
+    List<Mistake> mistakes,
+    PrintSettings settings,
+  ) {
+    if (settings.questionsPerPage == QuestionsPerPage.one) {
+      return _ResolvedPrintRequest(settings: settings, didAutoAdjust: false);
+    }
+
+    final threshold = switch (settings.questionsPerPage) {
+      QuestionsPerPage.one => double.infinity,
+      QuestionsPerPage.two => 760.0,
+      QuestionsPerPage.four => 420.0,
+    };
+
+    final shouldForceSingle = mistakes.any((mistake) {
+      final score = _estimateLayoutScore(mistake, settings);
+      return score > threshold;
+    });
+
+    if (!shouldForceSingle) {
+      return _ResolvedPrintRequest(settings: settings, didAutoAdjust: false);
+    }
+
+    return _ResolvedPrintRequest(
+      settings: settings.copyWith(questionsPerPage: QuestionsPerPage.one),
+      didAutoAdjust: true,
+    );
+  }
+
+  double _estimateLayoutScore(Mistake mistake, PrintSettings settings) {
+    final titleLength = mistake.title.trim().length;
+    final relevantSolutionChars = _estimateRelevantSolutionChars(
+      mistake,
+      settings.contentOption,
+    );
+    final newlineCount = '\n'.allMatches(mistake.title).length +
+        mistake.solutions
+            .map((item) => '\n'.allMatches(item).length)
+            .fold<int>(0, (sum, count) => sum + count);
+
+    double score = titleLength * 0.35 + relevantSolutionChars * 0.42;
+    score += newlineCount * 24;
+
+    if (settings.includeImages && mistake.imagePath.trim().isNotEmpty) {
+      score += switch (settings.questionsPerPage) {
+        QuestionsPerPage.one => 120,
+        QuestionsPerPage.two => 240,
+        QuestionsPerPage.four => 320,
+      };
+    }
+
+    if (mistake.hasAiCorrection) {
+      score += 110;
+    }
+
+    score += mistake.tagsForDisplay.length * 18;
+    return score;
+  }
+
+  int _estimateRelevantSolutionChars(
+    Mistake mistake,
+    PrintContentOption option,
+  ) {
+    final normalized = mistake.solutions.map((item) => item.trim()).toList();
+
+    switch (option) {
+      case PrintContentOption.questionOnly:
+        return 0;
+      case PrintContentOption.questionAndAnswer:
+        final answerLike = normalized.where((item) {
+          return item.startsWith('正確答案：') ||
+              item.contains('答案') ||
+              item.contains('故答案') ||
+              item.contains('因此答案');
+        }).join('\n');
+        if (answerLike.isNotEmpty) return answerLike.length;
+        return normalized.isNotEmpty ? normalized.first.length : 0;
+      case PrintContentOption.full:
+        return normalized.join('\n').length;
+      case PrintContentOption.withNote:
+        final noteLike = normalized.where((item) {
+          return item.contains('易錯') ||
+              item.contains('提醒') ||
+              item.contains('筆記') ||
+              item.contains('正確答案：') ||
+              item.contains('依答案推斷解法');
+        }).join('\n');
+        return noteLike.isNotEmpty ? noteLike.length : 80;
+    }
+  }
+}
+
+class _ResolvedPrintRequest {
+  final PrintSettings settings;
+  final bool didAutoAdjust;
+
+  const _ResolvedPrintRequest({
+    required this.settings,
+    required this.didAutoAdjust,
+  });
 }
 
 /// 內容選項卡片

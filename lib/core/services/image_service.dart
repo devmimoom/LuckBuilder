@@ -1,10 +1,15 @@
 import 'dart:io';
+
+import 'package:app_settings/app_settings.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
-import '../utils/app_ux.dart'; // 引用您的 UX 工具箱
+import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../theme/app_fonts.dart';
+import '../utils/app_ux.dart';
 
 class ImageService {
   // 單例模式
@@ -49,18 +54,123 @@ class ImageService {
       return compressedFile;
     } catch (e) {
       debugPrint("拍照錯誤: $e");
-      // 簡單的模擬器防呆：如果 Crash，通常是因為模擬器沒相機
-      if (e.toString().contains("camera_access_denied") ||
-          e.toString().contains("Source not supported")) {
-        if (context.mounted) {
-          AppUX.showSnackBar(context, "此裝置不支援相機，請改用相簿", isError: true);
-        }
-      } else {
-        if (context.mounted) {
+      final message = e.toString();
+      final isSimulatorNoCamera =
+          message.contains("Source not supported") && fromCamera;
+      final isCameraPermissionDenied = fromCamera &&
+          (message.contains("camera_access_denied") ||
+              message.contains("CameraAccessDenied") ||
+              message.contains("permission_denied"));
+
+      if (context.mounted) {
+        if (isSimulatorNoCamera) {
+          AppUX.showSnackBar(
+            context,
+            "此裝置不支援相機（例如模擬器），請改用相簿",
+            isError: true,
+          );
+        } else if (isCameraPermissionDenied) {
+          _showCameraPermissionDeniedDialog(context);
+        } else {
           AppUX.showSnackBar(context, "讀取圖片失敗，請重試", isError: true);
         }
       }
       return null;
+    }
+  }
+
+  /// 相機權限被關閉時，說明如何到系統設定重新開啟。
+  static Future<void> _showCameraPermissionDeniedDialog(
+    BuildContext context,
+  ) async {
+    final instruction = Platform.isIOS
+        ? '1. 開啟「設定」\n'
+            '2. 向下捲動並點選「LuckLab」\n'
+            '3. 點選「相機」\n'
+            '4. 改為「允許」後回到本 App 再試一次'
+        : '1. 開啟「設定」\n'
+            '2. 依序進入「應用程式」→「LuckLab」\n'
+            '3. 點選「權限」→「相機」\n'
+            '4. 改為「允許」後回到本 App 再試一次';
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          '相機權限已關閉',
+          style: AppFonts.resolve(
+            const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            instruction,
+            style: AppFonts.resolve(
+              const TextStyle(
+                fontSize: 15,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              '關閉',
+              style: AppFonts.resolve(
+                const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await _openAppSettingsPage(context);
+            },
+            child: Text(
+              '前往設定',
+              style: AppFonts.resolve(
+                const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// iOS：`app_settings` 會先 `canOpenURL`，在部分系統上會誤判而完全不開啟。
+  /// 改以 `url_launcher` 開啟 `app-settings:`（等同系統「此 App 的設定」）。
+  /// Android：仍用 `AppSettings.openAppSettings()`（走 `ACTION_APPLICATION_DETAILS_SETTINGS`）。
+  static Future<void> _openAppSettingsPage(BuildContext context) async {
+    void showOpenFailed() {
+      if (context.mounted) {
+        AppUX.showSnackBar(
+          context,
+          '無法自動開啟設定，請手動到「設定」找到本 App，並開啟「相機」權限',
+          isError: true,
+        );
+      }
+    }
+
+    await Future<void>.delayed(Duration.zero);
+    try {
+      if (Platform.isIOS) {
+        final uri = Uri.parse('app-settings:');
+        final ok = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!ok) showOpenFailed();
+        return;
+      }
+      await AppSettings.openAppSettings();
+    } catch (_) {
+      showOpenFailed();
     }
   }
 

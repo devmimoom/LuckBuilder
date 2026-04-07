@@ -10,6 +10,7 @@ import '../../../core/services/gemini_service.dart' hide debugPrint;
 import '../../../core/services/image_service.dart';
 import '../../../core/services/math_ocr_service.dart';
 import '../../../core/utils/image_path_helper.dart';
+import '../../../core/database/models/mistake.dart';
 import '../../../core/widgets/premium_image_viewer.dart';
 import '../../camera/presentation/multi_crop_screen.dart';
 import '../../mistakes/providers/mistakes_provider.dart';
@@ -65,12 +66,24 @@ class _TutorChatMessage {
   const _TutorChatMessage({
     required this.role,
     required this.content,
+    this.isAlert = false,
   });
 
   final String role;
   final String content;
+  final bool isAlert;
 
   bool get isUser => role == 'user';
+}
+
+class _TutorCorrectionState {
+  const _TutorCorrectionState({
+    required this.correctAnswer,
+    required this.derivedExplanation,
+  });
+
+  final String correctAnswer;
+  final String derivedExplanation;
 }
 
 class _SolverPageState extends ConsumerState<SolverPage> {
@@ -78,9 +91,14 @@ class _SolverPageState extends ConsumerState<SolverPage> {
   bool _isRecoveringFullQuestionText = false;
   int _currentProblemIndex = 0; // 當前顯示的題目索引（用於多題目模式）
   late PageController _pageController;
-  final TextEditingController _tutorController = TextEditingController();
-  final List<_TutorChatMessage> _tutorMessages = <_TutorChatMessage>[];
-  bool _isTutorLoading = false;
+  final Map<String, TextEditingController> _tutorControllers =
+      <String, TextEditingController>{};
+  final Map<String, List<_TutorChatMessage>> _tutorMessagesByKey =
+      <String, List<_TutorChatMessage>>{};
+  final Map<String, _TutorCorrectionState> _tutorCorrectionsByKey =
+      <String, _TutorCorrectionState>{};
+  final Set<String> _tutorLoadingKeys = <String>{};
+  final Set<String> _awaitingCorrectAnswerKeys = <String>{};
   // 多題目模式下，記錄每個題目是否已保存
   final Set<int> _savedProblemIndices = <int>{};
   // 多題目模式下，記錄每個題目的標籤編輯狀態（用於臨時編輯）
@@ -186,6 +204,9 @@ class _SolverPageState extends ConsumerState<SolverPage> {
         } else if (widget.originalImage != null ||
             (widget.initialLatex != null && widget.initialLatex!.isNotEmpty)) {
           // 如果沒有預解析結果，則啟動分析流程
+          if (widget.originalImage != null && mounted) {
+            AppUX.showMathImageHintOnce(context);
+          }
           ref.read(solverNotifierProvider.notifier).startAnalysis(
                 imageFile: widget.originalImage,
                 initialLatex: widget.initialLatex,
@@ -241,13 +262,165 @@ class _SolverPageState extends ConsumerState<SolverPage> {
 
   @override
   void dispose() {
-    _tutorController.dispose();
+    for (final controller in _tutorControllers.values) {
+      controller.dispose();
+    }
     _pageController.dispose();
     // 不需要在 dispose 中重置狀態，因為：
     // 1. 每次進入頁面時 initState 都會重置並重新開始分析
     // 2. dispose 階段 ref 可能已經不可用，會導致錯誤
     // 3. Provider 會在沒有監聽者時自動清理
     super.dispose();
+  }
+
+  String get _singleTutorKey => 'single';
+
+  String _multiTutorKey(int index) => 'problem_$index';
+
+  TextEditingController _controllerFor(String conversationKey) {
+    return _tutorControllers.putIfAbsent(
+      conversationKey,
+      TextEditingController.new,
+    );
+  }
+
+  List<_TutorChatMessage> _messagesFor(String conversationKey) {
+    return _tutorMessagesByKey.putIfAbsent(
+      conversationKey,
+      () => <_TutorChatMessage>[],
+    );
+  }
+
+  bool _isTutorLoading(String conversationKey) {
+    return _tutorLoadingKeys.contains(conversationKey);
+  }
+
+  _TutorCorrectionState? _correctionFor(String conversationKey) {
+    return _tutorCorrectionsByKey[conversationKey];
+  }
+
+  bool _isCorrectionSolution(SolutionItem s) {
+    final t = s.title.trim();
+    return t == '正確答案' || t.contains('依答案推斷解法');
+  }
+
+  Widget _buildCorrectionSectionBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.edit_note_rounded,
+            color: Color(0xFFB91C1C),
+            size: 22,
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '以下含「正確答案」與「依答案推斷解法」；推斷內容僅供參考，請謹慎使用。',
+              style: TextStyle(
+                color: Color(0xFFB91C1C),
+                fontWeight: FontWeight.w600,
+                height: 1.45,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _shouldShowCorrectionSectionBanner({
+    required List<SolutionItem> solutions,
+    required String conversationKey,
+  }) {
+    if (_correctionFor(conversationKey) != null) return true;
+    return solutions.any(_isCorrectionSolution);
+  }
+
+  List<Widget> _buildSessionCorrectionCards(String conversationKey) {
+    final c = _correctionFor(conversationKey);
+    if (c == null) return const <Widget>[];
+    return <Widget>[
+      _buildSolutionCard(
+        SolutionItem(title: '正確答案', content: c.correctAnswer),
+        forceCorrectionStyle: true,
+      ),
+      _buildSolutionCard(
+        SolutionItem(
+          title: '依答案推斷解法（請謹慎使用）',
+          content: c.derivedExplanation,
+        ),
+        forceCorrectionStyle: true,
+      ),
+    ];
+  }
+
+  void _startTutorCorrectionFlow(String conversationKey) {
+    if (_isTutorLoading(conversationKey)) return;
+
+    final messages = _messagesFor(conversationKey);
+    final alreadyPrompted = _awaitingCorrectAnswerKeys.contains(conversationKey);
+    if (alreadyPrompted &&
+        messages.isNotEmpty &&
+        messages.last.content.contains('你已確認的正確答案')) {
+      return;
+    }
+
+    setState(() {
+      messages.add(
+        const _TutorChatMessage(
+          role: 'user',
+          content: 'AI 做錯了',
+          isAlert: true,
+        ),
+      );
+      messages.add(
+        const _TutorChatMessage(
+          role: 'assistant',
+          content:
+              '請直接告訴我你已確認的正確答案，例如「正確答案是 B」或「答案是 \\( x = 3 \\)」。\n我接下來只會根據你提供的答案，保守推斷可能解法；如果資訊不足，我會直接說不知道，並清楚標示這是依答案倒推，請謹慎使用。\n若你覺得是拍照或辨識把題目讀錯了，也可以改為重新拍一張較清晰、或重新框選完整題目後再解析一次。',
+          isAlert: true,
+        ),
+      );
+      _awaitingCorrectAnswerKeys.add(conversationKey);
+    });
+  }
+
+  List<String> _buildSaveTags({
+    required List<String> keyConcepts,
+    String? chapter,
+    required String conversationKey,
+  }) {
+    return <String>[
+      'AI 解析',
+      if (_correctionFor(conversationKey) != null) Mistake.aiCorrectionTag,
+      if (chapter != null && chapter.trim().isNotEmpty) chapter.trim(),
+      ...keyConcepts.where((c) => c != 'AI 解析').take(5),
+    ];
+  }
+
+  List<String> _buildSaveSolutionStrings({
+    required Iterable<String> baseSolutions,
+    required String conversationKey,
+  }) {
+    final solutionStrings = List<String>.from(baseSolutions);
+    final correction = _correctionFor(conversationKey);
+    if (correction == null) return solutionStrings;
+
+    solutionStrings.add('正確答案：${correction.correctAnswer}');
+    solutionStrings.add(
+      '依答案推斷解法（請謹慎使用）：${correction.derivedExplanation}',
+    );
+    return solutionStrings;
   }
 
   /// 監聽 subject 和 category 的變化，如果有 mistakeId 則更新資料庫
@@ -355,17 +528,20 @@ class _SolverPageState extends ConsumerState<SolverPage> {
           await ImagePathHelper.saveImage(widget.originalImage!);
 
       // 將解法轉為字串列表
-      final solutionStrings =
-          solverState.solutions.map((s) => "${s.title}：${s.content}").toList();
+      final solutionStrings = _buildSaveSolutionStrings(
+        baseSolutions:
+            solverState.solutions.map((s) => "${s.title}：${s.content}"),
+        conversationKey: _singleTutorKey,
+      );
 
       await ref.read(mistakesProvider.notifier).addMistake(
             imagePath: permanentPath,
             title: solverState.recognizedLatex!,
-            tags: [
-              'AI 解析',
-              if (solverState.chapter != null) solverState.chapter!,
-              ...solverState.keyConcepts.where((c) => c != 'AI 解析').take(5),
-            ],
+            tags: _buildSaveTags(
+              keyConcepts: solverState.keyConcepts,
+              chapter: solverState.chapter,
+              conversationKey: _singleTutorKey,
+            ),
             solutions: solutionStrings,
             subject: solverState.subject ?? '其他',
             category: solverState.category ?? '一般',
@@ -373,7 +549,10 @@ class _SolverPageState extends ConsumerState<SolverPage> {
           );
 
       if (mounted) {
-        setState(() => _isSaved = true);
+        setState(() {
+          _isSaved = true;
+          _tutorCorrectionsByKey.remove(_singleTutorKey);
+        });
         AppUX.feedbackSuccess();
         AppUX.showSnackBar(context, "已加入錯題本");
       }
@@ -528,7 +707,21 @@ class _SolverPageState extends ConsumerState<SolverPage> {
 
           if (state.status == SolverStatus.completed) ...[
             const SizedBox(height: 24),
-            _buildTutorSection(state),
+            _buildTutorSection(
+              conversationKey: _singleTutorKey,
+              questionText: state.recognizedLatex ?? widget.initialLatex ?? '',
+              subject: state.subject,
+              category: state.category,
+              chapter: state.chapter,
+              keyConcepts:
+                  state.keyConcepts.where((item) => item != 'AI 解析').toList(),
+              solutions: state.solutions
+                  .map((solution) => {
+                        'title': solution.title,
+                        'content': solution.content,
+                      })
+                  .toList(),
+            ),
           ],
 
           const SizedBox(height: 20), // 移除底部留白，因為 FAB 已經移到標題旁
@@ -694,7 +887,22 @@ class _SolverPageState extends ConsumerState<SolverPage> {
           _buildSolutionHeaderForMulti(index),
           const SizedBox(height: 16),
 
-          _buildSolutionAreaForMulti(problem),
+          _buildSolutionAreaForMulti(problem, index),
+
+          const SizedBox(height: 24),
+
+          _buildTutorSection(
+            conversationKey: _multiTutorKey(index),
+            questionText: problem['latex']?.toString() ?? '',
+            subject: problem['subject']?.toString(),
+            category: problem['category']?.toString(),
+            chapter: problem['chapter']?.toString(),
+            keyConcepts: ((problem['keyConcepts'] as List<dynamic>?) ?? [])
+                .map((item) => item.toString())
+                .where((item) => item != 'AI 解析')
+                .toList(),
+            solutions: _buildTutorSolutions(problem['solutions']),
+          ),
 
           const SizedBox(height: 20),
         ],
@@ -1051,14 +1259,17 @@ class _SolverPageState extends ConsumerState<SolverPage> {
 
       // 從 problem 中獲取解法數據
       final solutions = (problem['solutions'] as List<dynamic>?) ?? [];
-      final solutionStrings = solutions.map((s) {
-        if (s is Map<String, dynamic>) {
-          return "${s['title'] ?? '解法'}：${s['content'] ?? ''}";
-        } else if (s is String) {
-          return s;
-        }
-        return s.toString();
-      }).toList();
+      final solutionStrings = _buildSaveSolutionStrings(
+        baseSolutions: solutions.map((s) {
+          if (s is Map<String, dynamic>) {
+            return "${s['title'] ?? '解法'}：${s['content'] ?? ''}";
+          } else if (s is String) {
+            return s;
+          }
+          return s.toString();
+        }),
+        conversationKey: _multiTutorKey(problemIndex),
+      );
 
       // 從 problem 中獲取其他數據
       final latex = problem['latex']?.toString() ?? '';
@@ -1077,11 +1288,11 @@ class _SolverPageState extends ConsumerState<SolverPage> {
       ref.read(mistakesProvider.notifier).addMistake(
             imagePath: permanentPath,
             title: latex.isNotEmpty ? latex : '題目 ${problemIndex + 1}',
-            tags: [
-              'AI 解析',
-              if (chapter != null) chapter,
-              ...keyConcepts.where((c) => c != 'AI 解析').take(5),
-            ],
+            tags: _buildSaveTags(
+              keyConcepts: keyConcepts,
+              chapter: chapter,
+              conversationKey: _multiTutorKey(problemIndex),
+            ),
             solutions: solutionStrings,
             subject: subject,
             category: category,
@@ -1091,6 +1302,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
       if (mounted) {
         setState(() {
           _savedProblemIndices.add(problemIndex);
+          _tutorCorrectionsByKey.remove(_multiTutorKey(problemIndex));
         });
         AppUX.feedbackSuccess();
         AppUX.showSnackBar(context, "已加入錯題本");
@@ -1104,7 +1316,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
   }
 
   /// 為多題目模式構建解法區域
-  Widget _buildSolutionAreaForMulti(Map<String, dynamic> problem) {
+  Widget _buildSolutionAreaForMulti(Map<String, dynamic> problem, int index) {
     final solutions = (problem['solutions'] as List<dynamic>?)?.map((s) {
           if (s is Map<String, dynamic>) {
             return SolutionItem(
@@ -1128,14 +1340,55 @@ class _SolverPageState extends ConsumerState<SolverPage> {
         }).toList() ??
         [];
 
-    if (solutions.isEmpty) {
+    final convKey = _multiTutorKey(index);
+    final sessionCorrection = _correctionFor(convKey);
+    final hasContent = solutions.isNotEmpty || sessionCorrection != null;
+    if (!hasContent) {
       return const Center(child: Text("暫無解法資料"));
     }
 
-    return Column(
-      children:
-          solutions.map((solution) => _buildSolutionCard(solution)).toList(),
+    final showBanner = _shouldShowCorrectionSectionBanner(
+      solutions: solutions,
+      conversationKey: convKey,
     );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showBanner) ...[
+          _buildCorrectionSectionBanner(),
+          const SizedBox(height: 12),
+        ],
+        ...solutions.map((solution) => _buildSolutionCard(solution)),
+        ..._buildSessionCorrectionCards(convKey),
+      ],
+    );
+  }
+
+  List<Map<String, String>> _buildTutorSolutions(dynamic rawSolutions) {
+    if (rawSolutions is! List) return const <Map<String, String>>[];
+
+    return rawSolutions.map<Map<String, String>>((item) {
+      if (item is Map<String, dynamic>) {
+        return {
+          'title': item['title']?.toString() ?? '解法',
+          'content': item['content']?.toString() ?? '',
+        };
+      }
+      if (item is String && item.contains('：')) {
+        final colonIndex = item.indexOf('：');
+        return {
+          'title': item.substring(0, colonIndex).trim(),
+          'content': colonIndex < item.length - 1
+              ? item.substring(colonIndex + 1).trim()
+              : '',
+        };
+      }
+      return {
+        'title': '解法',
+        'content': item?.toString() ?? '',
+      };
+    }).toList();
   }
 
   Widget _buildProblemPreview(SolverResult state) {
@@ -1362,70 +1615,136 @@ class _SolverPageState extends ConsumerState<SolverPage> {
       case SolverStatus.failed:
         return _buildErrorCard(state.errorMessage ?? "發生未知錯誤");
       case SolverStatus.completed:
-        if (state.solutions.isEmpty) {
+        final convKey = _singleTutorKey;
+        final sessionCorrection = _correctionFor(convKey);
+        final hasContent =
+            state.solutions.isNotEmpty || sessionCorrection != null;
+        if (!hasContent) {
           return const Center(child: Text("暫無解法資料"));
         }
+        final showBanner = _shouldShowCorrectionSectionBanner(
+          solutions: state.solutions,
+          conversationKey: convKey,
+        );
         return Column(
-          children: state.solutions
-              .map((solution) => _buildSolutionCard(solution))
-              .toList(),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showBanner) ...[
+              _buildCorrectionSectionBanner(),
+              const SizedBox(height: 12),
+            ],
+            ...state.solutions
+                .map((solution) => _buildSolutionCard(solution)),
+            ..._buildSessionCorrectionCards(convKey),
+          ],
         );
     }
   }
 
-  Future<void> _submitTutorQuestion(
-    SolverResult state, {
+  Future<void> _submitTutorQuestion({
+    required String conversationKey,
+    required String questionText,
+    String? subject,
+    String? category,
+    String? chapter,
+    List<String> keyConcepts = const [],
+    List<Map<String, String>> solutions = const [],
     String? presetQuestion,
   }) async {
-    final question = (presetQuestion ?? _tutorController.text).trim();
-    if (question.isEmpty || _isTutorLoading) return;
+    final controller = _controllerFor(conversationKey);
+    final question = (presetQuestion ?? controller.text).trim();
+    if (question.isEmpty || _isTutorLoading(conversationKey)) return;
 
     FocusScope.of(context).unfocus();
     if (presetQuestion == null) {
-      _tutorController.clear();
+      controller.clear();
     }
 
+    final messages = _messagesFor(conversationKey);
+    final isAwaitingCorrectAnswer =
+        _awaitingCorrectAnswerKeys.contains(conversationKey);
+
     setState(() {
-      _tutorMessages.add(_TutorChatMessage(role: 'user', content: question));
-      _isTutorLoading = true;
+      messages.add(
+        _TutorChatMessage(
+          role: 'user',
+          content: question,
+          isAlert: isAwaitingCorrectAnswer,
+        ),
+      );
+      _tutorLoadingKeys.add(conversationKey);
     });
 
-    final reply = await GeminiService().askTutorFollowUp(
-      questionText: state.recognizedLatex ?? widget.initialLatex ?? '',
-      studentQuestion: question,
-      subject: state.subject,
-      category: state.category,
-      chapter: state.chapter,
-      keyConcepts: state.keyConcepts.where((item) => item != 'AI 解析').toList(),
-      solutions: state.solutions
-          .map((solution) => {
-                'title': solution.title,
-                'content': solution.content,
-              })
-          .toList(),
-      history: _tutorMessages
-          .map((message) => {
-                'role': message.role,
-                'content': message.content,
-              })
-          .toList(),
-    );
+    final history = messages
+        .map((message) => {
+              'role': message.role,
+              'content': message.content,
+            })
+        .toList();
+
+    const fallbackCorrectionReply = '資訊不足，無法可靠推斷，請僅把正確答案當作更正依據。';
+    final reply = isAwaitingCorrectAnswer
+        ? await GeminiService().inferSolutionFromCorrectAnswer(
+            questionText: questionText,
+            correctAnswer: question,
+            subject: subject,
+            category: category,
+            chapter: chapter,
+            keyConcepts: keyConcepts,
+            solutions: solutions,
+            history: history,
+          )
+        : await GeminiService().askTutorFollowUp(
+            questionText: questionText,
+            studentQuestion: question,
+            subject: subject,
+            category: category,
+            chapter: chapter,
+            keyConcepts: keyConcepts,
+            solutions: solutions,
+            history: history,
+          );
 
     if (!mounted) return;
     setState(() {
-      _tutorMessages.add(
+      final resolvedReply = reply?.trim().isNotEmpty == true
+          ? reply!.trim()
+          : (isAwaitingCorrectAnswer
+              ? fallbackCorrectionReply
+              : '這次沒有成功回覆，你可以換個問法再問一次。');
+      messages.add(
         _TutorChatMessage(
           role: 'assistant',
-          content: reply?.trim().isNotEmpty == true
-              ? reply!.trim()
-              : '這次沒有成功回覆，你可以換個問法再問一次。',
+          content: resolvedReply,
+          isAlert: isAwaitingCorrectAnswer,
         ),
       );
-      _isTutorLoading = false;
+      if (isAwaitingCorrectAnswer) {
+        _tutorCorrectionsByKey[conversationKey] = _TutorCorrectionState(
+          correctAnswer: question,
+          derivedExplanation: resolvedReply,
+        );
+      }
+      _tutorLoadingKeys.remove(conversationKey);
+      if (isAwaitingCorrectAnswer) {
+        _awaitingCorrectAnswerKeys.remove(conversationKey);
+      }
     });
   }
 
-  Widget _buildTutorSection(SolverResult state) {
+  Widget _buildTutorSection({
+    required String conversationKey,
+    required String questionText,
+    String? subject,
+    String? category,
+    String? chapter,
+    List<String> keyConcepts = const [],
+    List<Map<String, String>> solutions = const [],
+  }) {
+    final messages = _messagesFor(conversationKey);
+    final controller = _controllerFor(conversationKey);
+    final isLoading = _isTutorLoading(conversationKey);
+    final correction = _correctionFor(conversationKey);
     final quickQuestions = [
       '這一步為什麼可以這樣做？',
       '有沒有更快的方法？',
@@ -1466,11 +1785,11 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'AI 互動問答',
                       style: TextStyle(
                         fontSize: 18,
@@ -1478,10 +1797,12 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      '看不懂哪一步，就直接追問。',
-                      style: TextStyle(
+                      widget.isFromMistakes
+                          ? '看不懂哪一步就直接追問。'
+                          : '看不懂哪一步就直接追問；若 AI 解錯，也可以改用正確答案保守更正。',
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13,
                       ),
@@ -1495,24 +1816,65 @@ class _SolverPageState extends ConsumerState<SolverPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: quickQuestions
-                .map(
-                  (question) => ActionChip(
-                    label: Text(question),
-                    backgroundColor: const Color(0xFFF5F7FF),
-                    side: const BorderSide(color: Color(0xFFDCE3FF)),
-                    onPressed: _isTutorLoading
-                        ? null
-                        : () => _submitTutorQuestion(
-                              state,
-                              presetQuestion: question,
-                            ),
+            children: [
+              if (!widget.isFromMistakes)
+                ActionChip(
+                  label: const Text(
+                    'AI 做錯了',
+                    style: TextStyle(
+                      color: Color(0xFFB91C1C),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                )
-                .toList(),
+                  backgroundColor: const Color(0xFFFEF2F2),
+                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                  onPressed: isLoading
+                      ? null
+                      : () => _startTutorCorrectionFlow(conversationKey),
+                ),
+              ...quickQuestions.map(
+                (question) => ActionChip(
+                  label: Text(question),
+                  backgroundColor: const Color(0xFFF5F7FF),
+                  side: const BorderSide(color: Color(0xFFDCE3FF)),
+                  onPressed: isLoading
+                      ? null
+                      : () => _submitTutorQuestion(
+                            conversationKey: conversationKey,
+                            questionText: questionText,
+                            subject: subject,
+                            category: category,
+                            chapter: chapter,
+                            keyConcepts: keyConcepts,
+                            solutions: solutions,
+                            presetQuestion: question,
+                          ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          if (_tutorMessages.isEmpty)
+          if (correction != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFCA5A5)),
+              ),
+              child: const Text(
+                '已記住更正資料。加入錯題本時會一併保存「正確答案」與「依答案推斷解法（請謹慎使用）」。',
+                style: TextStyle(
+                  color: Color(0xFFB91C1C),
+                  height: 1.55,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (messages.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -1520,9 +1882,11 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                 color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text(
-                '你可以問：這一步為什麼要移項？為什麼這裡可以約分？這題有沒有更快的判斷方式？',
-                style: TextStyle(
+              child: Text(
+                widget.isFromMistakes
+                    ? '你可以問：這一步為什麼要移項？為什麼這裡可以約分？這題有沒有更快的判斷方式？'
+                    : '你可以問：這一步為什麼要移項？為什麼這裡可以約分？這題有沒有更快的判斷方式？如果 AI 解錯了，也可以先點上方紅色「AI 做錯了」，再提供你已確認的正確答案。',
+                style: const TextStyle(
                   color: AppColors.textSecondary,
                   height: 1.6,
                 ),
@@ -1530,11 +1894,11 @@ class _SolverPageState extends ConsumerState<SolverPage> {
             )
           else
             Column(
-              children: _tutorMessages
+              children: messages
                   .map((message) => _buildTutorMessageBubble(message))
                   .toList(),
             ),
-          if (_isTutorLoading) ...[
+          if (isLoading) ...[
             const SizedBox(height: 12),
             _buildTutorLoadingBubble(),
           ],
@@ -1544,12 +1908,14 @@ class _SolverPageState extends ConsumerState<SolverPage> {
             children: [
               Expanded(
                 child: TextField(
-                  controller: _tutorController,
+                  controller: controller,
                   minLines: 1,
                   maxLines: 4,
                   textInputAction: TextInputAction.send,
                   decoration: InputDecoration(
-                    hintText: '輸入你看不懂的地方...',
+                    hintText: _awaitingCorrectAnswerKeys.contains(conversationKey)
+                        ? '請輸入你已確認的正確答案...'
+                        : '輸入你看不懂的地方...',
                     filled: true,
                     fillColor: const Color(0xFFF8FAFC),
                     border: OutlineInputBorder(
@@ -1561,13 +1927,30 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                       vertical: 12,
                     ),
                   ),
-                  onSubmitted: (_) => _submitTutorQuestion(state),
+                  onSubmitted: (_) => _submitTutorQuestion(
+                    conversationKey: conversationKey,
+                    questionText: questionText,
+                    subject: subject,
+                    category: category,
+                    chapter: chapter,
+                    keyConcepts: keyConcepts,
+                    solutions: solutions,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               FilledButton(
-                onPressed:
-                    _isTutorLoading ? null : () => _submitTutorQuestion(state),
+                onPressed: isLoading
+                    ? null
+                    : () => _submitTutorQuestion(
+                          conversationKey: conversationKey,
+                          questionText: questionText,
+                          subject: subject,
+                          category: category,
+                          chapter: chapter,
+                          keyConcepts: keyConcepts,
+                          solutions: solutions,
+                        ),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.textPrimary,
                   foregroundColor: Colors.white,
@@ -1587,6 +1970,15 @@ class _SolverPageState extends ConsumerState<SolverPage> {
 
   Widget _buildTutorMessageBubble(_TutorChatMessage message) {
     final isUser = message.isUser;
+    final backgroundColor = message.isAlert
+        ? (isUser ? const Color(0xFFB91C1C) : const Color(0xFFFEF2F2))
+        : (isUser ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC));
+    final borderColor = message.isAlert
+        ? (isUser ? const Color(0xFFB91C1C) : const Color(0xFFFCA5A5))
+        : (isUser ? const Color(0xFF1F2937) : const Color(0xFFE5E7EB));
+    final textColor = message.isAlert && !isUser
+        ? const Color(0xFFB91C1C)
+        : (isUser ? Colors.white : AppColors.textPrimary);
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -1601,21 +1993,17 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isUser
-                      ? const Color(0xFF1F2937)
-                      : const Color(0xFFF8FAFC),
+                  color: backgroundColor,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isUser
-                        ? const Color(0xFF1F2937)
-                        : const Color(0xFFE5E7EB),
+                    color: borderColor,
                   ),
                 ),
                 child: isUser
                     ? Text(
                         message.content,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: textColor,
                           height: 1.55,
                         ),
                       )
@@ -1623,7 +2011,7 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                         text: message.content,
                         fontSize: 14,
                         lineHeight: 1.7,
-                        textColor: AppColors.textPrimary,
+                        textColor: textColor,
                       ),
               ),
             ),
@@ -1662,14 +2050,23 @@ class _SolverPageState extends ConsumerState<SolverPage> {
     );
   }
 
-  Widget _buildSolutionCard(SolutionItem solution) {
+  Widget _buildSolutionCard(
+    SolutionItem solution, {
+    bool forceCorrectionStyle = false,
+  }) {
+    final isCorrection = forceCorrectionStyle || _isCorrectionSolution(solution);
     // 根據標題選擇顏色和樣式
     Color tagColor = const Color(0xFF2196F3);
     IconData tagIcon = Icons.lightbulb_outline;
     Color backgroundColor = const Color(0xFFF5F9FF);
     Color iconBackgroundColor = const Color(0xFFE3F2FD);
 
-    if (solution.title.contains("速解") || solution.title.contains("技巧")) {
+    if (isCorrection) {
+      tagColor = const Color(0xFFB91C1C);
+      backgroundColor = const Color(0xFFFEF2F2);
+      iconBackgroundColor = const Color(0xFFFEE2E2);
+      tagIcon = Icons.edit_note_rounded;
+    } else if (solution.title.contains("速解") || solution.title.contains("技巧")) {
       tagColor = const Color(0xFFFF9800);
       backgroundColor = const Color(0xFFFFF8F0);
       iconBackgroundColor = const Color(0xFFFFE0B2);
@@ -1692,12 +2089,17 @@ class _SolverPageState extends ConsumerState<SolverPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(
+          color: isCorrection ? const Color(0xFFFCA5A5) : const Color(0xFFEEEEEE),
+          width: isCorrection ? 2 : 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: isCorrection
+                ? const Color(0xFFB91C1C).withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.03),
             offset: const Offset(0, 2),
-            blurRadius: 12,
+            blurRadius: isCorrection ? 14 : 12,
           ),
         ],
       ),
@@ -1735,17 +2137,45 @@ class _SolverPageState extends ConsumerState<SolverPage> {
                 const SizedBox(width: 14),
                 // 標題
                 Expanded(
-                  child: Text(
-                    LatexHelper.toReadableText(
-                      solution.title,
-                      fallback: '解法',
-                    ),
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: tagColor,
-                      height: 1.3,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isCorrection)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFB91C1C),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '使用者更正',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      Text(
+                        LatexHelper.toReadableText(
+                          solution.title,
+                          fallback: '解法',
+                        ),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: tagColor,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

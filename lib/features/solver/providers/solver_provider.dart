@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' as foundation;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/services/gemini_service.dart' hide debugPrint;
 import '../../../core/services/math_ocr_service.dart';
+import '../../../core/utils/latex_helper.dart';
 
 part 'solver_provider.g.dart';
 
@@ -186,6 +187,7 @@ class SolverNotifier extends _$SolverNotifier {
     final response = await GeminiService().solveProblem(
       questionText,
       imageFile: imageFile,
+      forceAttachImageFromPipeline: true,
     );
 
     if (response == null) {
@@ -200,7 +202,7 @@ class SolverNotifier extends _$SolverNotifier {
       String errorMessage = "AI 解題服務暫時無法使用";
       if (!isReady) {
         errorMessage =
-            "AI 解題服務未初始化，請確認 GEMINI_API_KEY 已正確設定。當前使用 gemini-pro 模型，如果失敗會嘗試 gemini-1.5-flash";
+            "AI 解題服務未初始化，請確認 GEMINI_API_KEY 已正確設定。預設使用 gemini-2.0-flash，若不可用會自動嘗試 gemini-1.5-flash 等備用模型。";
       }
 
       state = state.copyWith(
@@ -212,7 +214,7 @@ class SolverNotifier extends _$SolverNotifier {
           ),
           SolutionItem(
             title: "提示",
-            content: "$errorMessage。請檢查 .env 檔案中的 GEMINI_API_KEY 設定。",
+            content: "$errorMessage。請確認建置時已以 --dart-define 注入 GEMINI_API_KEY。",
           ),
         ],
       );
@@ -290,8 +292,16 @@ class SolverNotifier extends _$SolverNotifier {
       debugPrint("   keyConcepts: $keyConcepts");
       debugPrint("   solutions count: ${solutions.length}");
 
+      final refinedQt = response['question_text']?.toString().trim() ?? '';
+      final displayLatex = refinedQt.isNotEmpty
+          ? LatexHelper.stripEditorialFigurePhrases(
+              LatexHelper.normalizeModelText(refinedQt),
+            )
+          : null;
+
       state = state.copyWith(
         status: SolverStatus.completed,
+        recognizedLatex: displayLatex ?? state.recognizedLatex ?? questionText,
         subject: subject,
         gradeLevel: gradeLevel,
         category: category,

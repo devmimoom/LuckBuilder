@@ -1,14 +1,12 @@
 import 'dart:async';
-import 'dart:io' show Platform;
-
 import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+import 'core/config/app_environment.dart';
+import 'core/services/revenuecat_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/banner_notification_service.dart';
 import 'core/services/gemini_service.dart' hide debugPrint;
@@ -16,24 +14,10 @@ import 'features/home/presentation/main_tab_screen.dart';
 import 'features/home/presentation/widgets/home_mesh_background.dart';
 import 'features/review/presentation/review_page.dart';
 import 'features/settings/providers/home_background_preset_provider.dart';
+import 'features/subscription/providers/entitlement_provider.dart';
 
 Future<void> _initRevenueCat() async {
-  try {
-    await Purchases.setLogLevel(LogLevel.debug);
-    final iosKey = dotenv.get('REVENUECAT_IOS_API_KEY', fallback: '');
-    final androidKey = dotenv.get('REVENUECAT_ANDROID_API_KEY', fallback: '');
-    final apiKey = Platform.isIOS
-        ? iosKey
-        : (Platform.isAndroid ? androidKey : '');
-    if (apiKey.isEmpty) {
-      debugPrint('⚠️ RevenueCat API Key 未設定，略過初始化');
-      return;
-    }
-    await Purchases.configure(PurchasesConfiguration(apiKey));
-    debugPrint('✅ RevenueCat 初始化完成');
-  } catch (e) {
-    debugPrint('❌ RevenueCat 初始化失敗: $e');
-  }
+  await RevenueCatService.instance.configure();
 }
 
 Future<void> _initFirebase() async {
@@ -58,21 +42,12 @@ void main() async {
     tz.setLocalLocation(tz.UTC);
   }
 
-  // 1. 載入環境變數（使用 try-catch 確保不會阻塞啟動）
-  try {
-    await dotenv.load(fileName: ".env");
-
-    // 檢查 Gemini API Key（現在使用 Gemini 進行 OCR，不再需要 Mathpix）
-    final geminiKey = dotenv.get('GEMINI_API_KEY', fallback: '');
-    if (geminiKey.isEmpty) {
-      debugPrint("⚠️ 警告: GEMINI_API_KEY 未設定");
-    } else {
-      debugPrint("✅ Gemini API Key 已載入");
-    }
-  } catch (e) {
-    debugPrint("❌ 載入 .env 檔案失敗: $e");
-    debugPrint("   請確認專案根目錄有 .env 檔案");
-    debugPrint("   應用將繼續運行，但 API 功能可能無法使用");
+  // 1. 機密以編譯期 --dart-define / --dart-define-from-file 注入（勿將 .env 放進 assets）
+  final geminiKey = AppEnvironment.geminiApiKey;
+  if (geminiKey.isEmpty) {
+    debugPrint("⚠️ 警告: GEMINI_API_KEY 未設定（請使用 --dart-define-from-file=.env 或個別 --dart-define）");
+  } else {
+    debugPrint("✅ Gemini API Key 已透過 dart-define 載入");
   }
 
   // 2. 初始化 AI 服務（等待初始化完成，但設置超時避免阻塞太久）
@@ -119,7 +94,7 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSub;
@@ -127,7 +102,15 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initAppLinks();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(entitlementProvider.notifier).refreshEntitlement();
+    }
   }
 
   Future<void> _initAppLinks() async {
@@ -161,6 +144,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _linkSub?.cancel();
     super.dispose();
   }

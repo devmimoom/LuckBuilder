@@ -3,8 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' as foundation;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import '../config/app_environment.dart';
 import '../utils/latex_helper.dart';
 import 'gemini_service.dart' hide debugPrint;
 
@@ -32,12 +31,11 @@ class MathOcrService {
   );
 
   String get _providerSetting =>
-      dotenv.get('MATH_OCR_PROVIDER', fallback: 'auto').trim().toLowerCase();
+      AppEnvironment.mathOcrProvider.trim().toLowerCase();
 
-  String get _mathpixAppId => dotenv.get('MATHPIX_APP_ID', fallback: '').trim();
+  String get _mathpixAppId => AppEnvironment.mathpixAppId;
 
-  String get _mathpixAppKey =>
-      dotenv.get('MATHPIX_APP_KEY', fallback: '').trim();
+  String get _mathpixAppKey => AppEnvironment.mathpixAppKey;
 
   bool get _hasMathpixConfig =>
       _mathpixAppId.isNotEmpty && _mathpixAppKey.isNotEmpty;
@@ -150,6 +148,7 @@ class MathOcrService {
       rawText,
       preserveLineBreaks: true,
     );
-    return normalized.isEmpty ? null : normalized;
+    if (normalized.isEmpty) return null;
+    return LatexHelper.stripEditorialFigurePhrases(normalized);
   }
 }

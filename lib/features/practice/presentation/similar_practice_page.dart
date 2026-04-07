@@ -38,6 +38,7 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
   final TextEditingController _questionController = TextEditingController();
 
   File? _sourceImage;
+  String? _recognizedQuestionText; // 圖片輔助 OCR 結果（不回填到輸入框）
   _SimilarPracticeResult? _result;
   bool _isGenerating = false;
   bool _isRecognizingImage = false;
@@ -136,7 +137,7 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
             maxLines: 10,
             textInputAction: TextInputAction.newline,
             decoration: InputDecoration(
-              hintText: '例如：已知 \\(2x + 5 = 17\\)，求 \\(x\\) 的值。',
+              hintText: '例如：已知 2x + 5 = 17，求 x 的值。',
               filled: true,
               fillColor: AppColors.surface,
               border: OutlineInputBorder(
@@ -171,6 +172,7 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
                     AppUX.feedbackClick();
                     setState(() {
                       _sourceImage = null;
+                      _recognizedQuestionText = null;
                     });
                   },
                   icon: const Icon(Icons.close),
@@ -196,24 +198,6 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
                 fontSize: 12,
                 color: AppColors.textTertiary,
                 height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFE082)),
-              ),
-              child: const Text(
-                '圖片的練習題功能開發中',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                  height: 1.45,
-                ),
               ),
             ),
           ],
@@ -295,7 +279,7 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'AI 正在辨識圖片中的題目文字，完成後會自動帶入輸入框。',
+              'AI 正在辨識圖片中的題目文字。',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 height: 1.5,
@@ -587,16 +571,20 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
 
     setState(() {
       _sourceImage = File(cropPath);
+      _recognizedQuestionText = null;
       _result = null;
       _errorMessage = null;
       _showAnswer = false;
       _hasSavedCurrentResult = false;
     });
 
-    await _recognizeImageQuestion(File(cropPath));
+    await _recognizeImageQuestion(File(cropPath), autoGenerate: true);
   }
 
-  Future<void> _recognizeImageQuestion(File imageFile) async {
+  Future<void> _recognizeImageQuestion(
+    File imageFile, {
+    bool autoGenerate = false,
+  }) async {
     setState(() {
       _isRecognizingImage = true;
       _errorMessage = null;
@@ -612,10 +600,16 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
       }
 
       setState(() {
-        _questionController.text = recognizedText.trim();
+        _recognizedQuestionText = recognizedText.trim();
       });
       AppUX.feedbackSuccess();
-      AppUX.showSnackBar(context, '已自動帶入題目文字，可再手動修改');
+
+      if (autoGenerate) {
+        AppUX.showSnackBar(context, '已辨識題目，正在幫你出相似題...');
+        await _generatePractice(forceSourceText: _recognizedQuestionText);
+      } else {
+        AppUX.showSnackBar(context, '已辨識題目，點「產生相似題」即可出題');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -625,8 +619,9 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
     }
   }
 
-  Future<void> _generatePractice() async {
-    final questionText = _questionController.text.trim();
+  Future<void> _generatePractice({String? forceSourceText}) async {
+    final questionText =
+        (forceSourceText ?? _questionController.text).trim();
     if (questionText.isEmpty) {
       AppUX.showSnackBar(context, '請先輸入錯題內容', isError: true);
       return;
@@ -659,7 +654,10 @@ class _SimilarPracticePageState extends ConsumerState<SimilarPracticePage> {
 
       if (rawResult == null) {
         setState(() {
-          _errorMessage = '這次出題失敗了，請稍後再試一次。';
+          final detail = GeminiService().lastSimilarPracticeError;
+          _errorMessage = detail?.trim().isNotEmpty == true
+              ? '這次出題失敗：$detail'
+              : '這次出題失敗了，請稍後再試一次。';
         });
         return;
       }

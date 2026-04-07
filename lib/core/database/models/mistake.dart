@@ -75,6 +75,7 @@ class Mistake {
     bool clearNextReviewAt = false,
     bool clearErrorReason = false,
     bool clearErrorType = false,
+    bool clearChapter = false,
   }) {
     return Mistake(
       id: id ?? this.id,
@@ -84,7 +85,7 @@ class Mistake {
       solutions: solutions ?? this.solutions,
       subject: subject ?? this.subject,
       category: category ?? this.category,
-      chapter: chapter ?? this.chapter,
+      chapter: clearChapter ? null : (chapter ?? this.chapter),
       errorReason: clearErrorReason ? null : (errorReason ?? this.errorReason),
       reviewCount: reviewCount ?? this.reviewCount,
       lastReviewedAt:
@@ -102,11 +103,13 @@ class Mistake {
       id: map['id'] as int?,
       imagePath: map['image_path'] as String,
       title: map['title'] as String,
-      tags: List<String>.from(jsonDecode(map['tags'] as String)),
+      tags: Mistake.normalizeTagsForStorage(
+        List<String>.from(jsonDecode(map['tags'] as String)),
+      ),
       solutions: List<String>.from(jsonDecode(map['solutions'] as String)),
       subject: map['subject'] as String? ?? '其他',
       category: map['category'] as String? ?? '一般',
-      chapter: map['chapter'] as String?,
+      chapter: Mistake.normalizeChapterForStorage(map['chapter'] as String?),
       errorReason: map['error_reason'] as String?,
       reviewCount: map['review_count'] as int? ?? 0,
       lastReviewedAt: map['last_reviewed_at'] == null
@@ -121,9 +124,50 @@ class Mistake {
     );
   }
 
+  /// AI 無法對應教科書章節時的占位字串；不應持久化，見 [normalizeChapterForStorage]、[normalizeTagsForStorage]。
+  static const String pendingChapterPlaceholder = '待確認章節';
+
+  /// 使用者透過「AI 做錯了」流程更正後寫入的標籤，供列表與詳解頁顯示標記。
+  static const String aiCorrectionTag = 'AI 更正';
+
+  /// 是否為「已含使用者更正／依答案推斷」的錯題（含舊資料：僅 solutions 字串符合時也視為已更正）。
+  bool get hasAiCorrection {
+    if (tags.contains(aiCorrectionTag)) return true;
+    for (final s in solutions) {
+      final t = s.trim();
+      if (t.startsWith('正確答案：')) return true;
+      if (t.contains('依答案推斷解法（請謹慎使用）')) return true;
+    }
+    return false;
+  }
+
+  /// 寫入／讀取資料時：占位章節不存 `chapter` 欄位。
+  static String? normalizeChapterForStorage(String? chapter) {
+    final t = chapter?.trim();
+    if (t == null || t.isEmpty) return null;
+    if (t == pendingChapterPlaceholder) return null;
+    return t;
+  }
+
+  /// 寫入／讀取資料時：從 `tags` 移除占位章節字串。
+  static List<String> normalizeTagsForStorage(List<String> tags) {
+    return tags
+        .where((t) => t.trim() != pendingChapterPlaceholder)
+        .toList();
+  }
+
+  /// 列表／卡片／列印等 UI 顯示用（仍保留於資料庫，供內部邏輯使用）。
+  List<String> get tagsForDisplay {
+    return tags
+        .where((t) => t != 'AI 解析' && t != pendingChapterPlaceholder)
+        .toList();
+  }
+
   String? get resolvedChapter {
     final stored = chapter?.trim();
-    if (stored != null && stored.isNotEmpty) {
+    if (stored != null &&
+        stored.isNotEmpty &&
+        stored != pendingChapterPlaceholder) {
       return stored;
     }
 
@@ -131,7 +175,8 @@ class Mistake {
       final normalized = tag.trim();
       if (normalized.isEmpty ||
           normalized == 'AI 解析' ||
-          normalized == 'AI 練習題') {
+          normalized == 'AI 練習題' ||
+          normalized == pendingChapterPlaceholder) {
         continue;
       }
       return normalized;
@@ -147,6 +192,7 @@ class Mistake {
             tag.isNotEmpty &&
             tag != 'AI 解析' &&
             tag != 'AI 練習題' &&
+            tag != pendingChapterPlaceholder &&
             tag != chapterLabel)
         .toList();
   }

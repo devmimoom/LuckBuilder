@@ -18,18 +18,6 @@ class PrintPdfGenerator {
     // 根據設定排序
     final sortedMistakes = _sortMistakes(mistakes, settings.sortOption);
 
-    // 根據每頁題數分組
-    final questionsPerPage = settings.questionsPerPage.count;
-    final pages = <List<Mistake>>[];
-    for (var i = 0; i < sortedMistakes.length; i += questionsPerPage) {
-      pages.add(sortedMistakes.sublist(
-        i,
-        i + questionsPerPage > sortedMistakes.length
-            ? sortedMistakes.length
-            : i + questionsPerPage,
-      ));
-    }
-
     // 預先載入題目圖片（如果有啟用「包含題目圖片」）
     final Map<String, pw.ImageProvider> imageCache = {};
     if (settings.includeImages) {
@@ -54,41 +42,43 @@ class PrintPdfGenerator {
     }
 
     final fonts = await _loadPdfFonts();
-
-    for (final pageQuestions in pages) {
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(40),
-          build: (context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                // 頁面標題
-                pw.Text(
-                  '我的錯題本',
-                  style: _pdfTextStyle(
-                    fonts,
-                    fontSize: 18,
-                    isBold: true,
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-                // 題目列表
-                ...pageQuestions.map((mistake) {
-                  return _buildQuestionBlock(
-                    mistake,
-                    settings,
-                    fonts,
-                    imageCache,
-                  );
-                }),
-              ],
-            );
-          },
+    final maxQuestionsPerPage = settings.questionsPerPage.count;
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(40),
+        header: (context) => pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 20),
+          child: pw.Text(
+            '我的錯題本',
+            style: _pdfTextStyle(
+              fonts,
+              fontSize: 18,
+              isBold: true,
+            ),
+          ),
         ),
-      );
-    }
+        build: (context) {
+          final widgets = <pw.Widget>[];
+          for (var i = 0; i < sortedMistakes.length; i++) {
+            widgets.addAll(
+              _buildQuestionBlockWidgets(
+                sortedMistakes[i],
+                settings,
+                fonts,
+                imageCache,
+              ),
+            );
+            final isLast = i == sortedMistakes.length - 1;
+            final reachedPerPageCap = (i + 1) % maxQuestionsPerPage == 0;
+            if (!isLast && reachedPerPageCap) {
+              widgets.add(pw.NewPage());
+            }
+          }
+          return widgets;
+        },
+      ),
+    );
 
     return pdf.save();
   }
@@ -118,7 +108,7 @@ class PrintPdfGenerator {
     return sorted;
   }
 
-  static pw.Widget _buildQuestionBlock(
+  static List<pw.Widget> _buildQuestionBlockWidgets(
     Mistake mistake,
     PrintSettings settings,
     _PdfFonts fonts,
@@ -132,138 +122,138 @@ class PrintPdfGenerator {
     final detailTextColor = settings.contentOption == PrintContentOption.full
         ? PdfColors.grey700
         : PdfColors.green800;
+    final imageHeight = switch (settings.questionsPerPage) {
+      QuestionsPerPage.one => 180.0,
+      QuestionsPerPage.two => 140.0,
+      QuestionsPerPage.four => 96.0,
+    };
 
-    return pw.Container(
-      margin: const pw.EdgeInsets.only(bottom: 20),
-      padding: const pw.EdgeInsets.all(16),
-      decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.grey300),
-        borderRadius: pw.BorderRadius.circular(8),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          // 標題列
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Container(
-                padding:
-                    const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.blue100,
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-                child: pw.Text(
-                  '[${mistake.subject}] ${mistake.category}',
-                  style: _pdfTextStyle(
-                    fonts,
-                    fontSize: 10,
-                    color: PdfColors.blue800,
-                  ),
-                ),
-              ),
-              if (settings.showDate)
-                pw.Text(
-                  dateStr,
-                  style: _pdfTextStyle(
-                    fonts,
-                    fontSize: 10,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-            ],
-          ),
-          pw.SizedBox(height: 12),
-          // 題目圖片（可選）
-          if (settings.includeImages &&
-              mistake.imagePath.isNotEmpty &&
-              imageCache[mistake.imagePath] != null) ...[
+    return [
+      pw.Container(
+        width: double.infinity,
+        padding: const pw.EdgeInsets.all(12),
+        decoration: pw.BoxDecoration(
+          color: PdfColors.grey50,
+          border: pw.Border.all(color: PdfColors.grey300),
+          borderRadius: pw.BorderRadius.circular(8),
+        ),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
             pw.Container(
-              margin: const pw.EdgeInsets.only(bottom: 8),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: pw.BoxDecoration(
-                borderRadius: pw.BorderRadius.circular(6),
-                color: PdfColors.grey100,
+                color: PdfColors.blue100,
+                borderRadius: pw.BorderRadius.circular(4),
               ),
-              child: pw.ClipRRect(
-                horizontalRadius: 6,
-                verticalRadius: 6,
-                child: pw.Center(
-                  child: pw.Image(
-                    imageCache[mistake.imagePath]!,
-                    height: 160,
-                    fit: pw.BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-          ],
-          // 題目
-          pw.Text(
-            '題目：',
-            style: _pdfTextStyle(
-              fonts,
-              fontSize: 12,
-              isBold: true,
-            ),
-          ),
-          pw.SizedBox(height: 4),
-          _buildTextWithMath(mistake.title, fonts, fontSize: 11),
-          if (detailSectionTitle != null && printableDetails.isNotEmpty) ...[
-            pw.SizedBox(height: 12),
-            pw.Text(
-              detailSectionTitle,
-              style: _pdfTextStyle(
-                fonts,
-                isBold: true,
-                fontSize: 11,
-                color: detailTextColor,
-              ),
-            ),
-            pw.SizedBox(height: 4),
-            ...printableDetails.map((detail) {
-              return pw.Padding(
-                padding: const pw.EdgeInsets.only(bottom: 4),
-                child: _buildTextWithMath(
-                  detail,
+              child: pw.Text(
+                '[${mistake.subject}] ${mistake.category}',
+                style: _pdfTextStyle(
                   fonts,
                   fontSize: 10,
-                  color: detailTextColor,
+                  color: PdfColors.blue800,
                 ),
-              );
-            }),
-          ],
-          // 標籤（如果有）
-          if (mistake.tags.isNotEmpty &&
-              mistake.tags.any((t) => t != 'AI 解析')) ...[
-            pw.SizedBox(height: 12),
-            pw.Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: mistake.tags
-                  .where((t) => t != 'AI 解析')
-                  .map((tag) => pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.grey200,
-                          borderRadius: pw.BorderRadius.circular(4),
-                        ),
-                        child: pw.Text(
-                          tag,
-                          style: _pdfTextStyle(
-                            fonts,
-                            fontSize: 9,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                      ))
-                  .toList(),
+              ),
             ),
+            if (settings.showDate)
+              pw.Text(
+                dateStr,
+                style: _pdfTextStyle(
+                  fonts,
+                  fontSize: 10,
+                  color: PdfColors.grey600,
+                ),
+              ),
           ],
-        ],
+        ),
       ),
-    );
+      pw.SizedBox(height: 10),
+      if (settings.includeImages &&
+          mistake.imagePath.isNotEmpty &&
+          imageCache[mistake.imagePath] != null) ...[
+        pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 8),
+          padding: const pw.EdgeInsets.all(8),
+          decoration: pw.BoxDecoration(
+            borderRadius: pw.BorderRadius.circular(6),
+            color: PdfColors.grey100,
+            border: pw.Border.all(color: PdfColors.grey300),
+          ),
+          child: pw.Center(
+            child: pw.Image(
+              imageCache[mistake.imagePath]!,
+              height: imageHeight,
+              fit: pw.BoxFit.contain,
+            ),
+          ),
+        ),
+      ],
+      pw.Text(
+        '題目：',
+        style: _pdfTextStyle(
+          fonts,
+          fontSize: 12,
+          isBold: true,
+        ),
+      ),
+      pw.SizedBox(height: 4),
+      _buildTextWithMath(mistake.title, fonts, fontSize: 11),
+      if (detailSectionTitle != null && printableDetails.isNotEmpty) ...[
+        pw.SizedBox(height: 12),
+        pw.Text(
+          detailSectionTitle,
+          style: _pdfTextStyle(
+            fonts,
+            isBold: true,
+            fontSize: 11,
+            color: detailTextColor,
+          ),
+        ),
+        pw.SizedBox(height: 4),
+        ...printableDetails.map((detail) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 4),
+            child: _buildTextWithMath(
+              detail,
+              fonts,
+              fontSize: 10,
+              color: detailTextColor,
+            ),
+          );
+        }),
+      ],
+      if (mistake.tagsForDisplay.isNotEmpty) ...[
+        pw.SizedBox(height: 12),
+        pw.Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: mistake.tagsForDisplay
+              .map((tag) => pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.grey200,
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: pw.Text(
+                      tag,
+                      style: _pdfTextStyle(
+                        fonts,
+                        fontSize: 9,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  ))
+              .toList(),
+        ),
+      ],
+      pw.SizedBox(height: 16),
+      pw.Divider(color: PdfColors.grey300),
+      pw.SizedBox(height: 12),
+    ];
   }
 
   static String? _getDetailSectionTitle(PrintContentOption option) {
@@ -283,15 +273,32 @@ class PrintPdfGenerator {
     Mistake mistake,
     PrintContentOption option,
   ) {
-    return _getPrintableSolutions(mistake.solutions);
+    final parsedSolutions = _parseSolutions(mistake.solutions);
+    switch (option) {
+      case PrintContentOption.questionOnly:
+        return const <String>[];
+      case PrintContentOption.questionAndAnswer:
+        final answers = _buildAnswerOnlyDetails(parsedSolutions);
+        return answers.isNotEmpty ? answers : _buildFallbackDetails(parsedSolutions);
+      case PrintContentOption.full:
+        return _getPrintableSolutions(mistake.solutions);
+      case PrintContentOption.withNote:
+        final notes = _buildNoteDetails(parsedSolutions);
+        return notes.isNotEmpty ? notes : const <String>['目前沒有可列印的筆記或提醒內容。'];
+    }
   }
 
   static List<String> _getPrintableSolutions(List<String> solutions) {
+    final parsedSolutions = _parseSolutions(solutions);
     final seen = <String>{};
     final printable = <String>[];
 
-    for (final solution in solutions) {
-      final normalized = _normalizePrintableText(solution);
+    for (final solution in parsedSolutions) {
+      final parts = <String>[
+        if (solution.title.isNotEmpty) solution.title,
+        if (solution.content.isNotEmpty) solution.content,
+      ];
+      final normalized = _normalizePrintableText(parts.join('：'));
       if (normalized.isEmpty) continue;
       if (_containsPromptArtifacts(normalized)) continue;
       if (!seen.add(normalized)) continue;
@@ -299,6 +306,121 @@ class PrintPdfGenerator {
     }
 
     return printable;
+  }
+
+  static List<_PrintableSolution> _parseSolutions(List<String> solutions) {
+    final parsed = <_PrintableSolution>[];
+
+    for (final solution in solutions) {
+      final normalized = _normalizePrintableText(solution);
+      if (normalized.isEmpty) continue;
+
+      final colonIndex = normalized.indexOf('：');
+      if (colonIndex > 0) {
+        parsed.add(
+          _PrintableSolution(
+            title: normalized.substring(0, colonIndex).trim(),
+            content: colonIndex < normalized.length - 1
+                ? normalized.substring(colonIndex + 1).trim()
+                : '',
+          ),
+        );
+      } else {
+        parsed.add(_PrintableSolution(title: '', content: normalized));
+      }
+    }
+
+    return parsed;
+  }
+
+  static List<String> _buildAnswerOnlyDetails(
+    List<_PrintableSolution> solutions,
+  ) {
+    final seen = <String>{};
+    final printable = <String>[];
+
+    for (final solution in solutions) {
+      final title = solution.title.trim();
+      final content = solution.content.trim();
+      if (content.isEmpty && title.isEmpty) continue;
+
+      final lowerTitle = title.toLowerCase();
+      if (title == '正確答案' ||
+          lowerTitle.contains('答案') ||
+          lowerTitle.contains('answer')) {
+        final line = title.isEmpty ? content : '$title：$content';
+        if (seen.add(line)) printable.add(line);
+        continue;
+      }
+
+      final extracted = _extractAnswerSentence(content);
+      if (extracted != null && seen.add(extracted)) {
+        printable.add(extracted);
+      }
+    }
+
+    return printable;
+  }
+
+  static List<String> _buildNoteDetails(
+    List<_PrintableSolution> solutions,
+  ) {
+    final seen = <String>{};
+    final printable = <String>[];
+
+    for (final solution in solutions) {
+      final title = solution.title.trim();
+      final content = solution.content.trim();
+      if (content.isEmpty && title.isEmpty) continue;
+
+      final isNoteLike = title.contains('易錯') ||
+          title.contains('提醒') ||
+          title.contains('筆記') ||
+          title.contains('正確答案') ||
+          title.contains('依答案推斷');
+      if (!isNoteLike) continue;
+
+      final line = title.isEmpty ? content : '$title：$content';
+      if (seen.add(line)) printable.add(line);
+    }
+
+    return printable;
+  }
+
+  static List<String> _buildFallbackDetails(
+    List<_PrintableSolution> solutions,
+  ) {
+    for (final solution in solutions) {
+      final title = solution.title.trim();
+      final content = solution.content.trim();
+      if (content.isEmpty) continue;
+      if (title.contains('易錯') || title.contains('提醒')) continue;
+      return [title.isEmpty ? content : '$title：$content'];
+    }
+
+    return const <String>['目前沒有可列印的答案內容。'];
+  }
+
+  static String? _extractAnswerSentence(String content) {
+    final normalized = _normalizePrintableText(content);
+    if (normalized.isEmpty) return null;
+
+    final patterns = <RegExp>[
+      RegExp(r'(所以答案是[^。；\n]*)'),
+      RegExp(r'(答案是[^。；\n]*)'),
+      RegExp(r'(故答案為[^。；\n]*)'),
+      RegExp(r'(因此答案為[^。；\n]*)'),
+      RegExp(r'(故選[^\n。；]*)'),
+    ];
+
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(normalized);
+      if (match != null) {
+        return match.group(1)?.trim();
+      }
+    }
+
+    return null;
   }
 
   static String _normalizePrintableText(String text) {
@@ -482,5 +604,15 @@ class _PdfFonts {
     required this.bold,
     required this.math,
     required this.symbols,
+  });
+}
+
+class _PrintableSolution {
+  final String title;
+  final String content;
+
+  const _PrintableSolution({
+    required this.title,
+    required this.content,
   });
 }

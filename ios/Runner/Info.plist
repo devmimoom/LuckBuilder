@@ -45,6 +45,12 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>814867629025-fpsph5oaco91040fkt42ehangugtvh65.apps.googleusercontent.com</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>app-settings</string>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>

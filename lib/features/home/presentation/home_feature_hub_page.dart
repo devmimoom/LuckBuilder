@@ -12,6 +12,7 @@ import '../../../core/theme/home_mesh_reference_colors.dart';
 import '../../../core/utils/app_ux.dart';
 import '../../../core/utils/legal_links.dart';
 import '../../../core/utils/paywall_gate.dart';
+import '../providers/learning_curve_tip_provider.dart';
 import '../../banner_promotion/presentation/banner_promotion_page.dart';
 import '../../exams/presentation/exam_countdown_mini_card.dart';
 import '../../exams/presentation/exam_countdown_page.dart';
@@ -25,6 +26,7 @@ import '../../review/providers/review_provider.dart';
 import '../../subscription/providers/feature_trial_provider.dart';
 import '../../tasks/presentation/tasks_page.dart';
 import '../../tasks/providers/tasks_provider.dart';
+import '../../auth/providers/auth_session_provider.dart';
 import '../../settings/providers/user_display_name_provider.dart';
 import '../../settings/providers/user_encouragement_message_provider.dart';
 import '../../settings/providers/user_profile_photo_provider.dart';
@@ -101,6 +103,7 @@ class HomeFeatureHubPage extends ConsumerWidget {
             const SizedBox(height: AppSpacing.lg),
             _buildTasksEntry(
               context,
+              ref,
               tasksAsync,
               examsAsync.valueOrNull?.nextExam,
             ),
@@ -293,7 +296,7 @@ class HomeFeatureHubPage extends ConsumerWidget {
   }) {
     final hasPhoto = photoPath != null && photoPath.isNotEmpty;
     final displayInitial = userDisplayName.trim().isEmpty
-        ? 'A'
+        ? 'L'
         : userDisplayName.trim().characters.first.toUpperCase();
     const avatarSize = 72.0;
     return Container(
@@ -335,6 +338,7 @@ class HomeFeatureHubPage extends ConsumerWidget {
 
   Widget _buildTasksEntry(
     BuildContext context,
+    WidgetRef ref,
     AsyncValue<DailyTasksData> tasksAsync,
     ExamCountdown? nextExam,
   ) {
@@ -342,57 +346,86 @@ class HomeFeatureHubPage extends ConsumerWidget {
         ? ExamCountdownMiniHeroCard(exam: nextExam)
         : null;
 
+    final auth = ref.watch(authSessionProvider);
+    final tipState = ref.watch(learningCurveTipProvider);
+    final shouldShowTip = auth.isLoggedIn && !tipState.isDismissedForever;
+
     return tasksAsync.when(
-      data: (tasksData) => _buildCompactCard(
-        title: '今日任務',
-        subtitle:
-            '${tasksData.completedCount}/${tasksData.tasks.length} 完成・每天一小步，累積就是大進步',
-        fillGradient: HomeCompactCardGradients.learningDashboard,
-        icon: Icons.checklist_rounded,
-        badgeText: '${tasksData.completedCount}/${tasksData.tasks.length}',
-        square: true,
-        bottomAssetPath: 'assets/home.png',
-        overflowBottomAsset: true,
-        useHeaderText: true,
-        topRightOverlay: topRightOverlay,
-        onTap: () {
-          AppUX.feedbackClick();
-          Navigator.of(context).push(
-            AppUX.fadeRoute(const TasksPage()),
-          );
-        },
+      data: (tasksData) => _wrapTodayTasksWithTip(
+        shouldShowTip: shouldShowTip,
+        child: _buildCompactCard(
+          title: '今日任務',
+          subtitle:
+              '${tasksData.completedCount}/${tasksData.tasks.length} 完成・每天一小步，累積就是大進步',
+          fillGradient: HomeCompactCardGradients.learningDashboard,
+          icon: Icons.checklist_rounded,
+          badgeText: '${tasksData.completedCount}/${tasksData.tasks.length}',
+          square: true,
+          bottomAssetPath: 'assets/home.png',
+          overflowBottomAsset: true,
+          useHeaderText: true,
+          topRightOverlay: topRightOverlay,
+          onTap: () {
+            AppUX.feedbackClick();
+            Navigator.of(context).push(
+              AppUX.fadeRoute(const TasksPage()),
+            );
+          },
+        ),
       ),
-      loading: () => _buildCompactCard(
-        title: '今日任務',
-        subtitle: '正在整理今天的任務...',
-        fillGradient: HomeCompactCardGradients.learningDashboard,
-        icon: Icons.checklist_rounded,
-        badgeText: '整理中',
-        square: true,
-        bottomAssetPath: 'assets/home.png',
-        overflowBottomAsset: true,
-        useHeaderText: true,
-        topRightOverlay: topRightOverlay,
-        onTap: null,
+      loading: () => _wrapTodayTasksWithTip(
+        shouldShowTip: shouldShowTip,
+        child: _buildCompactCard(
+          title: '今日任務',
+          subtitle: '正在整理今天的任務...',
+          fillGradient: HomeCompactCardGradients.learningDashboard,
+          icon: Icons.checklist_rounded,
+          badgeText: '整理中',
+          square: true,
+          bottomAssetPath: 'assets/home.png',
+          overflowBottomAsset: true,
+          useHeaderText: true,
+          topRightOverlay: topRightOverlay,
+          onTap: null,
+        ),
       ),
-      error: (_, __) => _buildCompactCard(
-        title: '今日任務',
-        subtitle: '點擊查看今日任務',
-        fillGradient: HomeCompactCardGradients.learningDashboard,
-        icon: Icons.checklist_rounded,
-        badgeText: '查看',
-        square: true,
-        bottomAssetPath: 'assets/home.png',
-        overflowBottomAsset: true,
-        useHeaderText: true,
-        topRightOverlay: topRightOverlay,
-        onTap: () {
-          AppUX.feedbackClick();
-          Navigator.of(context).push(
-            AppUX.fadeRoute(const TasksPage()),
-          );
-        },
+      error: (_, __) => _wrapTodayTasksWithTip(
+        shouldShowTip: shouldShowTip,
+        child: _buildCompactCard(
+          title: '今日任務',
+          subtitle: '點擊查看今日任務',
+          fillGradient: HomeCompactCardGradients.learningDashboard,
+          icon: Icons.checklist_rounded,
+          badgeText: '查看',
+          square: true,
+          bottomAssetPath: 'assets/home.png',
+          overflowBottomAsset: true,
+          useHeaderText: true,
+          topRightOverlay: topRightOverlay,
+          onTap: () {
+            AppUX.feedbackClick();
+            Navigator.of(context).push(
+              AppUX.fadeRoute(const TasksPage()),
+            );
+          },
+        ),
       ),
+    );
+  }
+
+  Widget _wrapTodayTasksWithTip({
+    required bool shouldShowTip,
+    required Widget child,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (shouldShowTip) ...[
+          const _LearningCurveRationaleCard(),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        child,
+      ],
     );
   }
 
@@ -717,6 +750,101 @@ class HomeFeatureHubPage extends ConsumerWidget {
             AppUX.fadeRoute(const ExamCountdownPage()),
           );
         },
+      ),
+    );
+  }
+}
+
+class _LearningCurveRationaleCard extends ConsumerStatefulWidget {
+  const _LearningCurveRationaleCard();
+
+  @override
+  ConsumerState<_LearningCurveRationaleCard> createState() =>
+      _LearningCurveRationaleCardState();
+}
+
+class _LearningCurveRationaleCardState
+    extends ConsumerState<_LearningCurveRationaleCard> {
+  @override
+  Widget build(BuildContext context) {
+    const accent = HomeMeshReferenceColors.accentPurple;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.58),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: HomeMeshReferenceColors.glassBorderWhite),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: Icon(
+                Icons.insights_rounded,
+                size: 18,
+                color: accent.withValues(alpha: 0.95),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '為什麼今日任務長這樣？',
+                    style: HomePageFonts.resolve(const TextStyle(
+                      fontSize: AppFonts.sizeTitleSm,
+                      fontWeight: AppFonts.weightSemibold,
+                      color: AppColors.textPrimary,
+                      height: AppFonts.lineHeightTight,
+                    )),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '我們用「學習曲線／遺忘曲線」來排任務：新的與不熟的題目會先密集出現，'
+                    '熟悉後才把複習間隔拉長。\n'
+                    '常見節奏會像：第 1 天 → 第 3 天 → 第 7 天 → 第 14 天（再往後更長）。\n'
+                    '實際會依你完成率與熟悉度動態調整，讓你用更少時間把記憶留得更久。',
+                    style: HomePageFonts.resolve(const TextStyle(
+                      fontSize: AppFonts.sizeBodySm,
+                      fontWeight: AppFonts.weightRegular,
+                      color: AppColors.textSecondary,
+                      height: AppFonts.lineHeightRelaxed,
+                    )),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              icon: const Icon(Icons.close_rounded, size: 18),
+              color: AppColors.textTertiary,
+              onPressed: () async {
+                AppUX.feedbackClick();
+                await ref
+                    .read(learningCurveTipProvider.notifier)
+                    .dismissForever();
+              },
+              tooltip: '不再顯示',
+            ),
+          ],
+        ),
       ),
     );
   }

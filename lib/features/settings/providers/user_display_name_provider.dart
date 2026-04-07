@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _prefsKey = 'user_display_name';
-const defaultUserDisplayName = 'Ariel';
+const defaultUserDisplayName = 'LuckLab使用者';
 
 /// 儲存值為空白時，首頁等處仍顯示預設稱呼（輸入框可暫時清空再重打）。
 String userDisplayNameForGreeting(String stored) {
@@ -40,5 +40,14 @@ class UserDisplayNameNotifier extends StateNotifier<String> {
     } catch (_) {
       // Keep in-memory value even if persistence fails.
     }
+  }
+
+  /// 還原為預設稱呼並清除儲存（例如刪除帳號後）。
+  Future<void> resetToDefault() async {
+    state = defaultUserDisplayName;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefsKey);
+    } catch (_) {}
   }
 }

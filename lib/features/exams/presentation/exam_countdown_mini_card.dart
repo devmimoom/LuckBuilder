@@ -128,7 +128,7 @@ class ExamCountdownMiniHeroCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       DateFormat('yyyy/MM/dd').format(exam.examDate),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: onSub,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

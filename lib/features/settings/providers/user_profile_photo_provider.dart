@@ -45,7 +45,16 @@ class UserProfilePhotoPathNotifier extends StateNotifier<String?> {
   }
 
   Future<void> clear() async {
+    final previous = state;
     state = null;
+    if (previous != null && previous.isNotEmpty) {
+      try {
+        final f = File(previous);
+        if (f.existsSync()) {
+          f.deleteSync();
+        }
+      } catch (_) {}
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_prefsKey);

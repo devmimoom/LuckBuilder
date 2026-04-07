@@ -119,27 +119,6 @@ class ExamCountdownController {
     await _persist(prefs, list);
     ref.read(_examRefreshProvider.notifier).state++;
   }
-
-  Future<void> seedIfEmpty() async {
-    final prefs = await SharedPreferences.getInstance();
-    if ((await _read(prefs)).isNotEmpty) return;
-    final now = DateTime.now();
-    await _persist(prefs, [
-      ExamCountdown(
-        id: 'seed_monthly',
-        name: '段考',
-        type: ExamType.monthly,
-        examDate: DateTime(now.year, now.month, now.day + 14),
-      ),
-      ExamCountdown(
-        id: 'seed_cap',
-        name: '會考',
-        type: ExamType.cap,
-        examDate: DateTime(now.year, now.month, now.day + 48),
-      ),
-    ]);
-    ref.read(_examRefreshProvider.notifier).state++;
-  }
 }
 
 // ---------------------------------------------------------------------------

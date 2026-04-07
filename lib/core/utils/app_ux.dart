@@ -9,6 +9,8 @@ class AppUX {
   // 避免實例化
   AppUX._();
 
+  static bool _hasShownMathImageHint = false;
+
   // ==========================================
   // 1. 觸覺回饋 (Haptic Feedback)
   // ==========================================
@@ -59,7 +61,7 @@ class AppUX {
 
   /// 顯示黑底白字的極簡 SnackBar
   static void showSnackBar(BuildContext context, String message,
-      {bool isError = false}) {
+      {bool isError = false, Duration duration = const Duration(seconds: 2)}) {
     ScaffoldMessenger.of(context).clearSnackBars(); // 清除舊的
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -81,8 +83,19 @@ class AppUX {
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(50)), // 膠囊狀
-        duration: const Duration(seconds: 2),
+        duration: duration,
       ),
+    );
+  }
+
+  /// 每次 App 會話最多提示一次，避免反覆打擾。
+  static void showMathImageHintOnce(BuildContext context) {
+    if (_hasShownMathImageHint) return;
+    _hasShownMathImageHint = true;
+    showSnackBar(
+      context,
+      '小提醒：幾何或圖表題請盡量框住完整圖形、標示與選項，避免只截到文字。',
+      duration: const Duration(seconds: 8),
     );
   }
 }

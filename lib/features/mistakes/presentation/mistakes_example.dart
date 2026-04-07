@@ -25,7 +25,7 @@ class MistakesExamplePage extends ConsumerWidget {
             return ListTile(
               title: Text(
                   LatexHelper.toReadableText(mistake.title, fallback: '未命名題目')),
-              subtitle: Text(mistake.tags.join(', ')),
+              subtitle: Text(mistake.tagsForDisplay.join(', ')),
               trailing: IconButton(
                 icon: const Icon(Icons.delete),
                 onPressed: () {
@@ -92,7 +92,7 @@ class MistakeDetailExample extends ConsumerWidget {
             // 顯示圖片（只存路徑，不存圖片本身）
             Image.file(File(mistake.imagePath)),
             Text(LatexHelper.toReadableText(mistake.title, fallback: '未命名題目')),
-            Text('標籤: ${mistake.tags.join(', ')}'),
+            Text('標籤: ${mistake.tagsForDisplay.join(', ')}'),
             // ... 其他 UI
           ],
         );

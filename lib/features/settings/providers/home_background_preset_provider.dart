@@ -38,4 +38,13 @@ class HomeBackgroundPresetNotifier extends StateNotifier<HomeBackgroundPreset> {
       // 仍保留記憶體狀態
     }
   }
+
+  /// 還原為內建預設主題並清除儲存（例如刪除帳號後）。
+  Future<void> resetToDefault() async {
+    state = HomeBackgroundPresets.defaultPreset;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefsKey);
+    } catch (_) {}
+  }
 }

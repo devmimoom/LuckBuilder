@@ -37,6 +37,9 @@ migrate_working_dir/
 .env
 .env.*
 
+# Apple / StoreConnect / subscription private keys (never commit)
+*.p8
+
 # Symbolication related
 app.*.symbols
 

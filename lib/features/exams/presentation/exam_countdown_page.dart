@@ -17,14 +17,6 @@ class ExamCountdownPage extends ConsumerStatefulWidget {
 
 class _ExamCountdownPageState extends ConsumerState<ExamCountdownPage> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(examCountdownControllerProvider).seedIfEmpty();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final examsAsync = ref.watch(examCountdownProvider);
 

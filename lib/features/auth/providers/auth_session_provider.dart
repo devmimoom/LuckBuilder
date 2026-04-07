@@ -5,10 +5,17 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../../../core/services/revenuecat_service.dart';
+import '../../settings/providers/home_background_preset_provider.dart';
+import '../../settings/providers/user_display_name_provider.dart';
+import '../../settings/providers/user_encouragement_message_provider.dart';
+import '../../settings/providers/user_profile_photo_provider.dart';
 
 class AuthSessionState {
   const AuthSessionState({
@@ -66,16 +73,19 @@ class AuthSessionState {
 
 final authSessionProvider =
     StateNotifierProvider<AuthSessionNotifier, AuthSessionState>(
-  (ref) => AuthSessionNotifier(),
+  (ref) => AuthSessionNotifier(ref),
 );
 
 class AuthSessionNotifier extends StateNotifier<AuthSessionState> {
-  AuthSessionNotifier() : super(const AuthSessionState.initial()) {
+  AuthSessionNotifier(this._ref) : super(const AuthSessionState.initial()) {
     unawaited(_load());
   }
 
+  final Ref _ref;
+
   StreamSubscription<User?>? _authSub;
   Future<void>? _loadingFuture;
+  Future<void>? _revenueCatSyncFuture;
   var _googleInitialized = false;
 
   Future<void> _load() async {
@@ -113,6 +123,16 @@ class AuthSessionNotifier extends StateNotifier<AuthSessionState> {
   Future<void> ensureLoaded() async {
     if (state.isLoaded) return;
     await _load();
+  }
+
+  Future<void> syncRevenueCatForCurrentSession() async {
+    await ensureLoaded();
+    _revenueCatSyncFuture = RevenueCatService.instance.syncAppUser(
+      uid: state.uid,
+      email: state.email,
+      displayName: state.displayName,
+    );
+    await _revenueCatSyncFuture;
   }
 
   Future<void> signInWithGoogle() async {
@@ -229,6 +249,90 @@ class AuthSessionNotifier extends StateNotifier<AuthSessionState> {
     }
   }
 
+  /// 刪除目前 Firebase 帳號（須重新通過 Google / Apple 驗證）。
+  /// 成功後會觸發登出狀態與 RevenueCat 同步。
+  Future<void> deleteAccount() async {
+    await ensureLoaded();
+    _requireFirebaseReady();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('尚未登入');
+    }
+    await _reauthenticateForDeletion(user);
+    await user.delete();
+    try {
+      await GoogleSignIn.instance.disconnect();
+    } catch (_) {}
+    try {
+      await _clearLocalUserPreferences();
+    } catch (e, st) {
+      // 帳號已刪除；本機清除失敗不應讓使用者以為刪除未完成。
+      debugPrint('deleteAccount: 本機偏好清除失敗: $e\n$st');
+    }
+  }
+
+  Future<void> _clearLocalUserPreferences() async {
+    await _ref.read(userDisplayNameProvider.notifier).resetToDefault();
+    await _ref
+        .read(userEncouragementMessageProvider.notifier)
+        .setMessage('');
+    await _ref.read(userProfilePhotoPathProvider.notifier).clear();
+    await _ref.read(homeBackgroundPresetProvider.notifier).resetToDefault();
+  }
+
+  Future<void> _reauthenticateForDeletion(User user) async {
+    final providers = user.providerData.map((p) => p.providerId).toSet();
+    if (providers.contains('google.com')) {
+      await _initializeGoogleSignIn();
+      if (!GoogleSignIn.instance.supportsAuthenticate()) {
+        throw StateError('目前平台不支援 Google 驗證');
+      }
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      final idToken = googleUser.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw StateError('Google 驗證未取得憑證');
+      }
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      await user.reauthenticateWithCredential(credential);
+      return;
+    }
+    if (providers.contains('apple.com')) {
+      if (!(Platform.isIOS || Platform.isMacOS)) {
+        throw StateError('Apple 帳號僅能在 Apple 裝置上完成刪除');
+      }
+      if (!await SignInWithApple.isAvailable()) {
+        throw StateError('此裝置無法使用 Sign in with Apple 驗證');
+      }
+      final rawNonce = _generateNonce();
+      final nonce = _sha256OfString(rawNonce);
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+      final identityToken = appleCredential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        throw StateError('Apple 驗證未取得有效憑證');
+      }
+      final authCode = appleCredential.authorizationCode.trim();
+      final AuthCredential oauthCredential = authCode.isNotEmpty
+          ? OAuthProvider('apple.com').credential(
+              idToken: identityToken,
+              rawNonce: rawNonce,
+              accessToken: authCode,
+            )
+          : OAuthProvider('apple.com').credential(
+              idToken: identityToken,
+              rawNonce: rawNonce,
+            );
+      await user.reauthenticateWithCredential(oauthCredential);
+      return;
+    }
+    throw StateError('此登入方式不支援在 App 內刪除帳號');
+  }
+
   Future<void> _initializeGoogleSignIn() async {
     if (_googleInitialized) return;
     await GoogleSignIn.instance.initialize();
@@ -250,6 +354,16 @@ class AuthSessionNotifier extends StateNotifier<AuthSessionState> {
         isLoaded: true,
         isFirebaseReady: Firebase.apps.isNotEmpty,
       );
+      _revenueCatSyncFuture = RevenueCatService.instance.syncAppUser(
+        uid: null,
+        email: null,
+        displayName: null,
+      );
+      unawaited(
+        _revenueCatSyncFuture!.catchError((Object _, StackTrace __) {
+          // Purchase flows await explicit syncs when they need strict ordering.
+        }),
+      );
       return;
     }
 
@@ -261,6 +375,16 @@ class AuthSessionNotifier extends StateNotifier<AuthSessionState> {
       displayName: _displayNameFor(user),
       email: user.email,
       providerLabel: _providerLabelFor(user),
+    );
+    _revenueCatSyncFuture = RevenueCatService.instance.syncAppUser(
+      uid: user.uid,
+      email: user.email,
+      displayName: _displayNameFor(user),
+    );
+    unawaited(
+      _revenueCatSyncFuture!.catchError((Object _, StackTrace __) {
+        // Purchase flows await explicit syncs when they need strict ordering.
+      }),
     );
   }
 

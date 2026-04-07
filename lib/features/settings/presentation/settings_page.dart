@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -18,6 +20,7 @@ import '../providers/user_display_name_provider.dart';
 import '../providers/user_encouragement_message_provider.dart';
 import '../providers/user_profile_photo_provider.dart';
 import '../../auth/providers/auth_session_provider.dart';
+import '../../auth/presentation/login_gate_page.dart';
 import '../../subscription/presentation/subscription_page.dart';
 
 final Future<PackageInfo> _packageInfoFuture = PackageInfo.fromPlatform();
@@ -199,7 +202,7 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
-          const _AccountSection(),
+          const _AuthSection(),
           const SizedBox(height: AppSpacing.xxl),
           const _UserDisplayNameField(),
           const SizedBox(height: AppSpacing.xxl),
@@ -355,14 +358,174 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
-class _AccountSection extends ConsumerWidget {
-  const _AccountSection();
+class _AuthSection extends ConsumerStatefulWidget {
+  const _AuthSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AuthSection> createState() => _AuthSectionState();
+}
+
+class _AuthSectionState extends ConsumerState<_AuthSection> {
+  Future<void> _deleteAccountFlow() async {
+    final first = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('刪除帳號'),
+        content: const Text(
+          '此動作將永久刪除您的 LuckLab 帳號與雲端相關資料，無法復原。\n\n'
+          '若您有訂閱，請至 App Store 的「訂閱」管理取消續訂。\n\n'
+          '接下來需再次使用 Google 或 Apple 登入以驗證身分。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('繼續'),
+          ),
+        ],
+      ),
+    );
+    if (first != true || !mounted) return;
+
+    final second = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('確認刪除'),
+        content: const Text('確定要永久刪除此帳號嗎？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('刪除帳號'),
+          ),
+        ],
+      ),
+    );
+    if (second != true || !mounted) return;
+
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(AppSpacing.xl),
+            child: CircularProgressIndicator(color: AppColors.accent),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      await ref.read(authSessionProvider.notifier).deleteAccount();
+      if (mounted) {
+        AppUX.showSnackBar(context, '已刪除帳號');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppUX.showSnackBar(
+          context,
+          _deleteAccountErrorMessage(e),
+          isError: true,
+        );
+      }
+    } finally {
+      navigator.pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authSessionProvider);
-    if (!auth.isFirebaseReady || !auth.isLoaded || !auth.isLoggedIn) {
+    if (!auth.isFirebaseReady || !auth.isLoaded) {
       return const SizedBox.shrink();
+    }
+
+    if (!auth.isLoggedIn) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '登入',
+            style: AppFonts.resolve(
+              const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: AppFonts.sizeCaption,
+                fontWeight: AppFonts.weightSemibold,
+                letterSpacing: AppFonts.letterSpacingTitle,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          PremiumCard(
+            backgroundOpacity: SettingsPage._cardOpacity,
+            padding: EdgeInsets.zero,
+            onTap: () async {
+              AppUX.feedbackClick();
+              await Navigator.of(context).push(
+                AppUX.fadeRoute(const LoginGatePage()),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.15),
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.radiusIcon),
+                  ),
+                  child: const Icon(
+                    Icons.login_rounded,
+                    size: 20,
+                    color: AppColors.accent,
+                  ),
+                ),
+                title: Text(
+                  '登入 / 註冊',
+                  style: AppFonts.resolve(
+                    const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: AppFonts.sizeBodyLg,
+                      fontWeight: AppFonts.weightMedium,
+                    ),
+                  ),
+                ),
+                subtitle: Text(
+                  '登入後即可啟用免費體驗與同步資料',
+                  style: AppFonts.resolve(
+                    const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: AppFonts.sizeBodySm,
+                      fontWeight: AppFonts.weightRegular,
+                    ),
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
     final emailLine = auth.email?.trim();
@@ -502,12 +665,46 @@ class _AccountSection extends ConsumerWidget {
                   side: const BorderSide(color: AppColors.error),
                 ),
               ),
+              const SizedBox(height: AppSpacing.md),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () {
+                    AppUX.feedbackClick();
+                    unawaited(_deleteAccountFlow());
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textTertiary,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('刪除帳號'),
+                ),
+              ),
             ],
           ),
         ),
       ],
     );
   }
+}
+
+String _deleteAccountErrorMessage(Object e) {
+  if (e is FirebaseAuthException) {
+    switch (e.code) {
+      case 'network-request-failed':
+        return '網路錯誤，請稍後再試';
+      case 'invalid-credential':
+      case 'user-mismatch':
+        return '驗證失敗，請再試一次';
+      case 'too-many-requests':
+        return '嘗試次數過多，請稍後再試';
+      default:
+        break;
+    }
+  }
+  return '刪除失敗：$e';
 }
 
 class _UserDisplayNameField extends ConsumerStatefulWidget {
@@ -541,7 +738,7 @@ class _UserDisplayNameFieldState extends ConsumerState<_UserDisplayNameField> {
     final displayName = ref.watch(userDisplayNameProvider);
     final photoPath = ref.watch(userProfilePhotoPathProvider);
     final avatarInitial = displayName.trim().isEmpty
-        ? 'A'
+        ? 'L'
         : displayName.trim().characters.first.toUpperCase();
     final hasPhoto = photoPath != null && photoPath.isNotEmpty;
 
@@ -685,7 +882,7 @@ class _UserDisplayNameFieldState extends ConsumerState<_UserDisplayNameField> {
                 controller: _controller,
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
-                  hintText: '例如 Ariel',
+                  hintText: '例如 LuckLab使用者',
                   isDense: true,
                   filled: true,
                   fillColor: Colors.white.withValues(alpha: 0.7),

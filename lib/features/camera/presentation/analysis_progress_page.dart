@@ -4,14 +4,111 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/premium_card.dart';
 import '../../../core/utils/app_ux.dart';
+import '../../../features/mistakes/providers/mistakes_provider.dart';
 import '../../solver/presentation/solver_page.dart';
 import '../providers/analysis_provider.dart';
 
-class AnalysisProgressPage extends ConsumerWidget {
+class AnalysisProgressPage extends ConsumerStatefulWidget {
   const AnalysisProgressPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AnalysisProgressPage> createState() =>
+      _AnalysisProgressPageState();
+}
+
+class _AnalysisProgressPageState extends ConsumerState<AnalysisProgressPage> {
+  bool _isSavingAll = false;
+  bool _hasSavedAll = false;
+
+  Future<void> _saveAllCompletedToMistakes(
+    List<AnalysisTask> completedTasks,
+  ) async {
+    if (_isSavingAll || _hasSavedAll) return;
+
+    setState(() => _isSavingAll = true);
+    try {
+      var successCount = 0;
+      var skippedCount = 0;
+
+      for (final task in completedTasks) {
+        final imagePath = task.cropPath ?? task.imagePath;
+        if (imagePath == null || imagePath.trim().isEmpty) {
+          skippedCount++;
+          continue;
+        }
+
+        final file = File(imagePath);
+        if (!await file.exists()) {
+          skippedCount++;
+          continue;
+        }
+
+        final latex = task.resultLatex?.trim() ?? '';
+        final subject = task.subject?.trim().isNotEmpty == true
+            ? task.subject!.trim()
+            : '其他';
+        final category = task.category?.trim().isNotEmpty == true
+            ? task.category!.trim()
+            : '一般';
+        final chapter = task.chapter?.trim().isNotEmpty == true
+            ? task.chapter!.trim()
+            : null;
+        final keyConcepts = task.keyConcepts
+            .where((c) => c.trim().isNotEmpty && c.trim() != 'AI 解析')
+            .take(5)
+            .toList();
+
+        final tags = <String>[
+          'AI 解析',
+          if (chapter != null) chapter,
+          ...keyConcepts,
+        ];
+
+        final solutionStrings = task.solutions
+            .map((s) =>
+                "${(s['title'] ?? '解法').toString().trim()}：${(s['content'] ?? '').toString().trim()}")
+            .where((s) => s.trim().isNotEmpty)
+            .toList();
+
+        // 若沒有解析內容，仍允許保存（至少保留題目圖片與 OCR）
+        await ref.read(mistakesProvider.notifier).addMistake(
+              imagePath: imagePath,
+              title: latex.isNotEmpty ? latex : (chapter ?? '題目'),
+              tags: tags,
+              solutions: solutionStrings,
+              subject: subject,
+              category: category,
+              chapter: chapter,
+            );
+        successCount++;
+      }
+
+      if (!mounted) return;
+      setState(() => _hasSavedAll = true);
+      AppUX.feedbackSuccess();
+      AppUX.showSnackBar(
+        context,
+        successCount > 0
+            ? "已加入錯題本（$successCount 題）"
+            : "沒有可加入的題目",
+      );
+      if (skippedCount > 0 && successCount > 0) {
+        AppUX.showSnackBar(
+          context,
+          "有 $skippedCount 題因圖片不存在而略過",
+          isError: true,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      AppUX.showSnackBar(context, "批次加入失敗，請重試", isError: true);
+    } finally {
+      if (mounted) setState(() => _isSavingAll = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tasks = ref.watch(analysisQueueProvider);
     final allCompleted = tasks.isNotEmpty &&
         tasks.every((t) => t.status == AnalysisStatus.completed);
@@ -323,6 +420,35 @@ class AnalysisProgressPage extends ConsumerWidget {
                   ),
                 ),
               ),
+              // 全部完成後，提供一鍵加入全部到錯題本
+              if (allCompleted) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: (_isSavingAll || _hasSavedAll)
+                        ? null
+                        : () {
+                            AppUX.feedbackClick();
+                            _saveAllCompletedToMistakes(
+                              completedTasks,
+                            );
+                          },
+                    icon: Icon(
+                      _hasSavedAll ? Icons.check_circle : Icons.bookmark_add,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _hasSavedAll ? "已全部加入錯題本" : "一鍵加入全部到錯題本",
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.textPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
             ],
             // 回到主頁按鈕

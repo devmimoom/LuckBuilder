@@ -14,11 +14,6 @@ abstract final class PaywallGate {
     WidgetRef ref,
     TrialFeature feature,
   ) async {
-    final entitlement = ref.read(entitlementProvider);
-    if (entitlement.hasAccess) {
-      return true;
-    }
-
     final authNotifier = ref.read(authSessionProvider.notifier);
     await authNotifier.ensureLoaded();
     if (!context.mounted) return false;
@@ -29,6 +24,21 @@ abstract final class PaywallGate {
       if (!context.mounted || loginResult != true) {
         return false;
       }
+    }
+
+    final entitlementNotifier = ref.read(entitlementProvider.notifier);
+    await entitlementNotifier.ensureFreshBackendVerification();
+    if (!context.mounted) return false;
+    final entitlement = ref.read(entitlementProvider);
+    if (entitlement.isBackendVerified && entitlement.hasAccess) {
+      return true;
+    }
+    if (!entitlement.isBackendVerified && entitlement.localHasAccess) {
+      return true;
+    }
+    if (entitlement.isLoading) {
+      AppUX.showSnackBar(context, '正在驗證訂閱狀態，請稍後再試');
+      return false;
     }
 
     final canUse = await ref.read(featureTrialProvider.notifier).canUse(feature);
@@ -52,11 +62,6 @@ abstract final class PaywallGate {
     WidgetRef ref,
     TrialFeature feature,
   ) async {
-    final entitlement = ref.read(entitlementProvider);
-    if (entitlement.hasAccess) {
-      return true;
-    }
-
     final authNotifier = ref.read(authSessionProvider.notifier);
     await authNotifier.ensureLoaded();
     if (!context.mounted) return false;
@@ -67,6 +72,21 @@ abstract final class PaywallGate {
       if (!context.mounted || loginResult != true) {
         return false;
       }
+    }
+
+    final entitlementNotifier = ref.read(entitlementProvider.notifier);
+    await entitlementNotifier.ensureFreshBackendVerification();
+    if (!context.mounted) return false;
+    final entitlement = ref.read(entitlementProvider);
+    if (entitlement.isBackendVerified && entitlement.hasAccess) {
+      return true;
+    }
+    if (!entitlement.isBackendVerified && entitlement.localHasAccess) {
+      return true;
+    }
+    if (entitlement.isLoading) {
+      AppUX.showSnackBar(context, '正在驗證訂閱狀態，請稍後再試');
+      return false;
     }
 
     final consumed =

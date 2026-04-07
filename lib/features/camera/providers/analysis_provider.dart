@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:ui';
 import '../../../core/services/gemini_service.dart' hide debugPrint;
 import '../../../core/services/math_ocr_service.dart';
+import '../../../core/utils/latex_helper.dart';
 import '../utils/crop_image_helper.dart';
 
 part 'analysis_provider.g.dart';
@@ -197,6 +198,7 @@ class AnalysisQueue extends _$AnalysisQueue {
         final geminiResult = await GeminiService().solveProblem(
           latex,
           imageFile: croppedImageFile,
+          forceAttachImageFromPipeline: true,
         );
 
         if (geminiResult != null) {
@@ -220,12 +222,20 @@ class AnalysisQueue extends _$AnalysisQueue {
             keyConcepts.add(concept.toString());
           }
 
+          final refinedQt =
+              geminiResult['question_text']?.toString().trim() ?? '';
+          final displayLatex = refinedQt.isNotEmpty
+              ? LatexHelper.stripEditorialFigurePhrases(
+                  LatexHelper.normalizeModelText(refinedQt),
+                )
+              : latex;
+
           // 更新任務為完成狀態，包含所有解析結果
           _updateTask(
             i,
             status: AnalysisStatus.completed,
             progress: 1.0,
-            resultLatex: latex, // OCR 辨識的題目文字
+            resultLatex: displayLatex,
             subject: geminiResult['subject']?.toString() ?? '其他',
             gradeLevel: geminiResult['grade_level']?.toString(),
             category: geminiResult['category']?.toString() ?? '一般',
@@ -347,6 +357,7 @@ class AnalysisQueue extends _$AnalysisQueue {
       final geminiResult = await GeminiService().solveProblem(
         latex,
         imageFile: croppedImageFile,
+        forceAttachImageFromPipeline: true,
       );
 
       if (geminiResult != null) {
@@ -368,11 +379,19 @@ class AnalysisQueue extends _$AnalysisQueue {
           keyConcepts.add(concept.toString());
         }
 
+        final refinedQt =
+            geminiResult['question_text']?.toString().trim() ?? '';
+        final displayLatex = refinedQt.isNotEmpty
+            ? LatexHelper.stripEditorialFigurePhrases(
+                LatexHelper.normalizeModelText(refinedQt),
+              )
+            : latex;
+
         _updateTask(
           taskIndex,
           status: AnalysisStatus.completed,
           progress: 1.0,
-          resultLatex: latex,
+          resultLatex: displayLatex,
           subject: geminiResult['subject']?.toString() ?? '其他',
           gradeLevel: geminiResult['grade_level']?.toString(),
           chapter: geminiResult['chapter']?.toString(),

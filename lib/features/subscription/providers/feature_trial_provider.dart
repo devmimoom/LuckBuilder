@@ -1,6 +1,8 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/services/trial_backend_service.dart';
 import '../../auth/providers/auth_session_provider.dart';
 
 enum TrialFeature {
@@ -61,26 +63,37 @@ final featureTrialProvider =
 
 class FeatureTrialNotifier extends StateNotifier<FeatureTrialState> {
   FeatureTrialNotifier(this._ref) : super(FeatureTrialState.initial()) {
-    _ref.listen<AuthSessionState>(authSessionProvider, (_, __) {
-      _load();
+    _ref.listen<AuthSessionState>(authSessionProvider, (previous, next) {
+      // 只在 uid 變化時重新載入，避免其他 auth 狀態波動覆蓋最新扣點結果。
+      if (previous?.uid == next.uid) {
+        return;
+      }
+      unawaited(_bindToAuth(next.uid));
     });
-    _load();
+    unawaited(_bindToAuth(_ref.read(authSessionProvider).uid));
   }
 
   final Ref _ref;
+  StreamSubscription<BackendTrialStatus?>? _trialSub;
 
-  Future<void> _load() async {
+  Future<void> _bindToAuth(String? uid) async {
+    await _trialSub?.cancel();
+    if (uid == null || uid.isEmpty) {
+      state = FeatureTrialState.initial().copyWith(isLoaded: true);
+      return;
+    }
+
+    state = state.copyWith(isLoaded: false);
+    _trialSub = TrialBackendService.instance.watchStatus(uid).listen((status) {
+      if (status == null) {
+        return;
+      }
+      _applyBackendStatus(status);
+    });
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final values = {
-        for (final feature in TrialFeature.values)
-          feature:
-              prefs.getInt(_prefsKeyFor(feature)) ?? feature.initialQuota,
-      };
-      state = FeatureTrialState(
-        remainingByFeature: values,
-        isLoaded: true,
-      );
+      final status = await TrialBackendService.instance.ensureTrialStatus();
+      _applyBackendStatus(status);
     } catch (_) {
       state = state.copyWith(isLoaded: true);
     }
@@ -88,7 +101,7 @@ class FeatureTrialNotifier extends StateNotifier<FeatureTrialState> {
 
   Future<int> remainingOf(TrialFeature feature) async {
     if (!state.isLoaded) {
-      await _load();
+      await _bindToAuth(_ref.read(authSessionProvider).uid);
     }
     return state.remainingOf(feature);
   }
@@ -98,26 +111,43 @@ class FeatureTrialNotifier extends StateNotifier<FeatureTrialState> {
   }
 
   Future<bool> consume(TrialFeature feature) async {
-    final remaining = await remainingOf(feature);
-    if (remaining <= 0) return false;
-
-    final next = remaining - 1;
-    final updated = Map<TrialFeature, int>.from(state.remainingByFeature)
-      ..[feature] = next;
-    state = state.copyWith(remainingByFeature: updated, isLoaded: true);
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_prefsKeyFor(feature), next);
-    } catch (_) {
-      // Keep in-memory state even if persistence fails.
-    }
-    return true;
-  }
-
-  String _prefsKeyFor(TrialFeature feature) {
     final uid = _ref.read(authSessionProvider).uid;
-    final scope = (uid == null || uid.isEmpty) ? 'guest' : uid;
-    return '${feature.basePrefsKey}_$scope';
+    if (uid == null || uid.isEmpty) {
+      return false;
+    }
+    final remaining = await remainingOf(feature);
+    if (remaining <= 0) {
+      return false;
+    }
+    final status = await TrialBackendService.instance.consumeTrialQuota(
+      feature.backendKey,
+    );
+    _applyBackendStatus(status);
+    return state.remainingOf(feature) < remaining;
   }
+
+  void _applyBackendStatus(BackendTrialStatus status) {
+    state = FeatureTrialState(
+      remainingByFeature: {
+        TrialFeature.cameraSolve: status.cameraSolveRemaining,
+        TrialFeature.similarPractice: status.similarPracticeRemaining,
+        TrialFeature.bannerPromotion: status.bannerPromotionRemaining,
+      },
+      isLoaded: true,
+    );
+  }
+
+  @override
+  void dispose() {
+    _trialSub?.cancel();
+    super.dispose();
+  }
+}
+
+extension on TrialFeature {
+  String get backendKey => switch (this) {
+        TrialFeature.cameraSolve => 'cameraSolve',
+        TrialFeature.similarPractice => 'similarPractice',
+        TrialFeature.bannerPromotion => 'bannerPromotion',
+      };
 }
